@@ -1,0 +1,112 @@
+body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+#battle-canvas {
+    position: fixed;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.menu-section {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    container-type: inline-size;
+}
+
+#menu-background {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#menu-text {
+    position: absolute;
+    left: 4.1667%;
+    top: 25.641%;
+    width: 40.8333%;
+    height: 50%;
+    box-sizing: border-box;
+
+    font-size: 2cqw;
+
+    display: flex;
+    align-items: center;
+}
+
+#fight-button {
+    position: absolute;
+    left: 62%;
+    top: 30%;
+    width: 21.875%;
+    transform: translate(-50%, -50%);
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+#fight-button img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+#fight-button:active img {
+    transform: scale(0.9);
+    opacity: 0.5;
+}
+
+#bag-button {
+    position: absolute;
+    left: 86%;
+    top: 30%;
+    width: 21.875%;
+    transform: translate(-50%, -50%);
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+#bag-button img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+#bag-button:active img {
+    transform: scale(0.9);
+    opacity: 0.5;
+}
+
+#run-button {
+    position: absolute;
+    left: 86%;
+    top: 75%;
+    width: 21.875%;
+    transform: translate(-50%, -50%);
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+#run-button img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+#run-button:active img {
+    transform: scale(0.9);
+    opacity: 0.5;
+}

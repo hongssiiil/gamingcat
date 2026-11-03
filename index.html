@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaming Cat</title>
+    <link rel="stylesheet" href="style/common.css">
+    <link rel="stylesheet" href="style/road.css">
+    <link rel="stylesheet" href="style/battle.css">
+    <script type="module" src="script/main.js"></script>
+</head>
+
+<body>
+    <nav class="screen-navigation" aria-label="화면 선택">
+        <button type="button" id="show-road">Road</button>
+        <button type="button" id="show-battle">Battle</button>
+    </nav>
+
+    <main>
+        <section id="Road" class="screen-active" aria-label="Road 화면">
+            <h1>Road</h1>
+            <div class="temporary-object road-object">Road 임시 오브젝트</div>
+        </section>
+
+        <section id="Battle" class="screen" aria-label="Battle 화면">
+            <canvas id="battle-canvas"></canvas>
+            <div class="menu-section">
+                <img id="menu-background" src="./images/battle/battle_menu.png" alt="">
+                <div id="menu-text">
+                    <p id="ai-recommendation">도망가자!<br>이길 수 있는 상대가 아니야!</p>
+                </div>
+                <button id="fight-button" aria-label="싸우기">
+                    <img src="./images/battle/fight_button.png" alt="">
+                </button>
+                <button id="bag-button" aria-label="가방">
+                    <img src="./images/battle/bag_button.png" alt="">
+                </button>
+                <button id="run-button" aria-label="도망가기">
+                    <img src="./images/battle/run_button.png" alt="">
+                </button>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>
