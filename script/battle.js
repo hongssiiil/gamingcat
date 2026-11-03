@@ -33,7 +33,7 @@ playerBase.src = "./images/battle/playerBase.png";
 const enemyBase = new Image();
 enemyBase.src = "./images/battle/enemyBase.png";
 const player = new Image();
-player.src = "./images/battle/player.png";
+player.src = "./images/character/player/player_diagonal.png";
 const enemy = new Image();
 enemy.src = "./images/battle/enemy.png";
 
