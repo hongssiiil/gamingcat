@@ -36,6 +36,8 @@ const player = new Image();
 player.src = "./images/character/player/player_diagonal.png";
 const enemy = new Image();
 enemy.src = "./images/battle/enemy.png";
+const cat = new Image();
+cat.src = "./images/character/cat/cat_diagonal.png";
 
 fightButton.addEventListener("click", () => {
     // 싸우기 버튼 클릭 시 동작
@@ -93,9 +95,10 @@ function drawBase() {
 }
 
 function drawEntities() {
-    if (!player.complete || !enemy.complete) return;
+    if (!player.complete || !enemy.complete || !cat.complete) return;
     ctx.drawImage(enemy, base_w * 0.57, base_h * 0.17, enemy.width * 1.5, enemy.height * 1.5);
-    ctx.drawImage(player, base_w * 0.23, base_h * 0.484, player.width * 1.5, player.height * 1.5);
+    ctx.drawImage(player, base_w * 0.18, base_h * 0.41, player.width * 1.5, player.height * 1.5);
+    ctx.drawImage(cat, base_w * 0.3, base_h * 0.6, cat.width * 1.5, cat.height * 1.5);
 }
 
 function draw() {
