@@ -35,7 +35,7 @@ enemyBase.src = "./images/battle/enemyBase.png";
 const player = new Image();
 player.src = "./images/character/player/player_diagonal.png";
 const enemy = new Image();
-enemy.src = "./images/battle/enemy.png";
+enemy.src = "./images/battle/wolf.png";
 const cat = new Image();
 cat.src = "./images/character/cat/cat_diagonal.png";
 
@@ -96,9 +96,9 @@ function drawBase() {
 
 function drawEntities() {
     if (!player.complete || !enemy.complete || !cat.complete) return;
-    ctx.drawImage(enemy, base_w * 0.57, base_h * 0.17, enemy.width * 1.5, enemy.height * 1.5);
-    ctx.drawImage(player, base_w * 0.18, base_h * 0.41, player.width * 1.5, player.height * 1.5);
-    ctx.drawImage(cat, base_w * 0.3, base_h * 0.6, cat.width * 1.5, cat.height * 1.5);
+    ctx.drawImage(enemy, base_w * 0.57, base_h * 0.17, enemy.width * 0.24, enemy.height * 0.24);
+    ctx.drawImage(player, base_w * 0.16, base_h * 0.38, player.width * 0.24, player.height * 0.24);
+    ctx.drawImage(cat, base_w * 0.28, base_h * 0.58, cat.width * 0.15, cat.height * 0.15);
 }
 
 function draw() {
