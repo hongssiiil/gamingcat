@@ -18,9 +18,24 @@
     </nav>
 
     <main>
-        <section id="Road" class="screen-active" aria-label="Road 화면">
-            <h1>Road</h1>
-            <div class="temporary-object road-object">Road 임시 오브젝트</div>
+        <section id="Road" class="screen-active road-screen" aria-label="Road 화면">
+            <h1 class="road-visually-hidden">숲길 탐험</h1>
+            <div class="road-viewport" id="road-viewport" tabindex="0" aria-label="WASD 또는 방향키로 이동하고, 할머니 가까이에서 E 또는 스페이스바를 눌러 대화하세요.">
+                <div class="road-world" id="road-world">
+                    <img class="road-map" id="road-map" src="./images/backgrounds/home.png" alt="집 주변의 숲길" draggable="false">
+                    <div class="road-actor road-grandmother" id="road-grandmother" aria-label="집 문 앞의 할머니">
+                        <img src="./images/character/grandmother/grandmother_front.png" alt="할머니" draggable="false">
+                    </div>
+                    <div class="road-actor road-player" id="road-player">
+                        <img id="road-player-sprite" src="./images/character/player/player.png" alt="플레이어" draggable="false">
+                    </div>
+                </div>
+
+                <section class="road-dialog" id="road-dialog" role="dialog" aria-labelledby="road-dialog-text" hidden>
+                    <p id="road-dialog-text"></p>
+                    <span class="road-dialog-prompt" aria-hidden="true">Space ▶</span>
+                </section>
+            </div>
         </section>
 
         <section id="Battle" class="screen" aria-label="Battle 화면">
