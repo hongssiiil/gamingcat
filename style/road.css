@@ -1,0 +1,175 @@
+#Road.road-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    background: #000;
+}
+
+.road-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.road-viewport {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    outline: none;
+    touch-action: none;
+    user-select: none;
+}
+
+.road-world {
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+    transform-origin: top left;
+    will-change: transform;
+}
+
+.road-map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+.road-collision-debug {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.road-collision-debug.is-visible {
+    display: block;
+}
+
+.road-black-debug {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: none;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+.road-black-debug.is-visible {
+    display: block;
+}
+
+.road-obstacle-debug {
+    fill: rgb(255 0 0 / 20%);
+    stroke: #ff3030;
+    stroke-width: 4;
+    vector-effect: non-scaling-stroke;
+}
+
+.road-actor {
+    position: absolute;
+    z-index: 1;
+    width: 78px;
+    height: 86px;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+}
+
+.road-actor img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.road-actor .is-facing-left {
+    transform: scaleX(-1);
+}
+
+.road-grandmother {
+    z-index: 1;
+}
+
+.road-player {
+    z-index: 2;
+}
+
+.road-dialog {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    z-index: 4;
+    width: min(88vw, calc((100dvh - 20px) * 3));
+    aspect-ratio: 7.5 / 1;
+    height: auto;
+    margin: 0;
+    padding: 30px 40px;
+    transform: translateX(-50%);
+    background: url("../images/road/Dialogue_UI.png") center / 100% 250% no-repeat;
+    color: #382314;
+}
+
+.road-dialog[hidden] {
+    display: none;
+}
+
+.road-dialog p {
+    position: absolute;
+    top: 35%;
+    left: 40px;
+    right: 40px;
+    padding: 0 50px;
+    margin: 0;
+    font-size: clamp(1rem, 2.2vw, 1.55rem);
+    line-height: 1.5;
+    transform: translateY(-50%);
+}
+
+.road-dialog-prompt {
+    position: absolute;
+    right: 40px;
+    bottom: 25px;
+    font-size: clamp(0.7rem, 1.3vw, 0.95rem);
+    animation: road-prompt-blink 1s steps(2, start) infinite;
+}
+
+@keyframes road-prompt-blink {
+    to { visibility: hidden; }
+}
+
+@media (max-width: 520px) {
+    .road-dialog {
+        width: min(96vw, calc((100dvh - 20px) * 3));
+        aspect-ratio: 7.5 / 1;
+    }
+
+    .road-dialog p {
+        left: 24px;
+        right: 24px;
+        padding: 25px 32px 0;
+    }
+
+    .road-dialog-prompt {
+        right: 24px;
+        bottom: 20px;
+    }
+}
