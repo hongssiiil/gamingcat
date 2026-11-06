@@ -20,14 +20,17 @@
     <main>
         <section id="Road" class="screen-active road-screen" aria-label="Road 화면">
             <h1 class="road-visually-hidden">숲길 탐험</h1>
-            <div class="road-viewport" id="road-viewport" tabindex="0" aria-label="WASD 또는 방향키로 이동하고, 할머니 가까이에서 E 또는 스페이스바를 눌러 대화하세요.">
+            <div class="road-viewport" id="road-viewport" tabindex="0"
+                aria-label="WASD 또는 방향키로 이동하고, 할머니 가까이에서 E 또는 스페이스바를 눌러 대화하세요.">
                 <div class="road-world" id="road-world">
-                    <img class="road-map" id="road-map" src="./images/backgrounds/home.png" alt="집 주변의 숲길" draggable="false">
+                    <img class="road-map" id="road-map" src="./images/backgrounds/home.png" alt="집 주변의 숲길"
+                        draggable="false">
                     <div class="road-actor road-grandmother" id="road-grandmother" aria-label="집 문 앞의 할머니">
                         <img src="./images/character/grandmother/grandmother_front.png" alt="할머니" draggable="false">
                     </div>
                     <div class="road-actor road-player" id="road-player">
-                        <img id="road-player-sprite" src="./images/character/player/player.png" alt="플레이어" draggable="false">
+                        <img id="road-player-sprite" src="./images/character/player/player.png" alt="플레이어"
+                            draggable="false">
                     </div>
                 </div>
 
@@ -40,6 +43,45 @@
 
         <section id="Battle" class="screen" aria-label="Battle 화면">
             <canvas id="battle-canvas"></canvas>
+            <section class="battle-status enemy-status" id="enemy-status" aria-label="적 상태">
+                <p class="status-name">늑대</p>
+                <div class="status-bar health-bar" role="progressbar" aria-label="적 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                    <span class="status-fill"></span>
+                </div>
+                <div class="status-bar stamina-bar enemy-stamina-bar" role="progressbar" aria-label="적 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                    <span class="status-fill"></span>
+                </div>
+            </section>
+            <section class="battle-status player-status" id="player-status" aria-label="플레이어 상태">
+                <p class="status-name">플레이어</p>
+                <div class="status-row">
+                    <div class="status-bar health-bar" role="progressbar" aria-label="플레이어 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70">
+                        <span class="status-fill"></span>
+                    </div>
+                    <span class="status-value" id="player-health-value">70 / 100</span>
+                </div>
+                <div class="status-row stamina-row">
+                    <div class="status-bar stamina-bar" role="progressbar" aria-label="플레이어 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                        <span class="status-fill"></span>
+                    </div>
+                    <span class="status-value" id="player-stamina-value">100 / 100</span>
+                </div>
+            </section>
+            <section id="fight-skills-dialog" class="fight-skills-dialog" role="dialog" aria-label="공격 기술 선택"
+                aria-modal="true" hidden>
+                <img class="fight-skills-panel" src="./images/battle/fight_skills_panel.png" alt="">
+                <div class="fight-skills-list">
+                    <button type="button" class="fight-skill-button" aria-label="일반 공격, 위력 10, 명중률 100, 소모 스태미나 5">
+                        <img src="./images/battle/skill_row_general_attack.png" alt="">
+                    </button>
+                    <button type="button" class="fight-skill-button" aria-label="힘껏 휘두르기, 위력 20, 명중률 70, 소모 스태미나 9">
+                        <img src="./images/battle/skill_row_heavy_swing.png" alt="">
+                    </button>
+                    <button type="button" class="fight-skill-button" aria-label="숨 고르기, 위력 없음, 명중률 없음, 소모 스태미나 0">
+                        <img src="./images/battle/skill_row_breathe.png" alt="">
+                    </button>
+                </div>
+            </section>
             <div class="menu-section">
                 <img id="menu-background" src="./images/battle/battle_menu.png" alt="">
                 <div id="menu-text">
