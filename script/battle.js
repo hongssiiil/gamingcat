@@ -1,3 +1,5 @@
+import { enterRoad } from "./road.js";
+
 const battleSection = document.querySelector("#Battle");
 
 export function enterBattle() {
@@ -87,7 +89,10 @@ const battlePlayer = new Entity({
 
 let playerAttackAnimation = null;
 let playerRestFlashUntil = 0;
+let enemyAttackAnimation = null;
+let playerHitFlashUntil = 0;
 let battleControlsLocked = false;
+let battleEnded = false;
 
 function setBattleControlsLocked(locked) {
     battleControlsLocked = locked;
@@ -99,6 +104,18 @@ function setBattleControlsLocked(locked) {
     });
 }
 
+function finishBattle(message) {
+    if (battleEnded) return;
+    battleEnded = true;
+    setBattleControlsLocked(true);
+    fightSkillsDialog.hidden = true;
+    menuText.textContent = message;
+    window.setTimeout(() => {
+        exitBattle();
+        enterRoad();
+    }, 1200);
+}
+
 function animatePlayerAttack(skill, hit) {
     if (skill.staminaRecovery || !skill.damage) return;
     playerAttackAnimation = {
@@ -107,6 +124,47 @@ function animatePlayerAttack(skill, hit) {
         heavy: skill.name !== "일반 공격",
         hit,
     };
+}
+
+function startEnemyTurn() {
+    if (battleEnemy.health <= 0) {
+        finishBattle("늑대를 물리쳤어!");
+        return;
+    }
+    if (battlePlayer.health <= 0) {
+        finishBattle("플레이어가 쓰러졌어.");
+        return;
+    }
+
+    const enemyAttackCost = 10;
+    if (battleEnemy.stamina < enemyAttackCost) {
+        battleEnemy.stamina = Math.min(battleEnemy.maxStamina, battleEnemy.stamina + 10);
+        menuText.textContent = "늑대가 숨을 고르며 스태미나를 회복했어.";
+        updateStatusBars();
+        setTimeout(() => {
+            setBattleControlsLocked(false);
+            fightButton.focus();
+        }, 520);
+        return;
+    }
+
+    battleEnemy.stamina -= enemyAttackCost;
+    enemyAttackAnimation = {
+        startedAt: performance.now(),
+        impactApplied: false,
+        hit: Math.random() < 0.7,
+    };
+    menuText.textContent = "늑대가 공격해!";
+    updateStatusBars();
+    setTimeout(() => {
+        enemyAttackAnimation = null;
+        if (battlePlayer.health <= 0) {
+            finishBattle("플레이어가 쓰러졌어.");
+        } else {
+            setBattleControlsLocked(false);
+            fightButton.focus();
+        }
+    }, 200);
 }
 
 fightButton.addEventListener("click", () => {
@@ -157,14 +215,12 @@ fightSkillButtons.forEach((button, index) => {
 
             if (skill.damage > 0) {
                 setTimeout(() => {
-                    setBattleControlsLocked(false);
-                    fightButton.focus();
-                }, skill.name === "일반 공격" ? 170 : 430);
+                    startEnemyTurn();
+                }, (skill.name === "일반 공격" ? 170 : 430) + 500);
             } else if (skill.staminaRecovery) {
                 window.setTimeout(() => {
-                    setBattleControlsLocked(false);
-                    fightButton.focus();
-                }, 520);
+                    startEnemyTurn();
+                }, 1020);
             } else {
                 setBattleControlsLocked(false);
                 fightButton.focus();
@@ -277,6 +333,29 @@ function drawBase() {
 }
 
 function drawEntities() {
+    if (enemyAttackAnimation) {
+        const elapsed = performance.now() - enemyAttackAnimation.startedAt;
+        const progress = Math.min(1, elapsed / 170);
+        const lunge = Math.sin(progress * Math.PI);
+        const enemySprite = battleEnemy.sprites[0];
+        enemySprite.offsetX = -105 * lunge;
+        enemySprite.scaleMultiplier = 1 + 0.04 * lunge;
+        if (elapsed >= 85 && !enemyAttackAnimation.impactApplied) {
+            enemyAttackAnimation.impactApplied = true;
+            if (enemyAttackAnimation.hit) {
+                battlePlayer.health = Math.max(0, battlePlayer.health - 15);
+                playerHitFlashUntil = performance.now() + 350;
+                menuText.textContent = "늑대에게 15 피해를 받았어.";
+            } else {
+                menuText.textContent = "늑대의 공격을 피했어!";
+            }
+            updateStatusBars();
+        }
+        if (progress >= 1) {
+            enemySprite.offsetX = 0;
+            enemySprite.scaleMultiplier = 1;
+        }
+    }
     if (playerAttackAnimation) {
         const progress = Math.min(1, (performance.now() - playerAttackAnimation.startedAt) / playerAttackAnimation.duration);
         const animation = playerAttackAnimation;
@@ -358,7 +437,23 @@ function drawEntities() {
         battleEnemy.draw(ctx);
     }
     const playerSprite = battlePlayer.sprites[0];
+    if (enemyAttackAnimation && !enemyAttackAnimation.hit) {
+        const dodgeProgress = Math.min(1, (performance.now() - enemyAttackAnimation.startedAt) / 170);
+        playerSprite.offsetX = -80 * Math.sin(dodgeProgress * Math.PI);
+    } else if (!playerAttackAnimation) {
+        playerSprite.offsetX = 0;
+    }
     battlePlayer.draw(ctx);
+    const playerHitTimeLeft = playerHitFlashUntil - performance.now();
+    if (playerHitTimeLeft > 0) {
+        const hitProgress = 1 - playerHitTimeLeft / 350;
+        ctx.save();
+        ctx.globalAlpha = Math.sin(hitProgress * Math.PI) * 0.85;
+        ctx.filter = "sepia(1) saturate(8) hue-rotate(320deg) brightness(1.15)";
+        ctx.drawImage(playerSprite.image, playerSprite.x, playerSprite.y,
+            playerSprite.image.width * playerSprite.scale, playerSprite.image.height * playerSprite.scale);
+        ctx.restore();
+    }
     const restTimeLeft = playerRestFlashUntil - performance.now();
     if (restTimeLeft > 0) {
         const restProgress = 1 - restTimeLeft / 520;
