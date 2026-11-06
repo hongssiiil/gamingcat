@@ -85,9 +85,9 @@ fightButton.addEventListener("click", () => {
 });
 
 const skillEffects = [
-    { name: "일반 공격", damage: 10, staminaCost: 5 },
-    { name: "힘껏 휘두르기", damage: 20, staminaCost: 9 },
-    { name: "숨 고르기", damage: 0, staminaCost: 0, staminaRecovery: 20 },
+    { name: "일반 공격", damage: 10, staminaCost: 5, accuracy: 100 },
+    { name: "힘껏 휘두르기", damage: 20, staminaCost: 9, accuracy: 70 },
+    { name: "숨 고르기", damage: 0, staminaCost: 0, accuracy: 100, staminaRecovery: 20 },
 ];
 
 fightSkillButtons.forEach((button, index) => {
@@ -99,7 +99,10 @@ fightSkillButtons.forEach((button, index) => {
         }
 
         battlePlayer.stamina -= skill.staminaCost;
-        battleEnemy.health = Math.max(0, battleEnemy.health - skill.damage);
+        const hit = Math.random() * 100 < skill.accuracy;
+        if (hit) {
+            battleEnemy.health = Math.max(0, battleEnemy.health - skill.damage);
+        }
         if (skill.staminaRecovery) {
             battlePlayer.stamina = Math.min(
                 battlePlayer.maxStamina,
@@ -107,9 +110,11 @@ fightSkillButtons.forEach((button, index) => {
             );
         }
 
-        menuText.textContent = skill.staminaRecovery
-            ? `${skill.name}! 스태미나를 회복했어.`
-            : `${skill.name}! 적에게 ${skill.damage} 피해를 줬어.`;
+        menuText.textContent = !hit
+            ? `${skill.name}! 빗나갔어. 스태미나는 소모됐어.`
+            : skill.staminaRecovery
+                ? `${skill.name}! 스태미나를 회복했어.`
+                : `${skill.name}! 적에게 ${skill.damage} 피해를 줬어.`;
         updateStatusBars();
         fightSkillsDialog.hidden = true;
         fightButton.focus();
