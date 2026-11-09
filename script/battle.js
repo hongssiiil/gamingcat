@@ -128,18 +128,18 @@ function animatePlayerAttack(skill, hit) {
 
 function startEnemyTurn() {
     if (battleEnemy.health <= 0) {
-        finishBattle("늑대를 물리쳤어!");
+        finishBattle("늑대를 물리쳤다!");
         return;
     }
     if (battlePlayer.health <= 0) {
-        finishBattle("플레이어가 쓰러졌어.");
+        finishBattle("플레이어가 쓰러졌다...");
         return;
     }
 
-    const enemyAttackCost = 10;
+    const enemyAttackCost = 30;
     if (battleEnemy.stamina < enemyAttackCost) {
-        battleEnemy.stamina = Math.min(battleEnemy.maxStamina, battleEnemy.stamina + 10);
-        menuText.textContent = "늑대가 숨을 고르며 스태미나를 회복했어.";
+        battleEnemy.stamina = Math.min(battleEnemy.maxStamina, battleEnemy.stamina + enemyAttackCost * 1.5);
+        menuText.textContent = "늑대가 숨을 고르며 스태미나를 회복했다.";
         updateStatusBars();
         setTimeout(() => {
             setBattleControlsLocked(false);
@@ -149,22 +149,24 @@ function startEnemyTurn() {
     }
 
     battleEnemy.stamina -= enemyAttackCost;
-    enemyAttackAnimation = {
-        startedAt: performance.now(),
-        impactApplied: false,
-        hit: Math.random() < 0.7,
-    };
-    menuText.textContent = "늑대가 공격해!";
+    menuText.textContent = "늑대의 공격!";
     updateStatusBars();
-    setTimeout(() => {
-        enemyAttackAnimation = null;
-        if (battlePlayer.health <= 0) {
-            finishBattle("플레이어가 쓰러졌어.");
-        } else {
-            setBattleControlsLocked(false);
-            fightButton.focus();
-        }
-    }, 200);
+    window.setTimeout(() => {
+        enemyAttackAnimation = {
+            startedAt: performance.now(),
+            impactApplied: false,
+            hit: Math.random() < 0.7,
+        };
+        window.setTimeout(() => {
+            enemyAttackAnimation = null;
+            if (battlePlayer.health <= 0) {
+                finishBattle("플레이어가 쓰러졌다...");
+            } else {
+                setBattleControlsLocked(false);
+                fightButton.focus();
+            }
+        }, 170 + 800);
+    }, 600);
 }
 
 fightButton.addEventListener("click", () => {
@@ -173,17 +175,23 @@ fightButton.addEventListener("click", () => {
 });
 
 const skillEffects = [
-    { name: "일반 공격", damage: 10, staminaCost: 5, accuracy: 100 },
-    { name: "힘껏 휘두르기", damage: 20, staminaCost: 9, accuracy: 70 },
-    { name: "숨 고르기", damage: 0, staminaCost: 0, accuracy: 100, staminaRecovery: 10 },
+    { name: "일반 공격", damage: 10, staminaCost: 20, accuracy: 100 },
+    { name: "힘껏 휘두르기", damage: 20, staminaCost: 30, accuracy: 70 },
+    { name: "숨 고르기", damage: 0, staminaCost: 0, accuracy: 100, staminaRecovery: 40 },
 ];
 
 fightSkillButtons.forEach((button, index) => {
     button.addEventListener("click", () => {
         const skill = skillEffects[index];
         if (battleControlsLocked) return;
-        if (!skill || battlePlayer.stamina < skill.staminaCost) {
-            menuText.textContent = "스태미나가 부족해!";
+        if (!skill) return;
+        if (battlePlayer.stamina < skill.staminaCost) {
+            fightSkillsDialog.hidden = true;
+            setBattleControlsLocked(true);
+            menuText.textContent = `${skill.name}! 스태미나가 부족해 실패했다...`;
+            window.setTimeout(() => {
+                startEnemyTurn();
+            }, 800);
             return;
         }
 
@@ -207,10 +215,10 @@ fightSkillButtons.forEach((button, index) => {
             }
 
             menuText.textContent = !hit
-                ? `${skill.name}! 빗나갔어. 스태미나는 소모됐어.`
+                ? `${skill.name}! 빗나갔다...`
                 : skill.staminaRecovery
-                    ? `${skill.name}! 스태미나를 회복했어.`
-                    : `${skill.name}! 적에게 ${skill.damage} 피해를 줬어.`;
+                    ? `${skill.name}! 스태미나를 회복했다!`
+                    : `${skill.name}! 적에게 ${skill.damage} 피해를 줬다.`;
             updateStatusBars();
 
             if (skill.damage > 0) {
@@ -265,7 +273,14 @@ runButton.addEventListener("click", () => {
     if (battleControlsLocked) return;
     // 도망가기 버튼 클릭 시 동작
     console.log("도망가기 버튼 클릭됨");
-    menuText.textContent = "잘 생각했어!";
+    setBattleControlsLocked(true);
+    menuText.textContent = "도망을 시도한다.";
+    window.setTimeout(() => {
+        menuText.textContent = "도망치는데 실패했다...";
+        window.setTimeout(() => {
+            startEnemyTurn();
+        }, 500);
+    }, 1000);
 });
 
 function resizeCanvas() {
@@ -345,9 +360,9 @@ function drawEntities() {
             if (enemyAttackAnimation.hit) {
                 battlePlayer.health = Math.max(0, battlePlayer.health - 15);
                 playerHitFlashUntil = performance.now() + 350;
-                menuText.textContent = "늑대에게 15 피해를 받았어.";
+                menuText.textContent = "늑대에게 15 피해를 받았다.";
             } else {
-                menuText.textContent = "늑대의 공격을 피했어!";
+                menuText.textContent = "늑대의 공격을 피했다!";
             }
             updateStatusBars();
         }
@@ -489,4 +504,3 @@ function draw() {
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 draw()
-
