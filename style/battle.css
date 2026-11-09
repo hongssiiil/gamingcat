@@ -227,17 +227,14 @@ body {
 
 .fight-skills-panel {
     position: absolute;
-    width: min(80vw, 720px);
-    height: auto;
-    max-height: 90vh;
-    aspect-ratio: 4 / 5;
-    object-fit: fill;
+    width: min(80vw, 720px, 72vh);
+    height: min(90vh, 112.5vw, 900px);
+    object-fit: contain;
 }
 
 .fight-skills-list {
     position: relative;
-    width: min(66vw, 590px);
-    height: auto;
+    width: min(66vw, 590px, 59.4vh);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -310,12 +307,12 @@ body {
 
 @media (max-width: 600px) {
     .fight-skills-panel {
-        width: min(94vw, 720px);
-        max-height: 78vh;
+        width: min(94vw, 720px, 70vh);
+        height: min(84vh, 106.25vw, 900px);
     }
 
     .fight-skills-list {
-        width: 82vw;
+        width: min(82vw, 61vh);
         gap: clamp(8px, 1.5vh, 16px);
     }
 }
