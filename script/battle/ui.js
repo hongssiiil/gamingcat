@@ -13,10 +13,15 @@ export const playerStatus = document.getElementById("player-status");
 
 export function enterBattleScreen() {
     battleSection.classList.replace("screen", "screen-active");
+    if (window.matchMedia("(max-width: 900px), (pointer: coarse)").matches) {
+        const lock = screen.orientation?.lock;
+        if (lock) lock.call(screen.orientation, "landscape").catch(() => {});
+    }
 }
 
 export function exitBattleScreen() {
     battleSection.classList.replace("screen-active", "screen");
+    screen.orientation?.unlock?.();
 }
 
 export function setControlsLocked(state, locked) {
