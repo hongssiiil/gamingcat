@@ -4,6 +4,10 @@ const battleSection = document.querySelector("#Battle");
 
 export function enterBattle() {
     battleSection.classList.replace("screen", "screen-active");
+    if (!battleStarted) {
+        battleStarted = true;
+        showOpeningRecommendation();
+    }
 }
 
 export function exitBattle() {
@@ -18,6 +22,8 @@ const fightButton = document.getElementById("fight-button");
 const bagButton = document.getElementById("bag-button");
 const runButton = document.getElementById("run-button");
 const fightSkillsDialog = document.getElementById("fight-skills-dialog");
+const battleLossDialog = document.getElementById("battle-loss-dialog");
+const battleLossConfirmButton = document.getElementById("battle-loss-confirm");
 const fightSkillButtons = fightSkillsDialog.querySelectorAll(".fight-skill-button");
 const enemyStatus = document.getElementById("enemy-status");
 const playerStatus = document.getElementById("player-status");
@@ -83,7 +89,7 @@ const battlePlayer = new Entity({
         { image: player, x: base_w * 0.16, y: base_h * 0.38, scale: 0.24 },
         { image: cat, x: base_w * 0.28, y: base_h * 0.58, scale: 0.15 },
     ],
-    health: 70,
+    health: 100,
     stamina: 100,
 });
 
@@ -93,6 +99,133 @@ let enemyAttackAnimation = null;
 let playerHitFlashUntil = 0;
 let battleControlsLocked = false;
 let battleEnded = false;
+let battleStarted = false;
+let recommendationFollowCount = 0;
+let currentRecommendation = null;
+const battleTimeouts = new Set();
+
+const wolfBaseDamage = 15;
+const wolfCriticalDamage = 25;
+const wolfBaseAccuracy = 70;
+const wolfBaseCriticalChance = 30;
+
+function scheduleBattleTimeout(callback, delay) {
+    const timeoutId = window.setTimeout(() => {
+        battleTimeouts.delete(timeoutId);
+        callback();
+    }, delay);
+    battleTimeouts.add(timeoutId);
+    return timeoutId;
+}
+
+function clearBattleTimeouts() {
+    battleTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    battleTimeouts.clear();
+}
+
+function showOpeningRecommendation() {
+    currentRecommendation = {
+        action: "run",
+        text: "도망가자! 이길 수 있는 상대가 아니야!",
+    };
+    menuText.textContent = currentRecommendation.text;
+}
+
+function getTurnRecommendation() {
+    const stamina = battlePlayer.stamina;
+    const playerHealth = battlePlayer.health;
+    const enemyHealth = battleEnemy.health;
+    const enemyStamina = battleEnemy.stamina;
+    let recommendation;
+
+    if (stamina < 30 && enemyHealth > 20) {
+        recommendation = { skillIndex: 1, text: "아직 힘이 남아 있을 때 몰아붙이자! 힘껏 휘두르기!" };
+    } else if (stamina < 30 && enemyHealth <= 20) {
+        recommendation = { skillIndex: 1, text: "마지막 기회야! 힘껏 휘둘러서 끝내자!" };
+    } else if (enemyHealth <= 20) {
+        recommendation = { skillIndex: 2, text: "다음 공격을 위해 숨을 고르자!" };
+    } else if (playerHealth <= 20) {
+        recommendation = { skillIndex: 1, text: "위험해지기 전에 힘껏 휘둘러 끝내자!" };
+    } else if (enemyStamina < 30) {
+        recommendation = { skillIndex: 1, text: "늑대가 지친 지금, 힘껏 휘두르자!" };
+    } else if (stamina >= 80) {
+        recommendation = { skillIndex: 2, text: "스태미나가 넉넉하니까 숨을 고르고 더 채워 두자!" };
+    } else if (stamina >= 50) {
+        recommendation = { skillIndex: 1, text: "큰 한 방이면 전세를 뒤집을 수 있어! 힘껏 휘두르자!" };
+    } else if (stamina >= 30 && enemyHealth > 40) {
+        recommendation = { skillIndex: 1, text: "지금은 아껴서 공격할 때가 아니야! 힘껏 휘두르자!" };
+    } else if (playerHealth <= 35 && enemyHealth <= 40) {
+        recommendation = { skillIndex: 0, text: "조금만 더 버티면 돼. 일반 공격으로 압박하자!" };
+    } else {
+        recommendation = { skillIndex: 0, text: "안전하게 일반 공격으로 조금씩 압박하자!" };
+    }
+
+    const skill = skillEffects[recommendation.skillIndex];
+    if (skill.damage > 0 && skill.damage >= enemyHealth) {
+        if (enemyHealth > skillEffects[0].damage) {
+            recommendation = {
+                skillIndex: 0,
+                text: "일반 공격으로 조금씩 압박하자!",
+            };
+        } else {
+            recommendation = {
+                skillIndex: 2,
+                text: "여유를 갖고 숨을 고르자!",
+            };
+        }
+    }
+
+    if (
+        recommendation.skillIndex === 2
+        && stamina >= battlePlayer.maxStamina
+        && enemyHealth > skillEffects[0].damage
+    ) {
+        recommendation = {
+            skillIndex: 0,
+            text: "일반 공격으로 조금씩 압박하자!",
+        };
+    }
+
+    return {
+        action: "skill",
+        skillIndex: recommendation.skillIndex,
+        text: recommendation.text,
+    };
+}
+
+function showTurnRecommendation() {
+    currentRecommendation = getTurnRecommendation();
+    menuText.textContent = currentRecommendation.text;
+}
+
+function followRecommendationIfMatched(action, skillIndex) {
+    const matched = currentRecommendation?.action === action
+        && (action !== "skill" || currentRecommendation.skillIndex === skillIndex);
+    if (matched) recommendationFollowCount += 1;
+    return matched;
+}
+
+function resetBattle() {
+    clearBattleTimeouts();
+    if (battleLossDialog.open) battleLossDialog.close();
+
+    battlePlayer.health = battlePlayer.maxHealth;
+    battlePlayer.stamina = battlePlayer.maxStamina;
+    battleEnemy.health = battleEnemy.maxHealth;
+    battleEnemy.stamina = battleEnemy.maxStamina;
+    playerAttackAnimation = null;
+    enemyAttackAnimation = null;
+    playerRestFlashUntil = 0;
+    playerHitFlashUntil = 0;
+    battleEnded = false;
+    recommendationFollowCount = 0;
+    setBattleControlsLocked(false);
+    fightSkillsDialog.hidden = true;
+    updateStatusBars();
+    enterBattle();
+    showOpeningRecommendation();
+    runButton.focus();
+}
 
 function setBattleControlsLocked(locked) {
     battleControlsLocked = locked;
@@ -110,14 +243,25 @@ function finishBattle(message) {
     setBattleControlsLocked(true);
     fightSkillsDialog.hidden = true;
     menuText.textContent = message;
-    window.setTimeout(() => {
+    scheduleBattleTimeout(() => {
         exitBattle();
         enterRoad();
     }, 1200);
 }
 
+function showBattleLoss() {
+    if (battleEnded) return;
+    battleEnded = true;
+    clearBattleTimeouts();
+    setBattleControlsLocked(true);
+    fightSkillsDialog.hidden = true;
+    enemyAttackAnimation = null;
+    battleLossDialog.showModal();
+    battleLossConfirmButton.focus();
+}
+
 function animatePlayerAttack(skill, hit) {
-    if (skill.staminaRecovery || !skill.damage) return;
+    if (skill.staminaRecovery || skill.healthRecovery || !skill.damage) return;
     playerAttackAnimation = {
         startedAt: performance.now(),
         duration: skill.name === "일반 공격" ? 170 : 430,
@@ -132,7 +276,7 @@ function startEnemyTurn() {
         return;
     }
     if (battlePlayer.health <= 0) {
-        finishBattle("플레이어가 쓰러졌다...");
+        showBattleLoss();
         return;
     }
 
@@ -141,7 +285,12 @@ function startEnemyTurn() {
         battleEnemy.stamina = Math.min(battleEnemy.maxStamina, battleEnemy.stamina + enemyAttackCost * 1.5);
         menuText.textContent = "늑대가 숨을 고르며 스태미나를 회복했다.";
         updateStatusBars();
-        setTimeout(() => {
+        scheduleBattleTimeout(() => {
+            if (battlePlayer.health <= 0) {
+                showBattleLoss();
+                return;
+            }
+            showTurnRecommendation();
             setBattleControlsLocked(false);
             fightButton.focus();
         }, 520);
@@ -151,17 +300,22 @@ function startEnemyTurn() {
     battleEnemy.stamina -= enemyAttackCost;
     menuText.textContent = "늑대의 공격!";
     updateStatusBars();
-    window.setTimeout(() => {
+    scheduleBattleTimeout(() => {
+        const accuracy = Math.min(100, wolfBaseAccuracy + recommendationFollowCount * 5);
+        const criticalChance = Math.min(70, wolfBaseCriticalChance + recommendationFollowCount * 5);
+        const hit = Math.random() * 100 < accuracy;
         enemyAttackAnimation = {
             startedAt: performance.now(),
             impactApplied: false,
-            hit: Math.random() < 0.7,
+            hit,
+            critical: hit && Math.random() * 100 < criticalChance,
         };
-        window.setTimeout(() => {
+        scheduleBattleTimeout(() => {
             enemyAttackAnimation = null;
             if (battlePlayer.health <= 0) {
-                finishBattle("플레이어가 쓰러졌다...");
+                showBattleLoss();
             } else {
+                showTurnRecommendation();
                 setBattleControlsLocked(false);
                 fightButton.focus();
             }
@@ -177,7 +331,14 @@ fightButton.addEventListener("click", () => {
 const skillEffects = [
     { name: "일반 공격", damage: 10, staminaCost: 20, accuracy: 100 },
     { name: "힘껏 휘두르기", damage: 20, staminaCost: 30, accuracy: 70 },
-    { name: "숨 고르기", damage: 0, staminaCost: 0, accuracy: 100, staminaRecovery: 40 },
+    {
+        name: "숨 고르기",
+        damage: 0,
+        staminaCost: 0,
+        accuracy: 100,
+        staminaRecovery: 40,
+        healthRecovery: 10,
+    },
 ];
 
 fightSkillButtons.forEach((button, index) => {
@@ -185,11 +346,12 @@ fightSkillButtons.forEach((button, index) => {
         const skill = skillEffects[index];
         if (battleControlsLocked) return;
         if (!skill) return;
+        followRecommendationIfMatched("skill", index);
         if (battlePlayer.stamina < skill.staminaCost) {
             fightSkillsDialog.hidden = true;
             setBattleControlsLocked(true);
             menuText.textContent = `${skill.name}! 스태미나가 부족해 실패했다...`;
-            window.setTimeout(() => {
+            scheduleBattleTimeout(() => {
                 startEnemyTurn();
             }, 800);
             return;
@@ -199,7 +361,9 @@ fightSkillButtons.forEach((button, index) => {
 
         const resolveSkill = () => {
             battlePlayer.stamina -= skill.staminaCost;
-            if (skill.staminaRecovery) {
+            const previousHealth = battlePlayer.health;
+            const previousStamina = battlePlayer.stamina;
+            if (skill.staminaRecovery || skill.healthRecovery) {
                 playerRestFlashUntil = performance.now() + 520;
             }
             const hit = Math.random() * 100 < skill.accuracy;
@@ -213,20 +377,29 @@ fightSkillButtons.forEach((button, index) => {
                     battlePlayer.stamina + skill.staminaRecovery,
                 );
             }
+            if (skill.healthRecovery) {
+                battlePlayer.health = Math.min(
+                    battlePlayer.maxHealth,
+                    battlePlayer.health + skill.healthRecovery,
+                );
+            }
+
+            const recoveredHealth = battlePlayer.health - previousHealth;
+            const recoveredStamina = battlePlayer.stamina - previousStamina;
 
             menuText.textContent = !hit
                 ? `${skill.name}! 빗나갔다...`
-                : skill.staminaRecovery
-                    ? `${skill.name}! 스태미나를 회복했다!`
+                : skill.staminaRecovery || skill.healthRecovery
+                    ? `${skill.name}! 체력 ${recoveredHealth}, 스태미나 ${recoveredStamina} 회복했다.`
                     : `${skill.name}! 적에게 ${skill.damage} 피해를 줬다.`;
             updateStatusBars();
 
             if (skill.damage > 0) {
-                setTimeout(() => {
+                scheduleBattleTimeout(() => {
                     startEnemyTurn();
                 }, (skill.name === "일반 공격" ? 170 : 430) + 500);
-            } else if (skill.staminaRecovery) {
-                window.setTimeout(() => {
+            } else if (skill.staminaRecovery || skill.healthRecovery) {
+                scheduleBattleTimeout(() => {
                     startEnemyTurn();
                 }, 1020);
             } else {
@@ -237,7 +410,7 @@ fightSkillButtons.forEach((button, index) => {
 
         if (skill.damage > 0) {
             setBattleControlsLocked(true);
-            window.setTimeout(resolveSkill, 300);
+            scheduleBattleTimeout(resolveSkill, 300);
         } else if (skill.staminaRecovery) {
             setBattleControlsLocked(true);
             resolveSkill();
@@ -262,6 +435,12 @@ document.addEventListener("keydown", (event) => {
     }
 });
 
+battleLossDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+});
+
+battleLossConfirmButton.addEventListener("click", resetBattle);
+
 bagButton.addEventListener("click", () => {
     if (battleControlsLocked) return;
     // 가방 버튼 클릭 시 동작
@@ -271,13 +450,14 @@ bagButton.addEventListener("click", () => {
 
 runButton.addEventListener("click", () => {
     if (battleControlsLocked) return;
+    followRecommendationIfMatched("run");
     // 도망가기 버튼 클릭 시 동작
     console.log("도망가기 버튼 클릭됨");
     setBattleControlsLocked(true);
     menuText.textContent = "도망을 시도한다.";
-    window.setTimeout(() => {
+    scheduleBattleTimeout(() => {
         menuText.textContent = "도망치는데 실패했다...";
-        window.setTimeout(() => {
+        scheduleBattleTimeout(() => {
             startEnemyTurn();
         }, 500);
     }, 1000);
@@ -358,9 +538,14 @@ function drawEntities() {
         if (elapsed >= 85 && !enemyAttackAnimation.impactApplied) {
             enemyAttackAnimation.impactApplied = true;
             if (enemyAttackAnimation.hit) {
-                battlePlayer.health = Math.max(0, battlePlayer.health - 15);
+                const damage = enemyAttackAnimation.critical
+                    ? wolfCriticalDamage
+                    : wolfBaseDamage;
+                battlePlayer.health = Math.max(0, battlePlayer.health - damage);
                 playerHitFlashUntil = performance.now() + 350;
-                menuText.textContent = "늑대에게 15 피해를 받았다.";
+                menuText.textContent = enemyAttackAnimation.critical
+                    ? `늑대의 치명타! ${damage} 피해를 받았다.`
+                    : `늑대에게 ${damage} 피해를 받았다.`;
             } else {
                 menuText.textContent = "늑대의 공격을 피했다!";
             }

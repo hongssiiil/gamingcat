@@ -55,10 +55,10 @@
             <section class="battle-status player-status" id="player-status" aria-label="플레이어 상태">
                 <p class="status-name">플레이어</p>
                 <div class="status-row">
-                    <div class="status-bar health-bar" role="progressbar" aria-label="플레이어 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70">
+                    <div class="status-bar health-bar" role="progressbar" aria-label="플레이어 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
                         <span class="status-fill"></span>
                     </div>
-                    <span class="status-value" id="player-health-value">70 / 100</span>
+                    <span class="status-value" id="player-health-value">100 / 100</span>
                 </div>
                 <div class="status-row stamina-row">
                     <div class="status-bar stamina-bar" role="progressbar" aria-label="플레이어 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
@@ -77,11 +77,15 @@
                     <button type="button" class="fight-skill-button" aria-label="힘껏 휘두르기, 위력 20, 명중률 70, 소모 스태미나 30">
                         <img src="./images/battle/skill_row_heavy_swing.png" alt="">
                     </button>
-                    <button type="button" class="fight-skill-button" aria-label="숨 고르기, 위력 없음, 명중률 100%, 소모 스태미나 0">
+                    <button type="button" class="fight-skill-button" aria-label="숨 고르기, 체력 10 및 스태미나 40 회복, 소모 스태미나 0">
                         <img src="./images/battle/skill_row_breathe.png" alt="">
                     </button>
                 </div>
             </section>
+            <dialog id="battle-loss-dialog" class="battle-loss-dialog" aria-labelledby="battle-loss-text">
+                <p id="battle-loss-text">다시 해보자</p>
+                <button type="button" id="battle-loss-confirm">확인</button>
+            </dialog>
             <div class="menu-section">
                 <img id="menu-background" src="./images/battle/battle_menu.png" alt="">
                 <div id="menu-text">
