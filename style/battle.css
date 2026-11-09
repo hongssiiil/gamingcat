@@ -237,10 +237,11 @@ body {
 .fight-skills-list {
     position: relative;
     width: min(66vw, 590px);
-    height: min(64vh, 640px);
+    height: auto;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
+    gap: clamp(12px, 2vh, 24px);
 }
 
 .fight-skill-button {
@@ -315,6 +316,6 @@ body {
 
     .fight-skills-list {
         width: 82vw;
-        height: min(55vh, 540px);
+        gap: clamp(8px, 1.5vh, 16px);
     }
 }
