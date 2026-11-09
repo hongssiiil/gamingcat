@@ -20,11 +20,20 @@
     <main>
         <section id="Road" class="screen-active road-screen" aria-label="Road 화면">
             <h1 class="road-visually-hidden">숲길 탐험</h1>
-            <div class="road-viewport" id="road-viewport" tabindex="0"
-                aria-label="WASD 또는 방향키로 이동하고, 할머니 가까이에서 E 또는 스페이스바를 눌러 대화하세요.">
+            <div class="road-viewport" id="road-viewport" tabindex="0" aria-label="WASD 또는 방향키로 이동하고, 가까이에서 E 또는 스페이스바로 상호작용하세요.">
+                <form class="road-name-screen" id="road-name-screen" novalidate>
+                    <label for="road-player-name">나의 이름은?</label>
+                    <input id="road-player-name" name="playerName" autocomplete="given-name" required>
+                    <p id="road-name-error" role="status" hidden>이름을 입력해 주세요.</p>
+                    <button type="submit">시작</button>
+                </form>
                 <div class="road-world" id="road-world">
-                    <img class="road-map" id="road-map" src="./images/backgrounds/home.png" alt="집 주변의 숲길"
-                        draggable="false">
+                    <img class="road-map" id="road-map" src="./images/backgrounds/home.png" alt="집 주변의 숲길" draggable="false">
+                    <img class="road-sign" id="road-sign" src="./images/road/sign-transparent-outline-fixed.png" alt="숲길 표지판" draggable="false" hidden>
+                    <button class="road-sign-trigger" id="road-sign-trigger" type="button" aria-label="표지판 읽기" hidden></button>
+                    <div class="road-actor road-cat" id="road-cat" aria-label="티니" hidden>
+                        <img id="road-cat-sprite" src="./images/character/cat/cat_front.png" alt="티니" draggable="false">
+                    </div>
                     <div class="road-actor road-grandmother" id="road-grandmother" aria-label="집 문 앞의 할머니">
                         <img src="./images/character/grandmother/grandmother_front.png" alt="할머니" draggable="false">
                     </div>
@@ -34,8 +43,22 @@
                     </div>
                 </div>
 
+                <section class="road-sign-overlay" id="road-sign-overlay" role="dialog" aria-modal="true" aria-labelledby="road-sign-title" hidden>
+                    <div class="road-sign-panel">
+                        <button class="road-sign-close" id="road-sign-close" type="button" aria-label="표지판 닫기">×</button>
+                        <h2 id="road-sign-title">표지판</h2>
+                        <div class="road-sign-copy" id="road-sign-copy"></div>
+                        <button class="road-sign-confirm" id="road-sign-confirm" type="button">확인</button>
+                    </div>
+                </section>
+
                 <section class="road-dialog" id="road-dialog" role="dialog" aria-labelledby="road-dialog-text" hidden>
+                    <div class="road-dialog-portrait" id="road-dialog-portrait" aria-hidden="true" hidden>
+                        <img id="road-dialog-portrait-image" alt="" draggable="false">
+                    </div>
+                    <span class="road-dialog-speaker" id="road-dialog-speaker" hidden></span>
                     <p id="road-dialog-text"></p>
+                    <div class="road-dialog-choices" id="road-dialog-choices" hidden></div>
                     <span class="road-dialog-prompt" aria-hidden="true">Space ▶</span>
                 </section>
             </div>
