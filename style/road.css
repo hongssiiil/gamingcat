@@ -27,6 +27,51 @@
     user-select: none;
 }
 
+.road-name-screen {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: #382314;
+    background: rgb(0 0 0 / 48%);
+}
+
+.road-name-screen[hidden] {
+    display: none;
+}
+
+.road-name-screen label {
+    font-size: clamp(1.4rem, 4vw, 2.4rem);
+    font-weight: 700;
+    color: #fff4d9;
+    text-shadow: 0 2px 4px #24150c;
+}
+
+.road-name-screen input,
+.road-name-screen button {
+    min-width: min(280px, 80vw);
+    padding: 12px 16px;
+    border: 3px solid #79502c;
+    border-radius: 8px;
+    background: #fff0d4;
+    color: #382314;
+    font: inherit;
+}
+
+.road-name-screen button,
+.road-dialog-choices button {
+    cursor: pointer;
+}
+
+.road-name-screen p {
+    margin: 0;
+    color: #fff4d9;
+}
+
 .road-world {
     position: absolute;
     top: 0;
@@ -45,6 +90,143 @@
     height: auto;
     image-rendering: pixelated;
     pointer-events: none;
+}
+
+.road-sign {
+    position: absolute;
+    z-index: 1;
+    width: 50px;
+    height: 44px;
+    transform: translate(-50%, -100%);
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+.road-sign[hidden] {
+    display: none;
+}
+
+.road-sign-trigger {
+    position: absolute;
+    z-index: 3;
+    width: 78px;
+    height: 82px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    transform: translate(-50%, -100%);
+    background: transparent;
+    cursor: pointer;
+}
+
+.road-sign-trigger:hover,
+.road-sign-trigger:focus-visible {
+    border-color: #ffe19a;
+    outline: 3px solid #54351d;
+}
+
+.road-sign-trigger::after {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    width: max-content;
+    padding: 5px 9px;
+    border: 1px solid #68401f;
+    border-radius: 6px;
+    transform: translateX(-50%);
+    background: #fff0d4;
+    color: #352516;
+    content: "E · 표지판 읽기";
+    font: 700 13px/1.2 system-ui, sans-serif;
+    pointer-events: none;
+}
+
+.road-sign-trigger[hidden] {
+    display: none;
+}
+
+.road-sign-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgb(10 12 18 / 76%);
+}
+
+.road-sign-overlay[hidden] {
+    display: none;
+}
+
+.road-sign-panel {
+    position: relative;
+    width: min(720px, 94vw);
+    max-height: min(84vh, 760px);
+    overflow: auto;
+    padding: clamp(24px, 5vw, 48px);
+    border: 5px solid #68401f;
+    border-radius: 12px;
+    background: #f4dfb5;
+    box-shadow: 0 12px 34px rgb(0 0 0 / 52%), inset 0 0 0 4px #c69b5e;
+    color: #352516;
+}
+
+.road-sign-panel h2 {
+    margin: 0 48px 22px 0;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.road-sign-close,
+.road-sign-confirm {
+    border: 2px solid #68401f;
+    border-radius: 7px;
+    background: #fff0d4;
+    color: #352516;
+    font: inherit;
+    cursor: pointer;
+}
+
+.road-sign-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.7rem;
+    line-height: 1;
+}
+
+.road-sign-copy {
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.road-sign-copy p {
+    margin: 0 0 14px;
+}
+
+.road-sign-copy .ancient-script {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: clamp(1.1rem, 2.7vw, 1.55rem);
+    line-height: 1.85;
+    letter-spacing: 0.12em;
+}
+
+.road-sign-copy h3 {
+    margin: 18px 0 5px;
+    font-size: 1.08em;
+}
+
+.road-sign-confirm {
+    display: block;
+    min-width: 120px;
+    margin: 22px 0 0 auto;
+    padding: 9px 18px;
+    font-weight: 700;
 }
 
 .road-collision-debug {
@@ -109,6 +291,24 @@
     z-index: 1;
 }
 
+.road-cat {
+    z-index: 2;
+}
+
+.road-cat img {
+    width: 78%;
+    margin-inline: auto;
+    object-fit: contain;
+}
+
+.road-cat.is-diagonal-walking img {
+    animation: road-cat-diagonal-bob 0.35s steps(2, end) infinite;
+}
+
+@keyframes road-cat-diagonal-bob {
+    50% { translate: 0 -2px; }
+}
+
 .road-player {
     z-index: 2;
 }
@@ -121,23 +321,79 @@
     width: min(88vw, calc((100dvh - 20px) * 3));
     aspect-ratio: 7.5 / 1;
     height: auto;
+    min-height: 96px;
+    box-sizing: border-box;
     margin: 0;
-    padding: 30px 40px;
+    padding: 0;
     transform: translateX(-50%);
-    background: url("../images/road/Dialogue_UI.png") center / 100% 250% no-repeat;
     color: #382314;
+}
+
+.road-dialog::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-style: solid;
+    border-width: clamp(18px, 2.4vw, 28px) clamp(22px, 3vw, 38px);
+    border-image-source: url("../images/road/Dialogue_UI.png");
+    border-image-slice: 30 38 30 38 fill;
+    border-image-repeat: stretch;
+    pointer-events: none;
 }
 
 .road-dialog[hidden] {
     display: none;
 }
 
+.road-dialog.has-route-choice {
+    height: min(34vh, 260px);
+    min-height: 164px;
+    aspect-ratio: auto;
+}
+
+.road-dialog-portrait {
+    position: absolute;
+    left: clamp(26px, 4vw, 54px);
+    bottom: calc(100% - 12px);
+    z-index: 0;
+    width: clamp(190px, 26vw, 310px);
+    height: clamp(145px, 20vw, 240px);
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.road-dialog-portrait[hidden] {
+    display: none;
+}
+
+.road-dialog-speaker {
+    position: absolute;
+    top: 20%;
+    left: clamp(38px, 5vw, 68px);
+    z-index: 2;
+    font-weight: 700;
+}
+
+.road-dialog-portrait img {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: none;
+    transform: translateX(-50%);
+    image-rendering: pixelated;
+}
+
 .road-dialog p {
     position: absolute;
-    top: 35%;
-    left: 40px;
-    right: 40px;
-    padding: 0 50px;
+    top: 40%;
+    left: clamp(38px, 5vw, 68px);
+    right: clamp(38px, 5vw, 68px);
+    z-index: 2;
+    padding: 0;
     margin: 0;
     font-size: clamp(1rem, 2.2vw, 1.55rem);
     line-height: 1.5;
@@ -146,10 +402,63 @@
 
 .road-dialog-prompt {
     position: absolute;
-    right: 40px;
-    bottom: 25px;
+    right: clamp(32px, 4vw, 52px);
+    bottom: clamp(22px, 2.5vw, 30px);
+    z-index: 2;
     font-size: clamp(0.7rem, 1.3vw, 0.95rem);
     animation: road-prompt-blink 1s steps(2, start) infinite;
+}
+
+.road-dialog-choices {
+    position: absolute;
+    inset: 58% clamp(38px, 5vw, 68px) 12%;
+    z-index: 3;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.road-dialog-choices[hidden] {
+    display: none;
+}
+
+.road-dialog-choices button {
+    padding: 8px 12px;
+    border: 2px solid #79502c;
+    border-radius: 6px;
+    background: #fff0d4;
+    color: #382314;
+    font: inherit;
+}
+
+.road-dialog-choices.is-route-choice {
+    inset: 36% clamp(34px, 4vw, 52px) 10%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 8px;
+}
+
+.road-dialog-choices.is-route-choice button {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 10px;
+    text-align: left;
+}
+
+.road-route-title {
+    font-weight: 800;
+}
+
+.road-route-description {
+    font-size: 0.78em;
+    line-height: 1.3;
 }
 
 @keyframes road-prompt-blink {
@@ -159,17 +468,55 @@
 @media (max-width: 520px) {
     .road-dialog {
         width: min(96vw, calc((100dvh - 20px) * 3));
-        aspect-ratio: 7.5 / 1;
+        aspect-ratio: 6 / 1;
+        min-height: 96px;
+    }
+
+    .road-dialog.has-route-choice {
+        height: min(39vh, 270px);
+        min-height: 176px;
+    }
+
+    .road-dialog::before {
+        border-width: 18px 24px;
     }
 
     .road-dialog p {
-        left: 24px;
-        right: 24px;
-        padding: 25px 32px 0;
+        top: 38%;
+        left: 40px;
+        right: 40px;
+    }
+
+    .road-dialog-speaker {
+        left: 40px;
+    }
+
+    .road-dialog-choices {
+        inset: 48% 40px 10%;
+        gap: 6px;
+    }
+
+    .road-dialog-choices.is-route-choice {
+        inset: 36% 34px 10%;
+        gap: 4px;
+    }
+
+    .road-dialog-choices.is-route-choice button {
+        padding: 6px 5px;
+    }
+
+    .road-route-description {
+        font-size: 0.68em;
+    }
+
+    .road-dialog-portrait {
+        left: 20px;
+        width: clamp(170px, 40vw, 220px);
+        height: clamp(130px, 28vw, 190px);
     }
 
     .road-dialog-prompt {
-        right: 24px;
-        bottom: 20px;
+        right: 28px;
+        bottom: 22px;
     }
 }
