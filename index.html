@@ -38,7 +38,8 @@
                         <img src="./images/character/grandmother/grandmother_front.png" alt="할머니" draggable="false">
                     </div>
                     <div class="road-actor road-player" id="road-player">
-                        <img id="road-player-sprite" src="./images/character/player/player.png" alt="플레이어" draggable="false">
+                        <img id="road-player-sprite" src="./images/character/player/player.png" alt="플레이어"
+                            draggable="false">
                     </div>
                 </div>
 
@@ -65,6 +66,49 @@
 
         <section id="Battle" class="screen" aria-label="Battle 화면">
             <canvas id="battle-canvas"></canvas>
+            <section class="battle-status enemy-status" id="enemy-status" aria-label="적 상태">
+                <p class="status-name">늑대</p>
+                <div class="status-bar health-bar" role="progressbar" aria-label="적 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                    <span class="status-fill"></span>
+                </div>
+                <div class="status-bar stamina-bar enemy-stamina-bar" role="progressbar" aria-label="적 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                    <span class="status-fill"></span>
+                </div>
+            </section>
+            <section class="battle-status player-status" id="player-status" aria-label="플레이어 상태">
+                <p class="status-name">플레이어</p>
+                <div class="status-row">
+                    <div class="status-bar health-bar" role="progressbar" aria-label="플레이어 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                        <span class="status-fill"></span>
+                    </div>
+                    <span class="status-value" id="player-health-value">100 / 100</span>
+                </div>
+                <div class="status-row stamina-row">
+                    <div class="status-bar stamina-bar" role="progressbar" aria-label="플레이어 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                        <span class="status-fill"></span>
+                    </div>
+                    <span class="status-value" id="player-stamina-value">100 / 100</span>
+                </div>
+            </section>
+            <section id="fight-skills-dialog" class="fight-skills-dialog" role="dialog" aria-label="공격 기술 선택"
+                aria-modal="true" hidden>
+                <img class="fight-skills-panel" src="./images/battle/fight_skills_panel.png" alt="">
+                <div class="fight-skills-list">
+                    <button type="button" class="fight-skill-button" aria-label="일반 공격, 위력 10, 명중률 100, 소모 스태미나 20">
+                        <img src="./images/battle/skill_row_general_attack.png" alt="">
+                    </button>
+                    <button type="button" class="fight-skill-button" aria-label="힘껏 휘두르기, 위력 20, 명중률 70, 소모 스태미나 30">
+                        <img src="./images/battle/skill_row_heavy_swing.png" alt="">
+                    </button>
+                    <button type="button" class="fight-skill-button" aria-label="숨 고르기, 체력 10 및 스태미나 40 회복, 소모 스태미나 0">
+                        <img src="./images/battle/skill_row_breathe.png" alt="">
+                    </button>
+                </div>
+            </section>
+            <dialog id="battle-loss-dialog" class="battle-loss-dialog" aria-labelledby="battle-loss-text">
+                <p id="battle-loss-text">다시 해보자</p>
+                <button type="button" id="battle-loss-confirm">확인</button>
+            </dialog>
             <div class="menu-section">
                 <img id="menu-background" src="./images/battle/battle_menu.png" alt="">
                 <div id="menu-text">
