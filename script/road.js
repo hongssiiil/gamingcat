@@ -193,6 +193,12 @@ let forestWalkDistance = 0;
 let forestSignTranslated = false;
 let selectedForestRoute = null;
 
+export function getCurrentRoadBattleBackground() {
+    return currentMap === "whiteRoad"
+        ? "./images/battle/battle_bg_white.png"
+        : "./images/battle/battle_bg_green.png";
+}
+
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
