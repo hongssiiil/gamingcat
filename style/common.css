@@ -20,11 +20,15 @@ body {
     padding: 0.5rem;
     border-radius: 0.5rem;
     background: rgb(243 245 248 / 90%);
+    display: none;
+    /* 임시 */
 }
 
 .screen-navigation button {
     padding: 0.6rem 1rem;
     cursor: pointer;
+    display: none;
+    /* 임시 */
 }
 
 .screen {

@@ -20,7 +20,8 @@
     <main>
         <section id="Road" class="screen-active road-screen" aria-label="Road 화면">
             <h1 class="road-visually-hidden">숲길 탐험</h1>
-            <div class="road-viewport" id="road-viewport" tabindex="0" aria-label="WASD 또는 방향키로 이동하고, 가까이에서 E 또는 스페이스바로 상호작용하세요.">
+            <div class="road-viewport" id="road-viewport" tabindex="0"
+                aria-label="WASD 또는 방향키로 이동하고, 가까이에서 E 또는 스페이스바로 상호작용하세요.">
                 <form class="road-name-screen" id="road-name-screen" novalidate>
                     <label for="road-player-name">나의 이름은?</label>
                     <input id="road-player-name" name="playerName" autocomplete="given-name" required>
@@ -28,9 +29,12 @@
                     <button type="submit">시작</button>
                 </form>
                 <div class="road-world" id="road-world">
-                    <img class="road-map" id="road-map" src="./images/backgrounds/home.png" alt="집 주변의 숲길" draggable="false">
-                    <img class="road-sign" id="road-sign" src="./images/road/sign-transparent-outline-fixed.png" alt="숲길 표지판" draggable="false" hidden>
-                    <button class="road-sign-trigger" id="road-sign-trigger" type="button" aria-label="표지판 읽기" hidden></button>
+                    <img class="road-map" id="road-map" src="./images/backgrounds/home.png" alt="집 주변의 숲길"
+                        draggable="false">
+                    <img class="road-sign" id="road-sign" src="./images/road/sign-transparent-outline-fixed.png"
+                        alt="숲길 표지판" draggable="false" hidden>
+                    <button class="road-sign-trigger" id="road-sign-trigger" type="button" aria-label="표지판 읽기"
+                        hidden></button>
                     <div class="road-actor road-cat" id="road-cat" aria-label="티니" hidden>
                         <img id="road-cat-sprite" src="./images/character/cat/cat_front.png" alt="티니" draggable="false">
                     </div>
@@ -43,9 +47,11 @@
                     </div>
                 </div>
 
-                <section class="road-sign-overlay" id="road-sign-overlay" role="dialog" aria-modal="true" aria-labelledby="road-sign-title" hidden>
+                <section class="road-sign-overlay" id="road-sign-overlay" role="dialog" aria-modal="true"
+                    aria-labelledby="road-sign-title" hidden>
                     <div class="road-sign-panel">
-                        <button class="road-sign-close" id="road-sign-close" type="button" aria-label="표지판 닫기">×</button>
+                        <button class="road-sign-close" id="road-sign-close" type="button"
+                            aria-label="표지판 닫기">×</button>
                         <h2 id="road-sign-title">표지판</h2>
                         <div class="road-sign-copy" id="road-sign-copy"></div>
                         <button class="road-sign-confirm" id="road-sign-confirm" type="button">확인</button>
@@ -68,23 +74,27 @@
             <canvas id="battle-canvas"></canvas>
             <section class="battle-status enemy-status" id="enemy-status" aria-label="적 상태">
                 <p class="status-name">늑대</p>
-                <div class="status-bar health-bar" role="progressbar" aria-label="적 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                <div class="status-bar health-bar" role="progressbar" aria-label="적 체력" aria-valuemin="0"
+                    aria-valuemax="100" aria-valuenow="100">
                     <span class="status-fill"></span>
                 </div>
-                <div class="status-bar stamina-bar enemy-stamina-bar" role="progressbar" aria-label="적 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                <div class="status-bar stamina-bar enemy-stamina-bar" role="progressbar" aria-label="적 스태미나"
+                    aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
                     <span class="status-fill"></span>
                 </div>
             </section>
             <section class="battle-status player-status" id="player-status" aria-label="플레이어 상태">
                 <p class="status-name">플레이어</p>
                 <div class="status-row">
-                    <div class="status-bar health-bar" role="progressbar" aria-label="플레이어 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                    <div class="status-bar health-bar" role="progressbar" aria-label="플레이어 체력" aria-valuemin="0"
+                        aria-valuemax="100" aria-valuenow="100">
                         <span class="status-fill"></span>
                     </div>
                     <span class="status-value" id="player-health-value">100 / 100</span>
                 </div>
                 <div class="status-row stamina-row">
-                    <div class="status-bar stamina-bar" role="progressbar" aria-label="플레이어 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                    <div class="status-bar stamina-bar" role="progressbar" aria-label="플레이어 스태미나" aria-valuemin="0"
+                        aria-valuemax="100" aria-valuenow="100">
                         <span class="status-fill"></span>
                     </div>
                     <span class="status-value" id="player-stamina-value">100 / 100</span>

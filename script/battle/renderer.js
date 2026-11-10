@@ -6,9 +6,7 @@ const baseHeight = 778;
 const canvas = document.getElementById("battle-canvas");
 const context = canvas.getContext("2d");
 
-const battleBackground = loadImage("./images/battle/battle_bg.png");
-const playerBase = loadImage("./images/battle/playerBase.png");
-const enemyBase = loadImage("./images/battle/enemyBase.png");
+let battleBackground = loadImage("./images/battle/battle_bg.png");
 const playerImage = loadImage("./images/character/player/player_diagonal.png");
 const enemyImage = loadImage("./images/battle/wolf.png");
 const catImage = loadImage("./images/character/cat/cat_diagonal.png");
@@ -56,6 +54,14 @@ function loadImage(source) {
     return image;
 }
 
+export function setBattleBackground(source) {
+    const nextBackground = loadImage(source);
+    nextBackground.addEventListener("load", () => {
+        battleBackground = nextBackground;
+        drawBackground();
+    }, { once: true });
+}
+
 function drawSprite(sprite) {
     if (!sprite.image.complete || !sprite.image.naturalWidth) return;
     context.drawImage(
@@ -100,12 +106,6 @@ function resizeCanvas() {
 function drawBackground() {
     if (!battleBackground.complete) return;
     context.drawImage(battleBackground, 0, 0, baseWidth, baseHeight);
-}
-
-function drawBases() {
-    if (!playerBase.complete || !enemyBase.complete) return;
-    context.drawImage(enemyBase, baseWidth * 0.5, baseHeight * 0.35, baseWidth * 0.35, baseHeight * 0.3);
-    context.drawImage(playerBase, baseWidth * 0.1, baseHeight * 0.6, baseWidth * 3 / 7, baseHeight * 0.1);
 }
 
 function drawEnemyAttack(animation) {
@@ -246,7 +246,6 @@ function draw(state) {
     context.fillRect(0, 0, windowWidth, windowHeight);
     context.setTransform(dpr * scaleWidth, 0, 0, dpr * scaleHeight, dpr * offsetX, dpr * offsetY);
     drawBackground();
-    drawBases();
     drawEntities(state);
     window.requestAnimationFrame(() => draw(state));
 }

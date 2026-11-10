@@ -10,7 +10,8 @@ import {
 } from "./battle/rules.js";
 import { getTurnRecommendation } from "./battle/recommendations.js";
 import { createBattleState, resetBattleState } from "./battle/state.js";
-import { startBattleRenderer } from "./battle/renderer.js";
+import { setBattleBackground, startBattleRenderer } from "./battle/renderer.js";
+import { getCurrentRoadBattleBackground } from "./road.js";
 import {
     battleLossConfirmButton,
     battleLossDialog,
@@ -193,6 +194,7 @@ function resetBattle() {
 }
 
 export function enterBattle() {
+    setBattleBackground(getCurrentRoadBattleBackground());
     enterBattleScreen();
     if (!battleState.started) {
         battleState.started = true;
