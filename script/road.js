@@ -45,8 +45,8 @@ const CAT_FOLLOW_START_DISTANCE = 12;
 const FOREST_ROUTE_ENTRY_DISTANCE = 72;
 const FOREST_ROUTE_POINTS = {
     up: { x: 0.43, y: 0.24 },
-    right: { x: 1.0, y: 0.65 },
-    down: { x: 0.48, y: 1.0 },
+    right: { x: 0.74, y: 0.46 },
+    down: { x: 0.43, y: 0.78 },
 };
 const ANCIENT_SIGN_TEXT = "(@#$^*&$*&#@(^(*&)#*$)(*&(@#& ?\n^ : @&#)!(@*&#\n> : (#*@(*#(*@))@\nU : *%(*&(*#(*@";
 const FOREST_ROUTES = [
@@ -192,7 +192,6 @@ let forestScenePhase = "not-arrived";
 let forestWalkDistance = 0;
 let forestSignTranslated = false;
 let selectedForestRoute = null;
-let forestBattlePortalEntered = false;
 
 export function getCurrentRoadBattleBackground() {
     return currentMap === "whiteRoad"
@@ -758,6 +757,8 @@ function armCatFollowAfterRecommendation() {
 }
 
 function recordForestRouteAtPlayerPosition() {
+    if (selectedForestRoute || forestScenePhase !== "exploring-routes") return;
+
     const route = FOREST_ROUTES.find(({ key }) => {
         const routePoint = FOREST_ROUTE_POINTS[key];
         return Math.hypot(
@@ -765,22 +766,11 @@ function recordForestRouteAtPlayerPosition() {
             player.y - worldHeight * routePoint.y,
         ) <= FOREST_ROUTE_ENTRY_DISTANCE;
     });
-    if (!route) {
-        forestBattlePortalEntered = false;
-        return;
-    }
+    if (!route) return;
 
-    if (!selectedForestRoute && forestScenePhase === "exploring-routes") {
-        selectedForestRoute = route.key;
-        forestScenePhase = "route-selected";
-        recordForestRoute(route.key);
-    }
-    if (forestBattlePortalEntered) return;
-
-    forestBattlePortalEntered = true;
-    // TEMP FOREST BATTLE TRANSITION START
-    window.dispatchEvent(new CustomEvent("gamingcat:temporary-forest-battle"));
-    // TEMP FOREST BATTLE TRANSITION END
+    selectedForestRoute = route.key;
+    forestScenePhase = "route-selected";
+    recordForestRoute(route.key);
 }
 
 function faceCatTowardPlayer() {
@@ -995,12 +985,10 @@ function beginGrandmotherStory() {
     dialogueQueue = [
         { speaker: "player", text: "할머니. 건강 조심하세요." },
         { speaker: "grandmother", text: "철수 어멈한테 들었는데 철수는 벌써 시험에 합격해서 공직이 되었단다. 네 나이 때쯤이면 집안을 빛낼 만한 일을 하나쯤 하곤 하지…" },
-        {
-            choices: [
-                { label: "저도 그 정도는 할 수 있어요.", next: () => [{ speaker: "grandmother", text: "그래, 네가 해낼 거라고 믿는단다. 그러면 저 숲을 건너 사냥꾼 칭호를 받는 건 어떠니?" }, ...commonProposal] },
-                { label: "하지만 저는 겁이 나요. 자신이 없어요.", next: () => [{ speaker: "grandmother", text: "겁이 나는 건 당연해. 하지만 다들 처음엔 그랬단다. 민수도, 영희도 결국 해냈어. 너도 할 수 있을 거야." }, ...commonProposal] },
-            ]
-        },
+        { choices: [
+            { label: "저도 그 정도는 할 수 있어요.", next: () => [{ speaker: "grandmother", text: "그래, 네가 해낼 거라고 믿는단다. 그러면 저 숲을 건너 사냥꾼 칭호를 받는 건 어떠니?" }, ...commonProposal] },
+            { label: "하지만 저는 겁이 나요. 자신이 없어요.", next: () => [{ speaker: "grandmother", text: "겁이 나는 건 당연해. 하지만 다들 처음엔 그랬단다. 민수도, 영희도 결국 해냈어. 너도 할 수 있을 거야." }, ...commonProposal] },
+        ] },
     ];
     showLine({ speaker: "grandmother", text: opening });
 }
@@ -1009,12 +997,10 @@ const commonProposal = [
     { speaker: "grandmother", text: "정부에서 저 숲을 건너기만 하고 보고만 하면, 마을 경비에 지원할 기회를 주겠대. 집안의 큰 자랑이 될 거야." },
     { speaker: "player", text: "아니, 이건 기회지 된다는 보장도 아니지 않아요?" },
     { speaker: "grandmother", text: "그래도 이건 기본이야. 아무튼 어떻게 생각하니?" },
-    {
-        choices: [
-            { label: "당연히 갈 수 있어요.", next: () => [{ speaker: "grandmother", text: "숲으로 가려면 오른쪽 끝에 갈색길로 가렴. 네가 해낼 거라는 걸 모두에게 보여주렴." }] },
-            { label: "저는 아직 고민할 시간이 필요해요.", next: () => comparisonRound() },
-        ]
-    },
+    { choices: [
+        { label: "당연히 갈 수 있어요.", next: () => [{ speaker: "grandmother", text: "숲으로 가려면 오른쪽 끝에 갈색길로 가렴. 네가 해낼 거라는 걸 모두에게 보여주렴." }] },
+        { label: "저는 아직 고민할 시간이 필요해요.", next: () => comparisonRound() },
+    ] },
 ];
 
 const comparisons = ["민호는 당근 코인 대박 났다는데…", "영희는 달걀 연구실에 합격했다는데…", "지금 나이가 몇인데 아직도 고민하니…", "영호는 양털 회사 최종 합격했다는데…"];
@@ -1023,12 +1009,10 @@ function comparisonRound() {
     const comparison = comparisons[comparisonIndex++ % comparisons.length];
     return [
         { speaker: "grandmother", text: comparison },
-        {
-            choices: [
-                { label: "숲에 갈게요, 그럼.", next: () => [{ speaker: "grandmother", text: "숲으로 가려면 오른쪽 끝에 갈색길로 가렴. 네가 해낼 거라는 걸 모두에게 보여주렴." }] },
-                { label: "그래도 무서워.", closeAfterComplete: true, next: () => [] },
-            ]
-        },
+        { choices: [
+            { label: "숲에 갈게요, 그럼.", next: () => [{ speaker: "grandmother", text: "숲으로 가려면 오른쪽 끝에 갈색길로 가렴. 네가 해낼 거라는 걸 모두에게 보여주렴." }] },
+            { label: "그래도 무서워.", closeAfterComplete: true, next: () => [] },
+        ] },
     ];
 }
 

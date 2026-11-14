@@ -10,10 +10,3 @@ document.querySelector("#show-battle").addEventListener("click", () => {
     exitRoad();
     enterBattle();
 });
-
-// TEMP FOREST BATTLE TRANSITION START
-window.addEventListener("gamingcat:temporary-forest-battle", () => {
-    exitRoad();
-    enterBattle();
-});
-// TEMP FOREST BATTLE TRANSITION END
