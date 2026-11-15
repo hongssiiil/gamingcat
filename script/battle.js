@@ -1,8 +1,10 @@
-import { enterRoad } from "./road.js";
+import { enterRoad, getCurrentRoadBattleBackground, getPlayerName } from "./road.js";
 import {
     applyEnemyAttackImpact,
     applyPlayerSkill,
+    chooseEnemyAction,
     createEnemyAttack,
+    getEnemyActionProbabilities,
     recoverEnemyStamina,
     skillEffects,
     spendEnemyStamina,
@@ -11,21 +13,27 @@ import {
 import { getTurnRecommendation } from "./battle/recommendations.js";
 import { createBattleState, resetBattleState } from "./battle/state.js";
 import { setBattleBackground, startBattleRenderer } from "./battle/renderer.js";
-import { getCurrentRoadBattleBackground } from "./road.js";
 import {
+    actionChoiceCancelButton,
+    alternateRunButton,
+    battleHistoryPreviousButton,
+    battleHistoryNextButton,
     battleLossConfirmButton,
     battleLossDialog,
-    bagButton,
+    battleSection,
+    chooseActionButton,
     closeBattleLossDialog,
     enterBattleScreen,
     exitBattleScreen,
-    fightButton,
     fightSkillButtons,
     fightSkillsDialog,
+    followRecommendationButton,
     openBattleLossDialog,
-    runButton,
+    playerStatusName,
+    renderBattleHistory,
     setControlsLocked,
     showMenuMessage,
+    updateEnemyIntent,
     updateStatusBars,
 } from "./battle/ui.js";
 
@@ -46,28 +54,48 @@ function cancelScheduledActions() {
     scheduledActions.clear();
 }
 
+function recordTurnField(field, value) {
+    if (!battleState.currentTurn) return;
+    if (field === "outcome" && battleState.currentTurn.outcome) {
+        battleState.currentTurn.outcome = `${battleState.currentTurn.outcome} ${value}`;
+        renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
+        return;
+    }
+    battleState.currentTurn[field] = value;
+    renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
+}
+
+function beginTurn(recommendation) {
+    battleState.currentRecommendation = recommendation;
+    battleState.currentTurn = {
+        number: battleState.turnHistory.length + 1,
+        recommendation: recommendation.text,
+        playerChoice: "",
+        enemyAction: "",
+        outcome: "",
+    };
+    battleState.turnHistory.push(battleState.currentTurn);
+    battleState.historyIndex = battleState.turnHistory.length - 1;
+    battleState.enemyActionProbabilities = getEnemyActionProbabilities(battleState);
+    updateEnemyIntent(battleState.enemyActionProbabilities);
+    renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
+    showMenuMessage(recommendation.text, "recommendation");
+}
+
 function showOpeningRecommendation() {
-    battleState.currentRecommendation = {
+    beginTurn({
         action: "run",
         text: "도망가자! 이길 수 있는 상대가 아니야!",
-    };
-    showMenuMessage(battleState.currentRecommendation.text);
+    });
 }
 
 function showTurnRecommendation() {
-    battleState.currentRecommendation = getTurnRecommendation(battleState);
-    showMenuMessage(battleState.currentRecommendation.text);
-}
-
-function followRecommendationIfMatched(action, skillIndex) {
-    const recommendation = battleState.currentRecommendation;
-    const matched = recommendation?.action === action
-        && (action !== "skill" || recommendation.skillIndex === skillIndex);
-    if (matched) battleState.recommendationFollowCount += 1;
+    beginTurn(getTurnRecommendation(battleState));
 }
 
 function finishBattle(message) {
     if (battleState.ended) return;
+    recordTurnField("outcome", message);
     battleState.ended = true;
     setControlsLocked(battleState, true);
     fightSkillsDialog.hidden = true;
@@ -80,6 +108,7 @@ function finishBattle(message) {
 
 function showBattleLoss() {
     if (battleState.ended) return;
+    recordTurnField("outcome", "플레이어의 체력이 0이 되어 전투를 마쳤다.");
     battleState.ended = true;
     cancelScheduledActions();
     setControlsLocked(battleState, true);
@@ -98,7 +127,7 @@ function endEnemyTurn() {
     }
     showTurnRecommendation();
     setControlsLocked(battleState, false);
-    fightButton.focus();
+    followRecommendationButton.focus();
 }
 
 function startEnemyTurn() {
@@ -111,8 +140,19 @@ function startEnemyTurn() {
         return;
     }
 
-    if (battleState.enemy.stamina < wolfCombatRules.staminaCost) {
+    // Calculate at decision time and share this exact distribution with the UI
+    // and the random action roll so the displayed bars describe this turn.
+    battleState.enemyActionProbabilities = getEnemyActionProbabilities(battleState);
+    updateEnemyIntent(battleState.enemyActionProbabilities);
+    const action = chooseEnemyAction(
+        battleState,
+        Math.random() * 100,
+        battleState.enemyActionProbabilities,
+    );
+    if (action === "recover") {
         recoverEnemyStamina(battleState);
+        recordTurnField("enemyAction", "숨을 고름");
+        recordTurnField("outcome", "늑대가 숨을 고르며 스태미나를 회복했다.");
         showMenuMessage("늑대가 숨을 고르며 스태미나를 회복했다.");
         updateStatusBars(battleState);
         scheduleBattleAction(() => {
@@ -122,12 +162,13 @@ function startEnemyTurn() {
             }
             showTurnRecommendation();
             setControlsLocked(battleState, false);
-            fightButton.focus();
+            followRecommendationButton.focus();
         }, 520);
         return;
     }
 
     spendEnemyStamina(battleState);
+    recordTurnField("enemyAction", "공격");
     showMenuMessage("늑대의 공격!");
     updateStatusBars(battleState);
     scheduleBattleAction(() => {
@@ -135,6 +176,7 @@ function startEnemyTurn() {
         scheduleBattleAction(() => {
             const message = applyEnemyAttackImpact(battleState);
             if (message) {
+                recordTurnField("outcome", message);
                 showMenuMessage(message);
                 updateStatusBars(battleState);
             }
@@ -147,21 +189,13 @@ function resolvePlayerSkill(skillIndex) {
     if (battleState.controlsLocked) return;
     const skill = skillEffects[skillIndex];
     if (!skill) return;
-    followRecommendationIfMatched("skill", skillIndex);
-    if (battleState.player.stamina < skill.staminaCost) {
-        const result = applyPlayerSkill(battleState, skillIndex, performance.now());
-        fightSkillsDialog.hidden = true;
-        setControlsLocked(battleState, true);
-        showMenuMessage(result.message);
-        scheduleBattleAction(startEnemyTurn, 800);
-        return;
-    }
-
+    recordTurnField("playerChoice", skill.name);
     fightSkillsDialog.hidden = true;
     setControlsLocked(battleState, true);
 
     const resolve = () => {
         const result = applyPlayerSkill(battleState, skillIndex, performance.now());
+        recordTurnField("outcome", result.message);
         showMenuMessage(result.message);
         updateStatusBars(battleState);
 
@@ -177,8 +211,46 @@ function resolvePlayerSkill(skillIndex) {
         }
     };
 
-    if (skill.damage > 0) scheduleBattleAction(resolve, 300);
-    else resolve();
+    if (skill.damage > 0 && battleState.player.stamina >= skill.staminaCost) {
+        scheduleBattleAction(resolve, 300);
+    } else {
+        resolve();
+    }
+}
+
+function attemptEscape() {
+    if (battleState.controlsLocked) return;
+    recordTurnField("playerChoice", "도망 시도");
+    fightSkillsDialog.hidden = true;
+    setControlsLocked(battleState, true);
+    showMenuMessage("도망을 시도한다.");
+    scheduleBattleAction(() => {
+        if (Math.random() < 0.8) {
+            recordTurnField("outcome", "도망에 실패했다.");
+            showMenuMessage("도망치는데 실패했다...");
+            scheduleBattleAction(startEnemyTurn, 500);
+            return;
+        }
+
+        finishBattle("무사히 도망쳤다!");
+    }, 1000);
+}
+
+function acceptRecommendation() {
+    if (battleState.controlsLocked) return;
+    const recommendation = battleState.currentRecommendation;
+    if (!recommendation) return;
+    if (recommendation.action === "run") {
+        attemptEscape();
+        return;
+    }
+    resolvePlayerSkill(recommendation.skillIndex);
+}
+
+function openActionChoices() {
+    if (battleState.controlsLocked) return;
+    fightSkillsDialog.hidden = false;
+    fightSkillButtons[0].focus();
 }
 
 function resetBattle() {
@@ -190,12 +262,14 @@ function resetBattle() {
     updateStatusBars(battleState);
     enterBattleScreen();
     showOpeningRecommendation();
-    runButton.focus();
+    followRecommendationButton.focus();
 }
 
-export function enterBattle() {
-    setBattleBackground(getCurrentRoadBattleBackground());
+export async function enterBattle() {
+    await setBattleBackground(getCurrentRoadBattleBackground());
+    playerStatusName.textContent = getPlayerName() || "플레이어";
     enterBattleScreen();
+    followRecommendationButton.focus();
     if (!battleState.started) {
         battleState.started = true;
         showOpeningRecommendation();
@@ -206,51 +280,78 @@ export function exitBattle() {
     exitBattleScreen();
 }
 
-fightButton.addEventListener("click", () => {
-    if (battleState.controlsLocked) return;
-    fightSkillsDialog.hidden = false;
-    fightSkillButtons[0].focus();
-});
+followRecommendationButton.addEventListener("click", acceptRecommendation);
+chooseActionButton.addEventListener("click", openActionChoices);
 
 fightSkillButtons.forEach((button, index) => {
     button.addEventListener("click", () => resolvePlayerSkill(index));
 });
 
+alternateRunButton.addEventListener("click", attemptEscape);
+actionChoiceCancelButton.addEventListener("click", () => {
+    fightSkillsDialog.hidden = true;
+    chooseActionButton.focus();
+});
+
 fightSkillsDialog.addEventListener("click", (event) => {
     if (event.target === fightSkillsDialog) {
         fightSkillsDialog.hidden = true;
-        fightButton.focus();
+        chooseActionButton.focus();
     }
 });
 
+battleHistoryPreviousButton.addEventListener("click", () => {
+    if (battleState.historyIndex <= 0) return;
+    battleState.historyIndex -= 1;
+    renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
+});
+battleHistoryNextButton.addEventListener("click", () => {
+    if (battleState.historyIndex >= battleState.turnHistory.length - 1) return;
+    battleState.historyIndex += 1;
+    renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
+});
+
 document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !fightSkillsDialog.hidden) {
-        fightSkillsDialog.hidden = true;
-        fightButton.focus();
+    const key = event.key.toLowerCase();
+    const movementKeys = ["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"];
+    const isActionMenuOpen = !fightSkillsDialog.hidden;
+    const mainActions = [followRecommendationButton, chooseActionButton];
+    const isMainActionFocused = mainActions.includes(document.activeElement);
+
+    if (
+        battleSection.classList.contains("screen-active")
+        && movementKeys.includes(key)
+        && (isActionMenuOpen || isMainActionFocused)
+    ) {
+        const choices = isActionMenuOpen
+            ? [...fightSkillButtons, alternateRunButton, actionChoiceCancelButton]
+                .filter((button) => !button.disabled)
+            : mainActions.filter((button) => !button.disabled);
+        const focusedIndex = choices.indexOf(document.activeElement);
+        if (choices.length) {
+            event.preventDefault();
+            const vertical = key === "arrowup" || key === "w" ? -1
+                : key === "arrowdown" || key === "s" ? 1 : 0;
+            const horizontal = key === "arrowleft" || key === "a" ? -1
+                : key === "arrowright" || key === "d" ? 1 : 0;
+            const delta = isActionMenuOpen || vertical ? vertical : horizontal;
+            const activeIndex = focusedIndex === -1 ? 0 : focusedIndex;
+            if (delta) choices[(activeIndex + delta + choices.length) % choices.length].focus();
+        }
     }
+
+    if (event.key === "Escape" && isActionMenuOpen) {
+        event.preventDefault();
+        fightSkillsDialog.hidden = true;
+        chooseActionButton.focus();
+        return;
+    }
+
 });
 
 battleLossDialog.addEventListener("cancel", (event) => {
     event.preventDefault();
 });
 battleLossConfirmButton.addEventListener("click", resetBattle);
-
-bagButton.addEventListener("click", () => {
-    if (battleState.controlsLocked) return;
-    console.log("가방 버튼 클릭됨");
-    showMenuMessage("가방을 열어서 뭐하게?");
-});
-
-runButton.addEventListener("click", () => {
-    if (battleState.controlsLocked) return;
-    followRecommendationIfMatched("run");
-    console.log("도망가기 버튼 클릭됨");
-    setControlsLocked(battleState, true);
-    showMenuMessage("도망을 시도한다.");
-    scheduleBattleAction(() => {
-        showMenuMessage("도망치는데 실패했다...");
-        scheduleBattleAction(startEnemyTurn, 500);
-    }, 1000);
-});
 
 startBattleRenderer(battleState);

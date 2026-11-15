@@ -109,6 +109,7 @@ const SPEAKER_PORTRAITS = {
     },
 };
 const TYPEWRITER_DELAY = 55;
+const battleBackgroundPreloads = new Map();
 
 export const journeyChoiceHistory = [];
 try {
@@ -197,6 +198,18 @@ export function getCurrentRoadBattleBackground() {
     return currentMap === "whiteRoad"
         ? "./images/battle/battle_bg_white.png"
         : "./images/battle/battle_bg_green.png";
+}
+
+export function getPlayerName() {
+    return playerName;
+}
+
+function preloadCurrentRoadBattleBackground() {
+    const source = getCurrentRoadBattleBackground();
+    if (battleBackgroundPreloads.has(source)) return;
+    const image = new Image();
+    image.src = source;
+    battleBackgroundPreloads.set(source, image.decode().catch(() => null));
 }
 
 function clamp(value, min, max) {
@@ -535,6 +548,7 @@ function transitionToWhiteRoad() {
 
     homeReturnY = player.y;
     currentMap = "whiteRoad";
+    preloadCurrentRoadBattleBackground();
     homePortalArmed = false;
     pendingSpawn = { map: "whiteRoad" };
     pressedKeys.clear();
