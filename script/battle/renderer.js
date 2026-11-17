@@ -1,4 +1,10 @@
-import { enemyStatus, menuSection, playerStatus } from "./ui.js";
+import {
+    battleHistoryPanel,
+    enemyIntent,
+    enemyStatus,
+    menuSection,
+    playerStatus,
+} from "./ui.js";
 
 const baseWidth = 1440;
 const baseHeight = 778;
@@ -7,6 +13,7 @@ const canvas = document.getElementById("battle-canvas");
 const context = canvas.getContext("2d");
 
 let battleBackground = loadImage("./images/battle/battle_bg.png");
+const battleBackgrounds = new Map();
 const playerImage = loadImage("./images/character/player/player_diagonal.png");
 const enemyImage = loadImage("./images/battle/wolf.png");
 const catImage = loadImage("./images/character/cat/cat_diagonal.png");
@@ -54,12 +61,17 @@ function loadImage(source) {
     return image;
 }
 
-export function setBattleBackground(source) {
-    const nextBackground = loadImage(source);
-    nextBackground.addEventListener("load", () => {
-        battleBackground = nextBackground;
-        drawBackground();
-    }, { once: true });
+export function preloadBattleBackground(source) {
+    if (battleBackgrounds.has(source)) return battleBackgrounds.get(source);
+    const image = loadImage(source);
+    const loaded = image.decode().then(() => image);
+    battleBackgrounds.set(source, loaded);
+    return loaded;
+}
+
+export async function setBattleBackground(source) {
+    battleBackground = await preloadBattleBackground(source);
+    drawBackground();
 }
 
 function drawSprite(sprite) {
@@ -88,12 +100,22 @@ function resizeCanvas() {
     menuSection.style.width = `${baseWidth * fitScale}px`;
     menuSection.style.height = `${234 * fitScale}px`;
 
-    enemyStatus.style.left = `${offsetX + 48 * fitScale}px`;
-    enemyStatus.style.top = `${offsetY + 42 * fitScale}px`;
-    enemyStatus.style.width = `${340 * fitScale}px`;
-    playerStatus.style.left = `${offsetX + 980 * fitScale}px`;
-    playerStatus.style.top = `${offsetY + 452 * fitScale}px`;
-    playerStatus.style.width = `${300 * fitScale}px`;
+    enemyIntent.style.left = `${offsetX + 520 * fitScale}px`;
+    enemyIntent.style.top = `${offsetY + 28 * fitScale}px`;
+    enemyIntent.style.width = `${400 * fitScale}px`;
+    battleHistoryPanel.style.left = `${offsetX + 1106 * fitScale}px`;
+    battleHistoryPanel.style.top = `${offsetY + 184 * fitScale}px`;
+    battleHistoryPanel.style.width = `${310 * fitScale}px`;
+    battleHistoryPanel.style.height = `${350 * fitScale}px`;
+
+    playerStatus.style.left = `${offsetX + 60 * fitScale}px`;
+    playerStatus.style.top = `${offsetY + 28 * fitScale}px`;
+    playerStatus.style.width = `${400 * fitScale}px`;
+    playerStatus.style.height = `${140 * fitScale}px`;
+    enemyStatus.style.left = `${offsetX + 988 * fitScale}px`;
+    enemyStatus.style.top = `${offsetY + 28 * fitScale}px`;
+    enemyStatus.style.width = `${400 * fitScale}px`;
+    enemyStatus.style.height = `${140 * fitScale}px`;
     document.documentElement.style.setProperty("--battle-scale", fitScale);
 
     canvas.style.width = `${windowWidth}px`;

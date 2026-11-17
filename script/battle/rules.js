@@ -20,6 +20,17 @@ export const wolfCombatRules = {
     staminaCost: 20,
 };
 
+export function getEnemyActionProbabilities(state) {
+    return state.enemy.stamina >= wolfCombatRules.staminaCost
+        ? { attack: 100, recover: 0 }
+        : { attack: 0, recover: 100 };
+}
+
+export function chooseEnemyAction(state, roll = Math.random() * 100, predictedProbabilities = null) {
+    const probabilities = predictedProbabilities ?? getEnemyActionProbabilities(state);
+    return roll < probabilities.attack ? "attack" : "recover";
+}
+
 export function applyPlayerSkill(state, skillIndex, now) {
     const skill = skillEffects[skillIndex];
     if (!skill) return { kind: "invalid" };
@@ -91,13 +102,10 @@ export function spendEnemyStamina(state) {
 }
 
 export function createEnemyAttack(state, now) {
-    const accuracy = Math.min(
-        100,
-        wolfCombatRules.baseAccuracy + state.recommendationFollowCount * 5,
-    );
+    const accuracy = wolfCombatRules.baseAccuracy;
     const criticalChance = Math.min(
         wolfCombatRules.criticalChanceCap,
-        wolfCombatRules.baseCriticalChance + state.recommendationFollowCount * 5,
+        wolfCombatRules.baseCriticalChance,
     );
     const hit = Math.random() * 100 < accuracy;
     state.enemyAttackAnimation = {

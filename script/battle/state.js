@@ -24,8 +24,11 @@ export function createBattleState() {
         controlsLocked: false,
         ended: false,
         started: false,
-        recommendationFollowCount: 0,
         currentRecommendation: null,
+        enemyActionProbabilities: null,
+        turnHistory: [],
+        currentTurn: null,
+        historyIndex: 0,
     };
 }
 
@@ -41,6 +44,9 @@ export function resetBattleState(state) {
     state.controlsLocked = false;
     state.ended = false;
     state.started = true;
-    state.recommendationFollowCount = 0;
     state.currentRecommendation = null;
+    state.enemyActionProbabilities = null;
+    state.turnHistory = [];
+    state.currentTurn = null;
+    state.historyIndex = 0;
 }

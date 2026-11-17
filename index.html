@@ -7,7 +7,7 @@
     <title>Gaming Cat</title>
     <link rel="stylesheet" href="style/common.css">
     <link rel="stylesheet" href="style/road.css">
-    <link rel="stylesheet" href="style/battle.css">
+    <link rel="stylesheet" href="style/battle.css?v=14">
     <script type="module" src="script/main.js"></script>
 </head>
 
@@ -59,43 +59,101 @@
 
         <section id="Battle" class="screen" aria-label="Battle 화면">
             <canvas id="battle-canvas"></canvas>
-            <section class="battle-status enemy-status" id="enemy-status" aria-label="적 상태">
-                <p class="status-name">늑대</p>
-                <div class="status-bar health-bar" role="progressbar" aria-label="적 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
-                    <span class="status-fill"></span>
+            <section class="enemy-intent" id="enemy-intent" aria-labelledby="enemy-intent-title">
+                <h2 id="enemy-intent-title">늑대의 다음 행동 예상</h2>
+                <div class="intent-row">
+                    <span>공격</span>
+                    <progress id="enemy-attack-probability" max="100" value="70" aria-label="늑대가 공격할 가능성"></progress>
+                    <output class="intent-probability" id="enemy-attack-probability-value">70%</output>
                 </div>
-                <div class="status-bar stamina-bar enemy-stamina-bar" role="progressbar" aria-label="적 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
-                    <span class="status-fill"></span>
+                <div class="intent-row">
+                    <span>숨 고르기</span>
+                    <progress id="enemy-recover-probability" max="100" value="30" aria-label="늑대가 숨을 고를 가능성"></progress>
+                    <output class="intent-probability" id="enemy-recover-probability-value">30%</output>
+                </div>
+            </section>
+            <aside class="battle-history-panel" id="battle-history-panel" aria-labelledby="battle-history-title">
+                <div class="battle-history-header">
+                    <h2 id="battle-history-title">전투 기록</h2>
+                </div>
+                <div class="battle-history-navigator">
+                    <button id="battle-history-previous" type="button" aria-label="이전 턴">‹</button>
+                    <span id="battle-history-turn-label">1턴 / 1턴</span>
+                    <button id="battle-history-next" type="button" aria-label="다음 턴">›</button>
+                </div>
+                <div class="battle-history-cards" aria-live="polite">
+                    <article class="battle-history-card">
+                        <img src="./images/character/cat/cat_front.png" alt="">
+                        <div><h3>추천</h3><p id="battle-history-recommendation">추천을 기다리는 중</p></div>
+                    </article>
+                    <article class="battle-history-card">
+                        <img src="./images/character/player/player_icon.png" alt="">
+                        <div><h3>선택</h3><p id="battle-history-choice">아직 선택 전</p></div>
+                    </article>
+                    <article class="battle-history-card">
+                        <img src="./images/battle/history_result_icon.png" alt="전투 결과 아이콘">
+                        <div><h3>결과</h3><p id="battle-history-result">전투를 시작하면 결과가 여기에 표시돼요.</p></div>
+                    </article>
+                </div>
+            </aside>
+            <section class="battle-status enemy-status" id="enemy-status" aria-label="적 상태">
+                <img class="status-portrait" src="./images/character/wolf_icon.png" alt="늑대 얼굴 아이콘">
+                <div class="status-heading">
+                    <p class="status-name">늑대</p>
+                </div>
+                <div class="status-row health-row">
+                    <span class="status-kind">HP</span>
+                    <div class="status-bar health-bar" role="progressbar" aria-label="적 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                        <span class="status-fill"></span>
+                    </div>
+                    <span class="status-value" id="enemy-health-value">100 / 100</span>
+                </div>
+                <div class="status-row stamina-row">
+                    <span class="status-kind">스태미나</span>
+                    <div class="status-bar stamina-bar enemy-stamina-bar" role="progressbar" aria-label="적 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                        <span class="status-fill"></span>
+                    </div>
+                    <span class="status-value" id="enemy-stamina-value">100 / 100</span>
                 </div>
             </section>
             <section class="battle-status player-status" id="player-status" aria-label="플레이어 상태">
-                <p class="status-name">플레이어</p>
-                <div class="status-row">
+                <img class="status-portrait player-status-portrait" src="./images/character/player/player_status_icon.png" alt="플레이어 아이콘">
+                <div class="status-heading">
+                    <p class="status-name">플레이어</p>
+                </div>
+                <div class="status-row health-row">
+                    <span class="status-kind">HP</span>
                     <div class="status-bar health-bar" role="progressbar" aria-label="플레이어 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
                         <span class="status-fill"></span>
                     </div>
                     <span class="status-value" id="player-health-value">100 / 100</span>
                 </div>
                 <div class="status-row stamina-row">
+                    <span class="status-kind">스태미나</span>
                     <div class="status-bar stamina-bar" role="progressbar" aria-label="플레이어 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
                         <span class="status-fill"></span>
                     </div>
                     <span class="status-value" id="player-stamina-value">100 / 100</span>
                 </div>
             </section>
-            <section id="fight-skills-dialog" class="fight-skills-dialog" role="dialog" aria-label="공격 기술 선택"
+            <section id="fight-skills-dialog" class="fight-skills-dialog" role="dialog" aria-label="다른 행동 선택"
                 aria-modal="true" hidden>
                 <img class="fight-skills-panel" src="./images/battle/fight_skills_panel.png" alt="">
                 <div class="fight-skills-list">
-                    <button type="button" class="fight-skill-button" aria-label="일반 공격, 위력 10, 명중률 100, 소모 스태미나 20">
-                        <img src="./images/battle/skill_row_general_attack.png" alt="">
+                    <h2>다른 행동 선택</h2>
+                    <button type="button" class="fight-skill-button skill-option" aria-label="일반 공격, 위력 10, 명중률 100, 소모 스태미나 20">
+                        <span>일반 공격</span><small>위력 10 · 명중률 100% · 스태미나 20</small>
                     </button>
-                    <button type="button" class="fight-skill-button" aria-label="힘껏 휘두르기, 위력 20, 명중률 70, 소모 스태미나 30">
-                        <img src="./images/battle/skill_row_heavy_swing.png" alt="">
+                    <button type="button" class="fight-skill-button skill-option" aria-label="힘껏 휘두르기, 위력 20, 명중률 70, 소모 스태미나 30">
+                        <span>힘껏 휘두르기</span><small>위력 20 · 명중률 70% · 스태미나 30</small>
                     </button>
-                    <button type="button" class="fight-skill-button" aria-label="숨 고르기, 체력 10 및 스태미나 40 회복, 소모 스태미나 0">
-                        <img src="./images/battle/skill_row_breathe.png" alt="">
+                    <button type="button" class="fight-skill-button skill-option" aria-label="숨 고르기, 체력 10 및 스태미나 40 회복, 소모 스태미나 0">
+                        <span>숨 고르기</span><small>체력 10 · 스태미나 40 회복</small>
                     </button>
+                    <button type="button" class="fight-skill-button alternate-run-button" id="alternate-run-button">
+                        <span>도망 시도</span><small>성공하면 전투를 마치고 숲길로 돌아가요.</small>
+                    </button>
+                    <button type="button" class="action-choice-cancel" id="action-choice-cancel">돌아가기</button>
                 </div>
             </section>
             <dialog id="battle-loss-dialog" class="battle-loss-dialog" aria-labelledby="battle-loss-text">
@@ -105,17 +163,16 @@
             <div class="menu-section">
                 <img id="menu-background" src="./images/battle/battle_menu.png" alt="">
                 <div id="menu-text">
-                    <p id="ai-recommendation">도망가자!<br>이길 수 있는 상대가 아니야!</p>
+                    <img class="recommendation-cat" src="./images/character/cat/cat_front.png" alt="">
+                    <div class="recommendation-copy">
+                        <span id="battle-message-kind" class="battle-message-kind" hidden></span>
+                        <p id="ai-recommendation">도망가자! 이길 수 있는 상대가 아니야!</p>
+                    </div>
                 </div>
-                <button id="fight-button" aria-label="싸우기">
-                    <img src="./images/battle/fight_button.png" alt="">
-                </button>
-                <button id="bag-button" aria-label="가방">
-                    <img src="./images/battle/bag_button.png" alt="">
-                </button>
-                <button id="run-button" aria-label="도망가기">
-                    <img src="./images/battle/run_button.png" alt="">
-                </button>
+                <div class="menu-actions">
+                    <button id="follow-recommendation-button" type="button">이대로 할래</button>
+                    <button id="choose-action-button" type="button">다른 행동 고를래</button>
+                </div>
             </div>
         </section>
     </main>

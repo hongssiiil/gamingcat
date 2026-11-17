@@ -1,15 +1,30 @@
 export const battleSection = document.querySelector("#Battle");
 export const menuSection = document.querySelector(".menu-section");
 export const menuText = document.getElementById("ai-recommendation");
-export const fightButton = document.getElementById("fight-button");
-export const bagButton = document.getElementById("bag-button");
-export const runButton = document.getElementById("run-button");
+const messageKind = document.getElementById("battle-message-kind");
+export const followRecommendationButton = document.getElementById("follow-recommendation-button");
+export const chooseActionButton = document.getElementById("choose-action-button");
 export const fightSkillsDialog = document.getElementById("fight-skills-dialog");
-export const fightSkillButtons = fightSkillsDialog.querySelectorAll(".fight-skill-button");
+export const fightSkillButtons = fightSkillsDialog.querySelectorAll(".skill-option");
+export const alternateRunButton = document.getElementById("alternate-run-button");
+export const actionChoiceCancelButton = document.getElementById("action-choice-cancel");
 export const battleLossDialog = document.getElementById("battle-loss-dialog");
 export const battleLossConfirmButton = document.getElementById("battle-loss-confirm");
 export const enemyStatus = document.getElementById("enemy-status");
 export const playerStatus = document.getElementById("player-status");
+export const playerStatusName = playerStatus.querySelector(".status-name");
+export const battleHistoryPanel = document.getElementById("battle-history-panel");
+export const battleHistoryPreviousButton = document.getElementById("battle-history-previous");
+export const battleHistoryNextButton = document.getElementById("battle-history-next");
+const battleHistoryTurnLabel = document.getElementById("battle-history-turn-label");
+const battleHistoryRecommendation = document.getElementById("battle-history-recommendation");
+const battleHistoryChoice = document.getElementById("battle-history-choice");
+const battleHistoryResult = document.getElementById("battle-history-result");
+export const enemyAttackProbability = document.getElementById("enemy-attack-probability");
+export const enemyRecoverProbability = document.getElementById("enemy-recover-probability");
+export const enemyAttackProbabilityValue = document.getElementById("enemy-attack-probability-value");
+export const enemyRecoverProbabilityValue = document.getElementById("enemy-recover-probability-value");
+export const enemyIntent = document.getElementById("enemy-intent");
 
 export function enterBattleScreen() {
     battleSection.classList.replace("screen", "screen-active");
@@ -26,16 +41,45 @@ export function exitBattleScreen() {
 
 export function setControlsLocked(state, locked) {
     state.controlsLocked = locked;
-    fightButton.disabled = locked;
-    bagButton.disabled = locked;
-    runButton.disabled = locked;
+    followRecommendationButton.disabled = locked;
+    chooseActionButton.disabled = locked;
+    alternateRunButton.disabled = locked;
+    actionChoiceCancelButton.disabled = locked;
     fightSkillButtons.forEach((button) => {
         button.disabled = locked;
     });
 }
 
-export function showMenuMessage(message) {
+export function showMenuMessage(message, type = "narration") {
     menuText.textContent = message;
+    const isRecommendation = type === "recommendation";
+    messageKind.hidden = !isRecommendation;
+    messageKind.textContent = isRecommendation ? "고양이 추천" : "";
+    menuSection.classList.toggle("is-recommendation", isRecommendation);
+}
+
+export function updateEnemyIntent(probabilities) {
+    enemyAttackProbability.value = probabilities.attack;
+    enemyRecoverProbability.value = probabilities.recover;
+    enemyAttackProbabilityValue.textContent = `${probabilities.attack}%`;
+    enemyRecoverProbabilityValue.textContent = `${probabilities.recover}%`;
+}
+
+export function renderBattleHistory(turns, selectedIndex) {
+    const turn = turns[selectedIndex];
+    battleHistoryTurnLabel.textContent = turns.length
+        ? `${selectedIndex + 1}턴 / ${turns.length}턴`
+        : "기록 없음";
+    battleHistoryPreviousButton.disabled = selectedIndex <= 0;
+    battleHistoryNextButton.disabled = selectedIndex >= turns.length - 1;
+    battleHistoryRecommendation.textContent = turn?.recommendation || "추천을 기다리는 중";
+    battleHistoryChoice.textContent = turn?.playerChoice || "아직 선택 전";
+    const enemyAction = turn?.enemyAction && !(turn.outcome || "").includes("늑대")
+        ? `늑대 행동: ${turn.enemyAction}`
+        : "";
+    battleHistoryResult.textContent = [turn?.outcome, enemyAction]
+        .filter(Boolean)
+        .join(" · ") || "결과를 기다리는 중";
 }
 
 function updateStatus(status, entity, type) {
