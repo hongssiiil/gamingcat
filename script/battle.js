@@ -1,4 +1,4 @@
-import { enterRoad, getCurrentRoadBattleBackground, getPlayerName } from "./road.js";
+import { enterRoad, getCurrentRoadBattleBackground } from "./road.js";
 import {
     applyEnemyAttackImpact,
     applyPlayerSkill,
@@ -267,7 +267,7 @@ function resetBattle() {
 
 export async function enterBattle() {
     await setBattleBackground(getCurrentRoadBattleBackground());
-    playerStatusName.textContent = getPlayerName() || "플레이어";
+    playerStatusName.textContent = "나";
     enterBattleScreen();
     followRecommendationButton.focus();
     if (!battleState.started) {
