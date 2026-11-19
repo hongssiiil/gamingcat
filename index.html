@@ -7,7 +7,7 @@
     <title>Gaming Cat</title>
     <link rel="stylesheet" href="style/common.css">
     <link rel="stylesheet" href="style/road.css">
-    <link rel="stylesheet" href="style/battle.css?v=14">
+    <link rel="stylesheet" href="style/battle.css?v=25">
     <script type="module" src="script/main.js"></script>
 </head>
 
@@ -59,19 +59,6 @@
 
         <section id="Battle" class="screen" aria-label="Battle 화면">
             <canvas id="battle-canvas"></canvas>
-            <section class="enemy-intent" id="enemy-intent" aria-labelledby="enemy-intent-title">
-                <h2 id="enemy-intent-title">늑대의 다음 행동 예상</h2>
-                <div class="intent-row">
-                    <span>공격</span>
-                    <progress id="enemy-attack-probability" max="100" value="70" aria-label="늑대가 공격할 가능성"></progress>
-                    <output class="intent-probability" id="enemy-attack-probability-value">70%</output>
-                </div>
-                <div class="intent-row">
-                    <span>숨 고르기</span>
-                    <progress id="enemy-recover-probability" max="100" value="30" aria-label="늑대가 숨을 고를 가능성"></progress>
-                    <output class="intent-probability" id="enemy-recover-probability-value">30%</output>
-                </div>
-            </section>
             <aside class="battle-history-panel" id="battle-history-panel" aria-labelledby="battle-history-title">
                 <div class="battle-history-header">
                     <h2 id="battle-history-title">전투 기록</h2>

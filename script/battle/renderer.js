@@ -1,6 +1,5 @@
 import {
     battleHistoryPanel,
-    enemyIntent,
     enemyStatus,
     menuSection,
     playerStatus,
@@ -21,7 +20,7 @@ const catImage = loadImage("./images/character/cat/cat_diagonal.png");
 const enemySprite = {
     image: enemyImage,
     x: baseWidth * 0.57,
-    y: baseHeight * 0.17,
+    y: baseHeight * 0.22,
     scale: 0.24,
     offsetX: 0,
     offsetY: 0,
@@ -96,27 +95,27 @@ function resizeCanvas() {
     offsetY = (windowHeight - baseHeight * fitScale) / 2;
 
     menuSection.style.left = `${offsetX}px`;
-    menuSection.style.top = `${offsetY + 544 * fitScale}px`;
+    const menuHeight = 200;
+    menuSection.style.top = `${offsetY + (baseHeight - menuHeight) * fitScale}px`;
     menuSection.style.width = `${baseWidth * fitScale}px`;
-    menuSection.style.height = `${234 * fitScale}px`;
+    menuSection.style.height = `${menuHeight * fitScale}px`;
 
-    enemyIntent.style.left = `${offsetX + 520 * fitScale}px`;
-    enemyIntent.style.top = `${offsetY + 28 * fitScale}px`;
-    enemyIntent.style.width = `${400 * fitScale}px`;
     battleHistoryPanel.style.left = `${offsetX + 1106 * fitScale}px`;
     battleHistoryPanel.style.top = `${offsetY + 184 * fitScale}px`;
     battleHistoryPanel.style.width = `${310 * fitScale}px`;
     battleHistoryPanel.style.height = `${350 * fitScale}px`;
 
-    playerStatus.style.left = `${offsetX + 60 * fitScale}px`;
-    playerStatus.style.top = `${offsetY + 28 * fitScale}px`;
+    playerStatus.style.left = `${offsetX + 220 * fitScale}px`;
+    playerStatus.style.top = `${offsetY + 16 * fitScale}px`;
     playerStatus.style.width = `${400 * fitScale}px`;
     playerStatus.style.height = `${140 * fitScale}px`;
-    enemyStatus.style.left = `${offsetX + 988 * fitScale}px`;
-    enemyStatus.style.top = `${offsetY + 28 * fitScale}px`;
+    enemyStatus.style.left = `${offsetX + 820 * fitScale}px`;
+    enemyStatus.style.top = `${offsetY + 16 * fitScale}px`;
     enemyStatus.style.width = `${400 * fitScale}px`;
     enemyStatus.style.height = `${140 * fitScale}px`;
     document.documentElement.style.setProperty("--battle-scale", fitScale);
+    document.documentElement.style.setProperty("--battle-offset-x", `${offsetX}px`);
+    document.documentElement.style.setProperty("--battle-offset-y", `${offsetY}px`);
 
     canvas.style.width = `${windowWidth}px`;
     canvas.style.height = `${windowHeight}px`;

@@ -12,6 +12,7 @@ import {
 } from "./battle/rules.js";
 import { getTurnRecommendation } from "./battle/recommendations.js";
 import { createBattleState, resetBattleState } from "./battle/state.js";
+import { BATTLE_STARTING_TOKENS, renderBattleTokens } from "./battle/token.js";
 import { setBattleBackground, startBattleRenderer } from "./battle/renderer.js";
 import {
     actionChoiceCancelButton,
@@ -33,11 +34,11 @@ import {
     renderBattleHistory,
     setControlsLocked,
     showMenuMessage,
-    updateEnemyIntent,
     updateStatusBars,
 } from "./battle/ui.js";
 
 const battleState = createBattleState();
+let battleTokens = BATTLE_STARTING_TOKENS;
 const scheduledActions = new Set();
 
 function scheduleBattleAction(callback, delay) {
@@ -77,7 +78,6 @@ function beginTurn(recommendation) {
     battleState.turnHistory.push(battleState.currentTurn);
     battleState.historyIndex = battleState.turnHistory.length - 1;
     battleState.enemyActionProbabilities = getEnemyActionProbabilities(battleState);
-    updateEnemyIntent(battleState.enemyActionProbabilities);
     renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
     showMenuMessage(recommendation.text, "recommendation");
 }
@@ -140,10 +140,8 @@ function startEnemyTurn() {
         return;
     }
 
-    // Calculate at decision time and share this exact distribution with the UI
-    // and the random action roll so the displayed bars describe this turn.
+    // Calculate at decision time and use this exact distribution for the action roll.
     battleState.enemyActionProbabilities = getEnemyActionProbabilities(battleState);
-    updateEnemyIntent(battleState.enemyActionProbabilities);
     const action = chooseEnemyAction(
         battleState,
         Math.random() * 100,
@@ -269,6 +267,7 @@ export async function enterBattle() {
     await setBattleBackground(getCurrentRoadBattleBackground());
     playerStatusName.textContent = "나";
     enterBattleScreen();
+    renderBattleTokens(battleTokens);
     followRecommendationButton.focus();
     if (!battleState.started) {
         battleState.started = true;

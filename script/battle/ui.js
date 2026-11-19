@@ -20,11 +20,6 @@ const battleHistoryTurnLabel = document.getElementById("battle-history-turn-labe
 const battleHistoryRecommendation = document.getElementById("battle-history-recommendation");
 const battleHistoryChoice = document.getElementById("battle-history-choice");
 const battleHistoryResult = document.getElementById("battle-history-result");
-export const enemyAttackProbability = document.getElementById("enemy-attack-probability");
-export const enemyRecoverProbability = document.getElementById("enemy-recover-probability");
-export const enemyAttackProbabilityValue = document.getElementById("enemy-attack-probability-value");
-export const enemyRecoverProbabilityValue = document.getElementById("enemy-recover-probability-value");
-export const enemyIntent = document.getElementById("enemy-intent");
 
 export function enterBattleScreen() {
     battleSection.classList.replace("screen", "screen-active");
@@ -56,13 +51,6 @@ export function showMenuMessage(message, type = "narration") {
     messageKind.hidden = !isRecommendation;
     messageKind.textContent = isRecommendation ? "고양이 추천" : "";
     menuSection.classList.toggle("is-recommendation", isRecommendation);
-}
-
-export function updateEnemyIntent(probabilities) {
-    enemyAttackProbability.value = probabilities.attack;
-    enemyRecoverProbability.value = probabilities.recover;
-    enemyAttackProbabilityValue.textContent = `${probabilities.attack}%`;
-    enemyRecoverProbabilityValue.textContent = `${probabilities.recover}%`;
 }
 
 export function renderBattleHistory(turns, selectedIndex) {

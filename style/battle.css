@@ -13,6 +13,26 @@ body {
     height: 100%;
 }
 
+.battle-token-resources {
+    position: fixed;
+    z-index: 3;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: calc(var(--battle-scale, 1) * 36px) calc(var(--battle-scale, 1) * 40px) calc(var(--battle-scale, 1) * 12px);
+    border: 0;
+    color: #382811;
+    background: url("../images/battle/enemy_intent_frame.png") center / 100% 100% no-repeat;
+    font: 700 calc(var(--battle-scale, 1) * 18px)/1.3 Consolas, monospace;
+    image-rendering: pixelated;
+}
+
+.battle-token-debt {
+    color: #8a3a23;
+}
+
 .battle-status {
     position: fixed;
     z-index: 2;
@@ -506,80 +526,6 @@ body {
     -webkit-line-clamp: 3;
 }
 
-.enemy-intent {
-    position: fixed;
-    z-index: 3;
-    box-sizing: border-box;
-    height: auto;
-    min-height: calc(var(--battle-scale, 1) * 140px);
-    padding: calc(var(--battle-scale, 1) * 36px) calc(var(--battle-scale, 1) * 40px) calc(var(--battle-scale, 1) * 12px);
-    border: 0;
-    border-radius: 0;
-    color: #382811;
-    background: url("../images/battle/enemy_intent_frame.png") center / 100% 100% no-repeat;
-    box-shadow: none;
-}
-
-.enemy-intent h2 {
-    margin: 0 0 calc(var(--battle-scale, 1) * 4px);
-    color: #3a2b16;
-    font-size: calc(var(--battle-scale, 1) * 15px);
-    text-align: center;
-}
-
-.intent-row {
-    display: grid;
-    grid-template-columns: minmax(78px, 1fr) minmax(0, 2fr) auto;
-    align-items: center;
-    gap: calc(var(--battle-scale, 1) * 7px);
-    margin-top: calc(var(--battle-scale, 1) * 2px);
-    font-size: calc(var(--battle-scale, 1) * 12px);
-    font-weight: 700;
-}
-
-.intent-probability {
-    display: inline-block;
-    min-width: 3.25em;
-    color: #382811;
-    font: inherit;
-    text-align: right;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-
-.intent-row progress {
-    width: 100%;
-    min-width: 0;
-    height: calc(var(--battle-scale, 1) * 10px);
-    overflow: hidden;
-    border: 2px solid #69411c;
-    border-radius: 999px;
-    background: #3b2c1c;
-    appearance: none;
-}
-
-.intent-row progress::-webkit-progress-bar {
-    background: #3b2c1c;
-}
-
-.intent-row progress::-webkit-progress-value {
-    border-radius: inherit;
-    background: linear-gradient(#ff907c, #d84a3e);
-}
-
-.intent-row:nth-of-type(2) progress::-webkit-progress-value {
-    background: linear-gradient(#bde28b, #548e43);
-}
-
-.intent-row progress::-moz-progress-bar {
-    border-radius: inherit;
-    background: linear-gradient(#ff907c, #d84a3e);
-}
-
-.intent-row:nth-of-type(2) progress::-moz-progress-bar {
-    background: linear-gradient(#bde28b, #548e43);
-}
-
 .battle-loss-dialog {
     width: min(88vw, 420px);
     padding: 2rem;
@@ -635,6 +581,318 @@ body {
     outline: 3px solid #fff2a8;
     outline-offset: 4px;
     filter: drop-shadow(0 0 8px #fff2a8);
+}
+
+/* Road-style pixel treatment. Keep the battle layout and panel geometry intact. */
+#Battle {
+    color: #eee4c5;
+    font-family: GulimChe, "굴림체", Consolas, monospace;
+}
+
+.battle-token-resources {
+    top: calc(var(--battle-offset-y, 0px) + var(--battle-scale, 1) * 28px);
+    right: calc(var(--battle-offset-x, 0px) + var(--battle-scale, 1) * 28px);
+    left: auto;
+    width: auto;
+    height: auto;
+    display: flex;
+    gap: calc(var(--battle-scale, 1) * 10px);
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #f4e3b1;
+    font: inherit;
+    text-shadow: calc(var(--battle-scale, 1) * 2px) calc(var(--battle-scale, 1) * 2px) #161d16;
+}
+
+.battle-token-count,
+.battle-token-debt {
+    display: inline-block;
+    padding: calc(var(--battle-scale, 1) * 12px) calc(var(--battle-scale, 1) * 14px);
+    border: calc(var(--battle-scale, 1) * 8px) solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / calc(var(--battle-scale, 1) * 8px) / 0 stretch;
+    background: #202b22;
+    color: #f4e3b1;
+    font-size: calc(var(--battle-scale, 1) * 13px);
+    white-space: nowrap;
+}
+
+.battle-token-count::before {
+    content: "◆ ";
+    color: #ddba68;
+}
+
+.battle-token-debt {
+    color: #f4ae9d;
+}
+
+.battle-token-debt[hidden] {
+    display: none !important;
+}
+
+.battle-status {
+    border: 0;
+    background: url("../images/battle/status-panel-pixel.png") center / 100% 100% no-repeat;
+    background-color: #14231a;
+    color: #eee4c5;
+}
+
+.status-name,
+.status-kind,
+.status-value {
+    color: #f4e3b1;
+    text-shadow: 1px 1px #161d16;
+}
+
+.status-portrait {
+    border: 2px solid #6b6650;
+    background: #19251f;
+    box-shadow: 2px 2px #151b1b;
+}
+
+.status-bar {
+    border: 2px solid #151b1b;
+    border-radius: 0;
+    background: #19251f;
+    box-shadow: inset 2px 2px #101713, 2px 2px #101713;
+}
+
+.health-bar .status-fill {
+    background: repeating-linear-gradient(90deg, #d65348 0 8px, #c3453d 8px 12px);
+}
+
+.stamina-bar .status-fill {
+    background: repeating-linear-gradient(90deg, #d4b84f 0 8px, #b39a3d 8px 12px);
+}
+
+.menu-section {
+    border: 12px solid transparent;
+    border-image: url("../images/road/Dialogue_UI.png") 80 110 fill / 12px / 0 stretch;
+    background: #e5cda6;
+    background-clip: padding-box;
+    color: #3f3224;
+    image-rendering: pixelated;
+}
+
+#menu-background {
+    opacity: 0;
+}
+
+#menu-text {
+    color: #3f3224;
+}
+
+.battle-message-kind {
+    border: 2px solid #665333;
+    border-radius: 0;
+    color: #352d24;
+    background: #ead298;
+    text-shadow: none;
+}
+
+.menu-section.is-recommendation #menu-text p {
+    color: #283d34;
+}
+
+.recommendation-cat {
+    border: 4px solid #665333;
+    background: #f4e3b1;
+    box-shadow: 3px 3px #8c7248;
+}
+
+.menu-actions button,
+.menu-actions button + button {
+    border: 8px solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / 8px / 0 stretch;
+    border-radius: 0;
+    color: #eee4c5;
+    background: #28352f;
+    box-shadow: none;
+    text-shadow: 1px 1px #141c17;
+    image-rendering: pixelated;
+}
+
+.menu-actions button + button {
+    background: #344632;
+}
+
+.battle-history-panel {
+    border: 0;
+    background: url("../images/battle/history-panel-pixel.png") center / 100% 100% no-repeat;
+    color: #eee4c5;
+}
+
+.battle-history-header {
+    border: 0;
+    background: transparent;
+}
+
+.battle-history-header h2,
+.battle-history-navigator,
+.battle-history-card h3,
+.battle-history-card p {
+    color: #f4e3b1;
+    text-shadow: 1px 1px #161d16;
+}
+
+.battle-history-navigator button {
+    border: 3px solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / 3px / 0 stretch;
+    border-radius: 0;
+    color: #eee4c5;
+    background: #28352f;
+    image-rendering: pixelated;
+}
+
+.battle-history-card {
+    border: 0;
+    background: transparent;
+}
+
+.battle-history-card h3,
+.battle-history-card:nth-child(2) h3 {
+    color: #ead298;
+}
+
+.battle-history-card p {
+    color: #eee4c5;
+}
+
+.battle-history-header h2,
+.battle-history-navigator {
+    color: #283d34;
+    text-shadow: none;
+}
+
+.battle-history-header {
+    top: 9%;
+    height: 12%;
+}
+
+.battle-history-navigator {
+    top: 22%;
+    height: 8%;
+}
+
+.battle-history-cards {
+    top: 30%;
+    right: 13%;
+    bottom: 9%;
+    left: 13%;
+    gap: 5%;
+}
+
+.fight-skills-dialog {
+    isolation: isolate;
+    background: rgb(9 15 18 / 72%);
+}
+
+.fight-skills-dialog::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: -1;
+    width: min(80vw, 720px, 72vh);
+    height: min(90vh, 112.5vw, 900px);
+    border: 0;
+    background: url("../images/battle/skills-panel-pixel.png") center / 100% 100% no-repeat;
+    content: "";
+    image-rendering: pixelated;
+    transform: translate(-50%, -50%);
+}
+
+.fight-skills-panel {
+    visibility: hidden;
+}
+
+.fight-skills-list h2 {
+    color: #283d34;
+    text-shadow: 1px 1px #f4e3b1;
+}
+
+.fight-skill-button {
+    border: 6px solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / 6px / 0 stretch;
+    border-radius: 0;
+    color: #eee4c5;
+    background: #28352f;
+    box-shadow: 3px 3px #151b1b;
+    image-rendering: pixelated;
+}
+
+.fight-skill-button small {
+    color: #c7c7a8;
+}
+
+.action-choice-cancel {
+    border: 6px solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / 6px / 0 stretch;
+    border-radius: 0;
+    color: #eee4c5;
+    background: #28352f;
+    image-rendering: pixelated;
+}
+
+.battle-loss-dialog {
+    border: 4px solid transparent;
+    border-radius: 0;
+    color: #eee4c5;
+    background: url("../images/battle/loss-panel-pixel.png") center / 100% 100% no-repeat;
+    box-shadow: 6px 6px #090f12b8;
+    image-rendering: pixelated;
+}
+
+.battle-loss-dialog button {
+    border: 8px solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / 8px / 0 stretch;
+    border-radius: 0;
+    color: #eee4c5;
+    background: #28352f;
+    image-rendering: pixelated;
+}
+
+.battle-loss-dialog button:focus-visible,
+.fight-skill-button:focus-visible,
+.action-choice-cancel:focus-visible {
+    border-radius: 0;
+    filter: none;
+}
+
+.battle-history-navigator span {
+    min-width: max-content;
+    padding: calc(var(--battle-scale, 1) * 3px) calc(var(--battle-scale, 1) * 5px);
+    border: calc(var(--battle-scale, 1) * 2px) solid #7b582c;
+    background: #f3dfa9;
+    color: #1b291e;
+    font-size: calc(var(--battle-scale, 1) * 18px);
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0 1px #fff6ce;
+    white-space: nowrap;
+}
+
+.battle-history-navigator button {
+    width: calc(var(--battle-scale, 1) * 36px);
+    height: calc(var(--battle-scale, 1) * 36px);
+    border: 0;
+    background: url("../images/battle/history-nav-button-pixel.png") center / 100% 100% no-repeat;
+    color: #fff0c7;
+    font-size: calc(var(--battle-scale, 1) * 22px);
+    text-shadow: 1px 2px #14231a;
+}
+
+.battle-history-navigator button:disabled {
+    opacity: 0.78;
+}
+
+#Battle button:focus-visible {
+    outline: 3px solid #fff36b;
+    outline-offset: 3px;
+    border-radius: 0;
+    box-shadow: 0 0 0 2px #151b1b, 0 0 0 5px #fff36b;
+    filter: none;
 }
 
 @media (max-width: 600px) {
