@@ -4,16 +4,21 @@ import {
     applyPlayerSkill,
     chooseEnemyAction,
     createEnemyAttack,
+    defendEnemy,
     getEnemyActionProbabilities,
     recoverEnemyStamina,
+    roarAtPlayer,
     skillEffects,
     spendEnemyStamina,
     wolfCombatRules,
-} from "./battle/rules.js";
-import { getTurnRecommendation } from "./battle/recommendations.js";
-import { createBattleState, resetBattleState } from "./battle/state.js";
-import { BATTLE_STARTING_TOKENS, renderBattleTokens } from "./battle/token.js";
-import { setBattleBackground, startBattleRenderer } from "./battle/renderer.js";
+} from "./battle/rules.js?v=36";
+import {
+    getDisplayedEnemyActionProbabilities,
+    getTurnRecommendation,
+} from "./battle/recommendations.js?v=35";
+import { createBattleState, resetBattleState } from "./battle/state.js?v=35";
+import { BATTLE_STARTING_TOKENS, consumeBattleToken, renderBattleTokens } from "./battle/token.js?v=35";
+import { setBattleBackground, startBattleRenderer } from "./battle/renderer.js?v=40";
 import {
     actionChoiceCancelButton,
     alternateRunButton,
@@ -23,9 +28,12 @@ import {
     battleLossDialog,
     battleSection,
     chooseActionButton,
+    probabilityButton,
+    autoBattleButton,
     closeBattleLossDialog,
     enterBattleScreen,
     exitBattleScreen,
+    flashInsufficientStamina,
     fightSkillButtons,
     fightSkillsDialog,
     followRecommendationButton,
@@ -34,11 +42,14 @@ import {
     renderBattleHistory,
     setControlsLocked,
     showMenuMessage,
+    showEnemyProbability,
+    STAMINA_ERROR_FEEDBACK_MS,
     updateStatusBars,
-} from "./battle/ui.js";
+    updateBattleActionButtons,
+} from "./battle/ui.js?v=39";
 
 const battleState = createBattleState();
-let battleTokens = BATTLE_STARTING_TOKENS;
+const battleTokenState = { tokens: BATTLE_STARTING_TOKENS, events: [] };
 const scheduledActions = new Set();
 
 function scheduleBattleAction(callback, delay) {
@@ -55,6 +66,12 @@ function cancelScheduledActions() {
     scheduledActions.clear();
 }
 
+function spendBattleToken(command) {
+    const spent = consumeBattleToken(battleTokenState, command);
+    if (spent) renderBattleTokens(battleTokenState.tokens);
+    return spent;
+}
+
 function recordTurnField(field, value) {
     if (!battleState.currentTurn) return;
     if (field === "outcome" && battleState.currentTurn.outcome) {
@@ -66,37 +83,66 @@ function recordTurnField(field, value) {
     renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
 }
 
-function beginTurn(recommendation) {
-    battleState.currentRecommendation = recommendation;
+function recordTurnDamage(field, amount) {
+    if (!battleState.currentTurn || amount <= 0) return;
+    battleState.currentTurn[field] = (battleState.currentTurn[field] ?? 0) + amount;
+    renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
+}
+
+function beginTurn() {
+    battleState.recommendationRevealed = false;
+    battleState.probabilityRevealed = false;
+    battleState.activeHelpView = "prompt";
     battleState.currentTurn = {
         number: battleState.turnHistory.length + 1,
-        recommendation: recommendation.text,
+        recommendation: "",
         playerChoice: "",
         enemyAction: "",
+        playerDamageReceived: 0,
+        enemyDamageReceived: 0,
         outcome: "",
     };
     battleState.turnHistory.push(battleState.currentTurn);
     battleState.historyIndex = battleState.turnHistory.length - 1;
     battleState.enemyActionProbabilities = getEnemyActionProbabilities(battleState);
+    battleState.plannedEnemyAction = chooseEnemyAction(
+        battleState,
+        Math.random() * 100,
+        battleState.enemyActionProbabilities,
+    );
+    battleState.currentRecommendation = getTurnRecommendation(
+        battleState,
+        battleTokenState.tokens,
+        battleState.enemyActionProbabilities,
+    );
+    battleState.displayedEnemyActionProbabilities = null;
     renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
-    showMenuMessage(recommendation.text, "recommendation");
+    showEnemyProbability();
+    showMenuMessage("어떤 행동을 할까?");
+    updateBattleActionButtons(battleState);
 }
 
 function showOpeningRecommendation() {
-    beginTurn({
-        action: "run",
-        text: "도망가자! 이길 수 있는 상대가 아니야!",
-    });
+    beginTurn();
 }
 
 function showTurnRecommendation() {
-    beginTurn(getTurnRecommendation(battleState));
+    beginTurn();
+    if (battleState.autoBattleEnabled) {
+        scheduleBattleAction(runAutoBattleTurn, 120);
+    }
 }
 
 function finishBattle(message) {
     if (battleState.ended) return;
+    if (battleState.currentTurn && !battleState.currentTurn.enemyAction) {
+        recordTurnField("enemyAction", "행동하지 못함");
+    }
     recordTurnField("outcome", message);
+    battleState.player.defending = false;
+    battleState.enemy.defending = false;
     battleState.ended = true;
+    battleState.autoBattleEnabled = false;
     setControlsLocked(battleState, true);
     fightSkillsDialog.hidden = true;
     showMenuMessage(message);
@@ -108,8 +154,14 @@ function finishBattle(message) {
 
 function showBattleLoss() {
     if (battleState.ended) return;
+    if (battleState.currentTurn && !battleState.currentTurn.enemyAction) {
+        recordTurnField("enemyAction", "행동하지 못함");
+    }
     recordTurnField("outcome", "플레이어의 체력이 0이 되어 전투를 마쳤다.");
+    battleState.player.defending = false;
+    battleState.enemy.defending = false;
     battleState.ended = true;
+    battleState.autoBattleEnabled = false;
     cancelScheduledActions();
     setControlsLocked(battleState, true);
     fightSkillsDialog.hidden = true;
@@ -121,6 +173,7 @@ function showBattleLoss() {
 function endEnemyTurn() {
     battleState.playerAttackAnimation = null;
     battleState.enemyAttackAnimation = null;
+    battleState.player.defending = false;
     if (battleState.player.health <= 0) {
         showBattleLoss();
         return;
@@ -140,28 +193,39 @@ function startEnemyTurn() {
         return;
     }
 
-    // Calculate at decision time and use this exact distribution for the action roll.
-    battleState.enemyActionProbabilities = getEnemyActionProbabilities(battleState);
-    const action = chooseEnemyAction(
+    const action = battleState.plannedEnemyAction ?? chooseEnemyAction(
         battleState,
         Math.random() * 100,
-        battleState.enemyActionProbabilities,
+        battleState.enemyActionProbabilities ?? getEnemyActionProbabilities(battleState),
     );
+    battleState.plannedEnemyAction = null;
     if (action === "recover") {
         recoverEnemyStamina(battleState);
         recordTurnField("enemyAction", "숨을 고름");
         recordTurnField("outcome", "늑대가 숨을 고르며 스태미나를 회복했다.");
         showMenuMessage("늑대가 숨을 고르며 스태미나를 회복했다.");
         updateStatusBars(battleState);
-        scheduleBattleAction(() => {
-            if (battleState.player.health <= 0) {
-                showBattleLoss();
-                return;
-            }
-            showTurnRecommendation();
-            setControlsLocked(battleState, false);
-            followRecommendationButton.focus();
-        }, 520);
+        scheduleBattleAction(endEnemyTurn, 520);
+        return;
+    }
+
+    if (action === "defend") {
+        defendEnemy(battleState);
+        recordTurnField("enemyAction", "방어");
+        recordTurnField("outcome", "늑대가 자세를 낮춰 다음 공격의 피해를 줄일 준비를 했다.");
+        showMenuMessage("늑대가 방어 자세를 취했다. 다음 공격의 피해가 줄어든다.");
+        updateStatusBars(battleState);
+        scheduleBattleAction(endEnemyTurn, 520);
+        return;
+    }
+
+    if (action === "roar") {
+        const drainedStamina = roarAtPlayer(battleState);
+        recordTurnField("enemyAction", "포효");
+        recordTurnField("outcome", `늑대의 포효! 플레이어 스태미나 ${drainedStamina} 감소.`);
+        showMenuMessage(`늑대의 포효! 스태미나 ${drainedStamina} 감소.`);
+        updateStatusBars(battleState);
+        scheduleBattleAction(endEnemyTurn, 620);
         return;
     }
 
@@ -172,8 +236,10 @@ function startEnemyTurn() {
     scheduleBattleAction(() => {
         createEnemyAttack(battleState, performance.now());
         scheduleBattleAction(() => {
+            const previousHealth = battleState.player.health;
             const message = applyEnemyAttackImpact(battleState);
             if (message) {
+                recordTurnDamage("playerDamageReceived", previousHealth - battleState.player.health);
                 recordTurnField("outcome", message);
                 showMenuMessage(message);
                 updateStatusBars(battleState);
@@ -183,8 +249,8 @@ function startEnemyTurn() {
     }, 600);
 }
 
-function resolvePlayerSkill(skillIndex) {
-    if (battleState.controlsLocked) return;
+function resolvePlayerSkill(skillIndex, automatic = false) {
+    if (battleState.controlsLocked && !automatic) return;
     const skill = skillEffects[skillIndex];
     if (!skill) return;
     recordTurnField("playerChoice", skill.name);
@@ -193,19 +259,30 @@ function resolvePlayerSkill(skillIndex) {
 
     const resolve = () => {
         const result = applyPlayerSkill(battleState, skillIndex, performance.now());
+        recordTurnDamage("enemyDamageReceived", result.damage ?? 0);
         recordTurnField("outcome", result.message);
-        showMenuMessage(result.message);
         updateStatusBars(battleState);
 
         if (result.kind === "insufficient-stamina") {
+            flashInsufficientStamina();
+            scheduleBattleAction(
+                () => showMenuMessage(result.message),
+                STAMINA_ERROR_FEEDBACK_MS,
+            );
             scheduleBattleAction(startEnemyTurn, 800);
-        } else if (result.kind === "attack") {
+            return;
+        }
+
+        showMenuMessage(result.message);
+        if (result.kind === "attack") {
             scheduleBattleAction(
                 startEnemyTurn,
                 (result.skill.name === "일반 공격" ? 170 : 430) + 500,
             );
         } else if (result.kind === "recovery") {
             scheduleBattleAction(startEnemyTurn, 1020);
+        } else if (result.kind === "defense") {
+            scheduleBattleAction(startEnemyTurn, 520);
         }
     };
 
@@ -236,13 +313,77 @@ function attemptEscape() {
 
 function acceptRecommendation() {
     if (battleState.controlsLocked) return;
-    const recommendation = battleState.currentRecommendation;
-    if (!recommendation) return;
-    if (recommendation.action === "run") {
-        attemptEscape();
+    if (!battleState.recommendationRevealed) {
+        if (!spendBattleToken("recommendation")) return;
+        battleState.recommendationRevealed = true;
+        battleState.currentRecommendation = getTurnRecommendation(
+            battleState,
+            battleTokenState.tokens,
+            battleState.enemyActionProbabilities,
+        );
+        recordTurnField("recommendation", battleState.currentRecommendation.text);
+    }
+    if (battleState.activeHelpView !== "recommendation") {
+        battleState.activeHelpView = "recommendation";
+        showMenuMessage(battleState.currentRecommendation.text, "recommendation");
+        updateBattleActionButtons(battleState);
+        followRecommendationButton.focus();
         return;
     }
+    const recommendation = battleState.currentRecommendation;
+    if (!recommendation) return;
     resolvePlayerSkill(recommendation.skillIndex);
+}
+
+function revealEnemyProbabilities() {
+    if (battleState.controlsLocked || battleState.autoBattleEnabled) return;
+    if (!battleState.probabilityRevealed) {
+        if (!spendBattleToken("probability")) return;
+        battleState.probabilityRevealed = true;
+        battleState.displayedEnemyActionProbabilities = getDisplayedEnemyActionProbabilities(
+            battleState.enemyActionProbabilities,
+            battleTokenState.tokens,
+        );
+    }
+    battleState.activeHelpView = "probability";
+    showMenuMessage("늑대의 다음 행동 확률");
+    showEnemyProbability(battleState.displayedEnemyActionProbabilities);
+    updateBattleActionButtons(battleState);
+    probabilityButton.focus();
+}
+
+function toggleAutoBattle() {
+    if (battleState.ended) return;
+    if (battleState.autoBattleEnabled) {
+        battleState.autoBattleEnabled = false;
+        setControlsLocked(battleState, battleState.controlsLocked);
+        showMenuMessage("자동전투를 멈췄어. 다음 행동을 골라 줘.");
+        return;
+    }
+    if (battleState.controlsLocked) return;
+    battleState.autoBattleEnabled = true;
+    setControlsLocked(battleState, false);
+    showMenuMessage("자동전투를 시작할게. 매 턴 1토큰을 사용할게.");
+    scheduleBattleAction(runAutoBattleTurn, 120);
+}
+
+function runAutoBattleTurn() {
+    if (!battleState.autoBattleEnabled || battleState.controlsLocked || battleState.ended) return;
+    if (!spendBattleToken("autoTurn")) {
+        battleState.autoBattleEnabled = false;
+        setControlsLocked(battleState, false);
+        showMenuMessage("자동전투를 진행할 수 없어 멈췄어.");
+        return;
+    }
+
+    const recommendation = getTurnRecommendation(
+        battleState,
+        battleTokenState.tokens,
+        battleState.enemyActionProbabilities,
+    );
+    battleState.currentRecommendation = recommendation;
+    recordTurnField("recommendation", recommendation.text);
+    resolvePlayerSkill(recommendation.skillIndex, true);
 }
 
 function openActionChoices() {
@@ -267,7 +408,7 @@ export async function enterBattle() {
     await setBattleBackground(getCurrentRoadBattleBackground());
     playerStatusName.textContent = "나";
     enterBattleScreen();
-    renderBattleTokens(battleTokens);
+    renderBattleTokens(battleTokenState.tokens);
     followRecommendationButton.focus();
     if (!battleState.started) {
         battleState.started = true;
@@ -281,6 +422,8 @@ export function exitBattle() {
 
 followRecommendationButton.addEventListener("click", acceptRecommendation);
 chooseActionButton.addEventListener("click", openActionChoices);
+probabilityButton.addEventListener("click", revealEnemyProbabilities);
+autoBattleButton.addEventListener("click", toggleAutoBattle);
 
 fightSkillButtons.forEach((button, index) => {
     button.addEventListener("click", () => resolvePlayerSkill(index));
@@ -314,7 +457,12 @@ document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
     const movementKeys = ["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"];
     const isActionMenuOpen = !fightSkillsDialog.hidden;
-    const mainActions = [followRecommendationButton, chooseActionButton];
+    const mainActions = [
+        followRecommendationButton,
+        chooseActionButton,
+        probabilityButton,
+        autoBattleButton,
+    ];
     const isMainActionFocused = mainActions.includes(document.activeElement);
 
     if (

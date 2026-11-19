@@ -3,7 +3,7 @@ import {
     enemyStatus,
     menuSection,
     playerStatus,
-} from "./ui.js";
+} from "./ui.js?v=29";
 
 const baseWidth = 1440;
 const baseHeight = 778;
@@ -100,7 +100,7 @@ function resizeCanvas() {
     menuSection.style.width = `${baseWidth * fitScale}px`;
     menuSection.style.height = `${menuHeight * fitScale}px`;
 
-    battleHistoryPanel.style.left = `${offsetX + 1106 * fitScale}px`;
+    battleHistoryPanel.style.left = `${offsetX + 1128 * fitScale}px`;
     battleHistoryPanel.style.top = `${offsetY + 184 * fitScale}px`;
     battleHistoryPanel.style.width = `${310 * fitScale}px`;
     battleHistoryPanel.style.height = `${350 * fitScale}px`;

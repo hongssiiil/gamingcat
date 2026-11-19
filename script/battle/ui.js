@@ -4,6 +4,9 @@ export const menuText = document.getElementById("ai-recommendation");
 const messageKind = document.getElementById("battle-message-kind");
 export const followRecommendationButton = document.getElementById("follow-recommendation-button");
 export const chooseActionButton = document.getElementById("choose-action-button");
+export const probabilityButton = document.getElementById("battle-probability-button");
+export const autoBattleButton = document.getElementById("battle-auto-button");
+export const enemyProbabilityText = document.getElementById("battle-enemy-probability");
 export const fightSkillsDialog = document.getElementById("fight-skills-dialog");
 export const fightSkillButtons = fightSkillsDialog.querySelectorAll(".skill-option");
 export const alternateRunButton = document.getElementById("alternate-run-button");
@@ -20,6 +23,8 @@ const battleHistoryTurnLabel = document.getElementById("battle-history-turn-labe
 const battleHistoryRecommendation = document.getElementById("battle-history-recommendation");
 const battleHistoryChoice = document.getElementById("battle-history-choice");
 const battleHistoryResult = document.getElementById("battle-history-result");
+export const STAMINA_ERROR_FEEDBACK_MS = 420;
+let staminaFeedbackTimeout;
 
 export function enterBattleScreen() {
     battleSection.classList.replace("screen", "screen-active");
@@ -36,17 +41,69 @@ export function exitBattleScreen() {
 
 export function setControlsLocked(state, locked) {
     state.controlsLocked = locked;
-    followRecommendationButton.disabled = locked;
-    chooseActionButton.disabled = locked;
+    followRecommendationButton.disabled = locked || state.autoBattleEnabled;
+    chooseActionButton.disabled = locked || state.autoBattleEnabled;
     alternateRunButton.disabled = locked;
     actionChoiceCancelButton.disabled = locked;
+    probabilityButton.disabled = locked || state.autoBattleEnabled;
+    autoBattleButton.disabled = state.ended || (locked && !state.autoBattleEnabled);
+    autoBattleButton.setAttribute("aria-pressed", String(state.autoBattleEnabled));
+    autoBattleButton.textContent = state.autoBattleEnabled
+        ? "자동전투 중지"
+        : "자동전투 시작 · 턴당 1토큰";
     fightSkillButtons.forEach((button) => {
-        button.disabled = locked;
+        button.disabled = locked || state.autoBattleEnabled;
     });
+}
+
+export function updateBattleActionButtons(state) {
+    followRecommendationButton.textContent = !state.recommendationRevealed
+        ? "추천 행동 보기 · 2토큰"
+        : state.activeHelpView === "recommendation"
+            ? "추천대로 행동"
+            : "추천 행동 다시 보기";
+    probabilityButton.textContent = !state.probabilityRevealed
+        ? "늑대 행동 확률 · 1토큰"
+        : state.activeHelpView === "probability"
+            ? "늑대 확률 표시 중"
+            : "늑대 행동 확률 다시 보기";
+    setControlsLocked(state, state.controlsLocked);
+}
+
+export function showEnemyProbability(probabilities = null) {
+    if (!probabilities) {
+        enemyProbabilityText.hidden = true;
+        enemyProbabilityText.textContent = "";
+        return;
+    }
+    enemyProbabilityText.hidden = false;
+    const actionLabels = [
+        ["attack", "공격"],
+        ["recover", "회복"],
+        ["defend", "방어"],
+        ["roar", "포효"],
+    ];
+    const roundedProbabilities = Object.fromEntries(actionLabels.map(([action]) => [
+        action,
+        Number((probabilities[action] ?? 0).toFixed(1)),
+    ]));
+    const roundingDifference = Number((100 - Object.values(roundedProbabilities)
+        .reduce((sum, value) => sum + value, 0)).toFixed(1));
+    const lastPossibleAction = [...actionLabels].reverse()
+        .find(([action]) => (probabilities[action] ?? 0) > 0)?.[0];
+    if (lastPossibleAction) {
+        roundedProbabilities[lastPossibleAction] += roundingDifference;
+    }
+    const formatProbability = (value) => Number.isInteger(value) ? value : value.toFixed(1);
+    enemyProbabilityText.textContent = `다음 행동 · ${actionLabels
+        .map(([action, label]) => `${label} ${formatProbability(roundedProbabilities[action])}%`)
+        .join(" / ")}`;
 }
 
 export function showMenuMessage(message, type = "narration") {
     menuText.textContent = message;
+    enemyProbabilityText.hidden = true;
+    enemyProbabilityText.textContent = "";
     const isRecommendation = type === "recommendation";
     messageKind.hidden = !isRecommendation;
     messageKind.textContent = isRecommendation ? "고양이 추천" : "";
@@ -60,14 +117,21 @@ export function renderBattleHistory(turns, selectedIndex) {
         : "기록 없음";
     battleHistoryPreviousButton.disabled = selectedIndex <= 0;
     battleHistoryNextButton.disabled = selectedIndex >= turns.length - 1;
-    battleHistoryRecommendation.textContent = turn?.recommendation || "추천을 기다리는 중";
+    battleHistoryRecommendation.textContent = turn?.recommendation
+        || (turn?.playerChoice ? "추천을 받지 않음" : "추천을 기다리는 중");
     battleHistoryChoice.textContent = turn?.playerChoice || "아직 선택 전";
-    const enemyAction = turn?.enemyAction && !(turn.outcome || "").includes("늑대")
-        ? `늑대 행동: ${turn.enemyAction}`
-        : "";
-    battleHistoryResult.textContent = [turn?.outcome, enemyAction]
-        .filter(Boolean)
-        .join(" · ") || "결과를 기다리는 중";
+    if (!turn?.playerChoice) {
+        battleHistoryResult.textContent = "아직 선택 전";
+        return;
+    }
+    const enemyAction = {
+        공격: "공격했다",
+        "숨을 고름": "숨을 골랐다",
+        방어: "방어했다",
+        포효: "포효했다",
+        "행동하지 못함": "행동하지 못했다",
+    }[turn?.enemyAction] ?? (turn?.enemyAction ? `${turn.enemyAction}했다` : "아직 행동하지 않았다");
+    battleHistoryResult.textContent = `늑대는 ${enemyAction}. 나는 ${turn?.playerDamageReceived ?? 0}의 데미지를, 늑대는 ${turn?.enemyDamageReceived ?? 0}의 데미지를 입었다.`;
 }
 
 function updateStatus(status, entity, type) {
@@ -89,6 +153,19 @@ export function updateStatusBars(state) {
     updateStatus(enemyStatus, state.enemy, "stamina");
     updateStatus(playerStatus, state.player, "health");
     updateStatus(playerStatus, state.player, "stamina");
+}
+
+export function flashInsufficientStamina() {
+    const staminaBar = playerStatus.querySelector(".stamina-bar");
+    if (!staminaBar) return;
+
+    window.clearTimeout(staminaFeedbackTimeout);
+    staminaBar.classList.remove("is-insufficient-feedback");
+    void staminaBar.offsetWidth;
+    staminaBar.classList.add("is-insufficient-feedback");
+    staminaFeedbackTimeout = window.setTimeout(() => {
+        staminaBar.classList.remove("is-insufficient-feedback");
+    }, STAMINA_ERROR_FEEDBACK_MS + 40);
 }
 
 export function openBattleLossDialog() {

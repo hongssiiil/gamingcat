@@ -1,7 +1,7 @@
 export const BATTLE_TOKEN_COSTS = Object.freeze({
-    hint: 1,
-    plan: 3,
-    solve: 8,
+    recommendation: 2,
+    probability: 1,
+    autoTurn: 1,
 });
 
 export const BATTLE_STARTING_TOKENS = 10;
