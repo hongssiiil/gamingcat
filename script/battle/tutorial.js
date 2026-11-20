@@ -19,6 +19,16 @@ const tutorialSteps = {
         title: "내 추천 보기",
         text: "내가 적의 행동 확률을 보고 대응 행동을 추천할게. 확률을 먼저 확인하지 않았다면 토큰 2개, 확인했다면 1개가 필요해. 버튼을 눌러 내 생각을 들어봐!",
     },
+    recommendationFollow: {
+        selector: "#follow-recommendation-button",
+        title: "추천대로 행동해 보기",
+        text: "추천 내용을 확인했어. 버튼을 다시 눌러 추천대로 행동해 봐. 선택한 행동 뒤에는 적도 이어서 행동해.",
+    },
+    recommendationWait: {
+        selector: null,
+        title: "추천한 행동을 실행 중이야",
+        text: "내가 추천한 행동과 적의 행동이 끝나면 직접 행동을 고르는 안내로 넘어갈게.",
+    },
     choose: {
         selector: "#choose-action-button",
         title: "직접 행동 고르기",
@@ -47,7 +57,7 @@ const tutorialSteps = {
     automaticStop: {
         selector: "#battle-auto-button",
         title: "자동전투를 직접 멈춰 보자",
-        text: "자동전투는 여기서 멈춰 있어. 자동전투 중지 버튼을 눌러 종료해 봐. 안내 중에는 자동으로 다시 시작되지 않아.",
+        text: "자동전투를 종료하고 싶으면 버튼을 다시 누르면 돼.",
     },
     tokens: {
         selector: ".battle-token-resources",
@@ -159,7 +169,8 @@ function handleTutorialClick(event) {
 
     if (currentStep === "status") setStep("probability");
     else if (currentStep === "probability") setStep("recommendation");
-    else if (currentStep === "recommendation") setStep("choose");
+    else if (currentStep === "recommendation") setStep("recommendationFollow");
+    else if (currentStep === "recommendationFollow") setStep("recommendationWait");
     else if (currentStep === "choose") requestAnimationFrame(() => setStep("skill"));
     else if (currentStep === "skill") setStep("directWait");
     else if (currentStep === "automatic") setStep("automaticWait");

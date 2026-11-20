@@ -21,6 +21,7 @@ import { getBattleEncounterKind } from "./encounter.js?v=2";
 
 export function createBattleFlow({ state, tokenState, ui, navigation, renderer, tutorial, scheduler }) {
     let tutorialDirectTurnPending = false;
+    let tutorialRecommendationTurnPending = false;
     let tutorialAutoTurnPending = false;
     let tutorialAutoPaused = false;
 
@@ -42,6 +43,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
 
     function beginTutorialIfNeeded() {
         tutorialDirectTurnPending = false;
+        tutorialRecommendationTurnPending = false;
         tutorialAutoTurnPending = false;
         tutorialAutoPaused = false;
         if (state.enemyKind === "mole") tutorial.startBattleTutorial();
@@ -184,6 +186,10 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         if (tutorialDirectTurnPending) {
             tutorialDirectTurnPending = false;
             tutorial.advanceBattleTutorial("automatic");
+        }
+        if (tutorialRecommendationTurnPending) {
+            tutorialRecommendationTurnPending = false;
+            tutorial.advanceBattleTutorial("choose");
         }
     }
 
@@ -357,6 +363,10 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         resolvePlayerSkill(skillIndex);
     }
 
+    function onRecommendationSelected() {
+        if (tutorial.isBattleTutorialActive()) tutorialRecommendationTurnPending = true;
+    }
+
     function resetBattle() {
         scheduler.cancel();
         ui.closeBattleLossDialog();
@@ -396,6 +406,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         enterBattle,
         exitBattle,
         onManualSkillSelected,
+        onRecommendationSelected,
         recordTurnField,
         resetBattle,
         resolvePlayerSkill,

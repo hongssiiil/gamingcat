@@ -25,6 +25,7 @@ export function createBattleController({ state, tokenState, flow, ui, tutorial }
         }
         const recommendation = state.currentRecommendation;
         if (!recommendation) return;
+        if (tutorial.isBattleTutorialActive()) flow.onRecommendationSelected();
         flow.resolvePlayerSkill(recommendation.skillIndex);
     }
 

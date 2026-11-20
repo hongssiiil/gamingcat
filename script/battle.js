@@ -6,11 +6,11 @@ import {
     advanceBattleTutorial,
     isBattleTutorialActive,
     startBattleTutorial,
-} from "./battle/tutorial.js?v=5";
+} from "./battle/tutorial.js?v=7";
 import { setBattleBackground, setBattleEnemy, startBattleRenderer } from "./battle/renderer.js?v=44";
 import * as ui from "./battle/ui.js?v=41";
-import { createBattleFlow } from "./battle/flow.js?v=6";
-import { createBattleController } from "./battle/controller.js?v=1";
+import { createBattleFlow } from "./battle/flow.js?v=7";
+import { createBattleController } from "./battle/controller.js?v=2";
 
 const state = createBattleState();
 const tokenState = { tokens: BATTLE_STARTING_TOKENS, events: [] };
