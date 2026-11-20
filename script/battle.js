@@ -1,5 +1,5 @@
-import { enterRoad, getCurrentRoadBattleBackground } from "./road.js";
-import { createBattleState } from "./battle/state.js?v=37";
+import { enterRoad, getCurrentRoadBattleBackground, saveBattleChoice } from "./road.js";
+import { createBattleState, resetBattleState } from "./battle/state.js?v=37";
 import { BATTLE_STARTING_TOKENS } from "./battle/token.js?v=37";
 import { markBattleTutorialComplete } from "./battle/encounter.js?v=2";
 import {
@@ -41,7 +41,8 @@ const flow = createBattleFlow({
     state,
     tokenState,
     ui,
-    navigation: { enterRoad, getCurrentRoadBattleBackground },
+    navigation: { enterRoad, getCurrentRoadBattleBackground, saveBattleChoice,
+        onWolfFinished(result){document.dispatchEvent(new CustomEvent('journey-ended',{detail:{result}}));} },
     renderer: { setBattleBackground, setBattleEnemy },
     tutorial,
     scheduler: { schedule, cancel },
@@ -53,3 +54,8 @@ startBattleRenderer(state);
 
 export const enterBattle = flow.enterBattle;
 export const exitBattle = flow.exitBattle;
+export function resetBattleForJourney(){
+    cancel();resetBattleState(state);state.started=false;
+    ui.fightSkillsDialog.hidden=true;ui.setControlsLocked(state,false);
+    ui.updateStatusBars(state);
+}

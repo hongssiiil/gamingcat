@@ -117,10 +117,12 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         if (!state.currentTurn) return;
         if (field === "outcome" && state.currentTurn.outcome) {
             state.currentTurn.outcome = `${state.currentTurn.outcome} ${value}`;
+            if(state.currentTurn.playerChoice && state.enemyKind==='wolf') navigation.saveBattleChoice(state.currentTurn);
             ui.renderBattleHistory(state.turnHistory, state.historyIndex);
             return;
         }
         state.currentTurn[field] = value;
+        if(state.currentTurn.playerChoice && state.enemyKind==='wolf') navigation.saveBattleChoice(state.currentTurn);
         ui.renderBattleHistory(state.turnHistory, state.historyIndex);
     }
 
@@ -219,12 +221,13 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         }
     }
 
-    function finishBattle(message) {
+    function finishBattle(message, result = "victory") {
         if (state.ended) return;
         if (state.currentTurn && !state.currentTurn.enemyAction) {
             recordTurnField("enemyAction", "행동하지 못함");
         }
         recordTurnField("outcome", message);
+        if(state.enemyKind==='wolf'){state.currentTurn.result=result;navigation.saveBattleChoice(state.currentTurn);}
         state.player.defending = false;
         state.enemy.defending = false;
         state.ended = true;
@@ -240,7 +243,8 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         ui.showMenuMessage(message);
         scheduler.schedule(() => {
             exitBattle();
-            navigation.enterRoad();
+            if(state.enemyKind==='wolf')navigation.onWolfFinished(result);
+            else navigation.enterRoad();
         }, 1200);
     }
 
@@ -250,6 +254,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
             recordTurnField("enemyAction", "행동하지 못함");
         }
         recordTurnField("outcome", "플레이어의 체력이 0이 되어 전투를 마쳤다.");
+        if(state.enemyKind==='wolf'){state.currentTurn.result='defeat';navigation.saveBattleChoice(state.currentTurn);}
         state.player.defending = false;
         state.enemy.defending = false;
         state.ended = true;
@@ -371,6 +376,8 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         if (state.controlsLocked && !automatic) return;
         const skill = skillEffects[skillIndex];
         if (!skill) return;
+        if(state.enemyKind==='wolf')Object.assign(state.currentTurn,{scene:'wolf',action:'skill',recordedAt:Date.now(),tokenUsed:false,
+            accepted:state.recommendationRevealed ? state.currentRecommendation?.skillIndex===skillIndex : null});
         recordTurnField("playerChoice", skill.name);
         ui.fightSkillsDialog.hidden = true;
         ui.setControlsLocked(state, true);
@@ -420,6 +427,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
 
     function attemptEscape() {
         if (state.controlsLocked) return;
+        if(state.enemyKind==='wolf')Object.assign(state.currentTurn,{scene:'wolf',action:'run',recordedAt:Date.now(),tokenUsed:false,accepted:null});
         recordTurnField("playerChoice", "도망 시도");
         ui.fightSkillsDialog.hidden = true;
         ui.setControlsLocked(state, true);
@@ -432,7 +440,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
                     scheduler.schedule(finishPlayerAction, 500);
                     return;
                 }
-                finishBattle("무사히 도망쳤다!");
+                finishBattle("무사히 도망쳤다!", "escape");
             }, 1000);
         });
     }

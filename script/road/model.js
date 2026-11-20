@@ -1,10 +1,14 @@
+import { initialJourney, finishJourneyStage, restoreJourney } from './journey.js';
+import { explorationRoute, explorationLimit, mapEncounter } from './exploration.js';
+import { advanceFork } from './fork-physics.js';
 import { COSTS, POND, CLIMB, CHECKPOINTS, SCENARIOS, TOPICS, NOTES } from './content.js';
 export const STORAGE_KEY = 'gamingCatRoadV2';
 export const STAGES = ['forest', 'routeMissing', 'contract', 'stopped', 'topic', 'fork', 'summary', 'map', 'pond', 'climb', 'battleReady'];
 export function freshState() {
     return { version: 2, stage: 'forest', tokens: 10, notes: [], topic: '', interest: '',
-        choices: [], events: [], chat: [], player: { x: 340, y: 483 }, mapDistance: 0,
-        completed: [], pondTrail: [], climbTrail: [], puzzle: { pond: 0, climb: 0 }, fork: { lane: 1, progress: 0, resistance: 0, seconds: 0, resisted: false } };
+        choices: [], completedPaths: [], inkJourney: initialJourney(), events: [], chat: [], player: { x: 340, y: 483 }, mapDistance: 0,
+        mapPathVersion:1,mapFurthest:0,
+        completed: [], pondTrail: [], climbTrail: [], puzzle: { pond: 0, climb: 0 }, fork: { startY:270, lane: 1, progress: 0, resistance: 0, seconds: 0, resisted: false } };
 }
 export function restoreState(raw) {
     try {
@@ -20,10 +24,13 @@ export function restoreState(raw) {
         if (!s.puzzle || !['pond', 'climb'].every(k => Number.isInteger(s.puzzle[k]) && s.puzzle[k] >= 0 && s.puzzle[k] < 16)) return freshState();
         if (s.choices.some(c => !c || !Number.isInteger(c.selected) || c.selected < 0 || c.selected > 2 || !Number.isInteger(c.recommended) || c.recommended < 0 || c.recommended > 2 || !Array.isArray(c.options) || c.options.length !== 3 || c.options.some(o => typeof o !== 'string') || typeof c.label !== 'string' || !Number.isFinite(c.seconds))) return freshState();
         if (['fork', 'summary', 'map', 'pond', 'climb', 'battleReady'].includes(s.stage) && !TOPICS.includes(s.topic)) return freshState();
-        if (s.stage === 'fork' && s.choices.length >= 5) return freshState();
+        if (s.stage === 'fork' && s.choices.length >= 5 && !['ARRIVED','ZOOMING','COMPLETE'].includes(s.inkJourney?.phase)) return freshState();
         if (['summary', 'map', 'pond', 'climb', 'battleReady'].includes(s.stage) && s.choices.length !== 5) return freshState();
         if (s.completed.some(k => !['pond', 'climb'].includes(k))) return freshState();
-        if (s.mapDistance < 0 || s.mapDistance > routeMetrics(s.choices).total || s.fork.progress > 1 || s.player.x < 0 || s.player.x > 1023 || s.player.y < 0 || s.player.y > 769) return freshState();
+        if (s.mapDistance < 0 || s.fork.progress > 1 || s.player.x < 0 || s.player.x > 1023 || s.player.y < 0 || s.player.y > 769) return freshState();
+        if(s.fork.acceptedLane!=null&&![0,1,2].includes(s.fork.acceptedLane))s.fork.acceptedLane=null;
+        for(const key of ['position','catPosition'])if(s.fork[key]&&(!Number.isFinite(s.fork[key].x)||!Number.isFinite(s.fork[key].y)||s.fork[key].x<0||s.fork[key].x>800||s.fork[key].y<0||s.fork[key].y>480))delete s.fork[key];
+        if(s.fork.ink!=null&&(!Array.isArray(s.fork.ink)||s.fork.ink.length>1600||s.fork.ink.some(p=>!Array.isArray(p)||p.length!==2||!p.every(Number.isFinite)||p[0]<0||p[0]>800||p[1]<0||p[1]>480)))s.fork.ink=[];
         // Older saves had no clicked sequence; restart just the pond attempt.
         const path=solvePuzzle('pond');
         if(!Array.isArray(s.pondTrail)||s.pondTrail.length>16||s.pondTrail.some((cell,i)=>cell!==path[i])){
@@ -31,6 +38,27 @@ export function restoreState(raw) {
         }else s.puzzle.pond=s.pondTrail.at(-1)??0;
         if(!Array.isArray(s.climbTrail)||s.climbTrail.length>16||new Set(s.climbTrail).size!==s.climbTrail.length||s.climbTrail.some((cell,i)=>!Number.isInteger(cell)||cell<0||cell>15||(i===0?cell!==0:!puzzleMoves('climb',s.climbTrail[i-1]).includes(cell))))s.climbTrail=[];
         s.puzzle.climb=s.climbTrail.at(-1)??0;
+        restoreJourney(s);
+        const route=explorationRoute(s.completedPaths);
+        if(s.mapPathVersion!==1){
+            // Preserve progress from the old six-point SVG map, including an
+            // encounter saved at a node rather than in front of its collider.
+            const old=routeMetrics(s.choices),d=s.mapDistance;
+            if(d>old.total)return freshState();
+            let previous=0;
+            for(let i=1;i<old.distances.length;i++){
+                if(d<=old.distances[i]){
+                    const start=i===1?0:route.nodes[i-2].distance,end=route.nodes[i-1].distance;
+                    s.mapDistance=start+(end-start)*(d-previous)/(old.distances[i]-previous);break;
+                }
+                previous=old.distances[i];
+            }
+            s.mapDistance=Math.min(s.mapDistance,explorationLimit(s,route).distance);
+            s.mapPathVersion=1;s.mapFurthest=s.mapDistance;
+        }
+        if(s.mapDistance>route.total+.01)return freshState();
+        s.mapDistance=Math.min(s.mapDistance,explorationLimit(s,route).distance);
+        s.mapFurthest=Math.max(s.mapDistance,Math.min(route.total,Number.isFinite(s.mapFurthest)?s.mapFurthest:0));
         return s;
     } catch { return freshState(); }
 }
@@ -60,7 +88,7 @@ export function sendRoadMessage(state, raw, answerFor) {
     }
     return state.chat.at(-1);
 }
-export function choose(state) {
+export function choose(state, {continuous=false}={}) {
     const q = scenario(state);
     if (!q || state.fork.progress < 1) return false;
     state.choices.push({ scene: `fork-${state.choices.length + 1}`, topic: state.topic,
@@ -68,29 +96,23 @@ export function choose(state) {
         selected: state.fork.lane, path: ['up', 'right', 'down'][state.fork.lane],
         label: q.options[state.fork.lane], resisted: state.fork.resisted,
         seconds: Math.round(state.fork.seconds * 10) / 10,
+        recordedAt: Date.now(),
         helpCount: state.events.filter(e => e.type === 'help').length });
+    const oldFork=state.fork;
     state.fork = { lane: 1, progress: 0, resistance: 0, seconds: 0, resisted: false };
-    if (state.choices.length === 5) state.stage = 'summary';
+    finishJourneyStage(state,oldFork,state.choices.at(-1),continuous);
+    if (state.choices.length === 5 && !continuous) state.stage = 'summary';
     return true;
 }
 export function moveFork(state, direction, dt) {
-    const q = scenario(state);
-    if (!q || !direction) return;
-    const f = state.fork;
-    if (f.lane !== q.recommended && direction > 0) {
-        f.resistance = Math.min(1, f.resistance + dt);
-        f.resisted = true;
-    }
-    // Tiny reacts visually; the player's speed never depends on agreement.
-    f.progress = Math.max(0, Math.min(1, f.progress + direction * dt / 4.2));
+    if(state.inkJourney?.phase!=='ACTIVE')return;
+    const q=scenario(state);if(!q)return;
+    const lane=state.fork.lane;
+    advanceFork(state.fork,q.recommended,direction<0?-1:direction&&lane===1?1:0,direction>0?(lane===0?-1:lane===2?1:0):0,dt);
 }
-
 export function walkFork(state, dx, dy, dt) {
-    if (!dx && !dy) return;
-    // Steering and walking are one action; reaching the exit commits the choice.
-    const lane = dy < 0 ? 0 : dy > 0 ? 2 : state.fork.lane;
-    if (lane !== state.fork.lane) { state.fork.lane = lane; state.fork.resistance = 0; }
-    moveFork(state, dx < 0 ? -1 : 1, dt);
+    if(state.inkJourney?.phase!=='ACTIVE')return;
+    const q=scenario(state);if(q)advanceFork(state.fork,q.recommended,dx,dy,dt);
 }
 export function puzzleMoves(kind, from) {
     const row = Math.floor(from / 4), col = from % 4;
@@ -143,10 +165,11 @@ export function pointOnRoute(choices, distance) {
 }
 export function nextCheckpoint(state) { return CHECKPOINTS.find(c => !state.completed.includes(c.id)); }
 export function advanceMap(state, direction, dt) {
-    const metrics = routeMetrics(state.choices), next = nextCheckpoint(state);
-    const limit = next ? metrics.distances[next.at] : metrics.total;
-    state.mapDistance = Math.max(0, Math.min(limit, state.mapDistance + direction * dt * 140));
-    return next && Math.abs(state.mapDistance - limit) < 0.1 ? next : null;
+    if(state.stage!=='map')return null;
+    const limit=explorationLimit(state).distance;
+    state.mapDistance=Math.max(0,Math.min(limit,state.mapDistance+Math.sign(direction)*Math.max(0,dt)*190));
+    state.mapFurthest=Math.max(state.mapFurthest??0,state.mapDistance);
+    return mapEncounter(state);
 }
 export function finishPuzzle(state, kind) {
     if (state.completed.includes(kind)) return false;
