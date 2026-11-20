@@ -1,4 +1,4 @@
-import { enterBattle, exitBattle, resetBattleForJourney } from "./battle.js";
+import { enterBattle, exitBattle, resetBattleForJourney } from "./battle.js?v=55";
 import { enterRoad, exitRoad, getEndingJourney, restartJourney } from "./road.js";
 import { createEnding } from './ending.js';
 const ending=createEnding({onRestart(){resetBattleForJourney();restartJourney();}});
