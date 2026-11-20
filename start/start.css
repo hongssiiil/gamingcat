@@ -1,0 +1,223 @@
+body:not(.game-started) {
+    min-height: 100vh;
+    padding: 0;
+    color: #ececf1;
+    background: #212121;
+}
+
+body:not(.game-started) .screen-navigation,
+body:not(.game-started) #Road,
+body:not(.game-started) #Battle {
+    display: none !important;
+}
+
+#Start {
+    display: none;
+}
+
+body:not(.game-started) #Start {
+    display: flex;
+}
+
+.start-screen {
+    min-height: 100vh;
+    flex-direction: column;
+    padding: 1.25rem clamp(1rem, 4vw, 3rem);
+    color: #ececf1;
+    background: #212121;
+    font-family: Arial, "Malgun Gothic", sans-serif;
+}
+
+.start-header,
+.start-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: min(100%, 72rem);
+    margin-inline: auto;
+}
+
+.start-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    color: inherit;
+    font-size: 1rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.start-brand-mark {
+    display: grid;
+    width: 2rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid #676767;
+    border-radius: 50%;
+    color: #f1f1f1;
+    font-size: 0.95rem;
+}
+
+.start-account-note,
+.start-footer,
+.start-footnote {
+    color: #a1a1aa;
+    font-size: 0.82rem;
+}
+
+.start-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 48rem);
+    margin: 0 auto;
+    padding: 3rem 0;
+}
+
+.start-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2.3rem;
+    text-align: center;
+}
+
+.start-welcome img {
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-bottom: 1rem;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.start-message-label {
+    margin: 0 0 0.55rem;
+    color: #a1a1aa;
+    font-size: 0.88rem;
+}
+
+.start-welcome h1 {
+    margin: 0;
+    font-size: clamp(1.7rem, 5vw, 2.35rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+}
+
+.start-description {
+    max-width: 35rem;
+    margin: 0.9rem 0 0;
+    color: #b4b4bd;
+    font-size: 1rem;
+    line-height: 1.7;
+    word-break: keep-all;
+}
+
+.start-composer {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 4rem;
+    padding: 0.55rem 0.65rem 0.55rem 1.2rem;
+    border: 1px solid #4b4b4b;
+    border-radius: 1.5rem;
+    background: #303030;
+    box-shadow: 0 0.35rem 1.5rem rgb(0 0 0 / 18%);
+}
+
+.start-composer:focus-within {
+    border-color: #777;
+    outline: 2px solid rgb(255 255 255 / 18%);
+    outline-offset: 2px;
+}
+
+.start-composer input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: #c7c7ce;
+    background: transparent;
+    font: inherit;
+    font-size: 1rem;
+}
+
+.start-composer input:focus-visible {
+    outline: 0;
+}
+
+.start-composer button {
+    display: grid;
+    flex: 0 0 auto;
+    width: 2.8rem;
+    height: 2.8rem;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    color: #212121;
+    background: #f1f1f1;
+    cursor: pointer;
+    transition: background-color 120ms ease, transform 120ms ease;
+}
+
+.start-composer button:hover {
+    background: #d7d7d7;
+}
+
+.start-composer button:active {
+    transform: scale(0.94);
+}
+
+.start-composer button:focus-visible,
+.start-brand:focus-visible {
+    outline: 3px solid #9ecbff;
+    outline-offset: 4px;
+}
+
+.start-composer button span {
+    font-size: 1.65rem;
+    line-height: 1;
+}
+
+.start-footnote {
+    margin: 0.9rem 0 0;
+    text-align: center;
+}
+
+.start-footer {
+    justify-content: center;
+    min-height: 2.5rem;
+    text-align: center;
+}
+
+@media (max-width: 480px) {
+    .start-screen {
+        padding: 1rem;
+    }
+
+    .start-content {
+        padding: 2rem 0;
+    }
+
+    .start-description {
+        max-width: 20rem;
+        font-size: 0.93rem;
+    }
+
+    .start-composer {
+        min-height: 3.65rem;
+        padding-left: 1rem;
+    }
+
+    .start-footer {
+        line-height: 1.5;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .start-composer button {
+        transition: none;
+    }
+}

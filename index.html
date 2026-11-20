@@ -8,7 +8,9 @@
     <link rel="stylesheet" href="style/common.css">
     <link rel="stylesheet" href="style/road.css">
     <link rel="stylesheet" href="style/battle.css?v=33">
+    <link rel="stylesheet" href="start/start.css">
     <script type="module" src="script/main.js?v=41"></script>
+    <script type="module" src="start/start.js"></script>
 </head>
 
 <body>
@@ -18,6 +20,36 @@
     </nav>
 
     <main>
+        <section id="Start" class="start-screen screen-active" aria-labelledby="start-title">
+            <header class="start-header">
+                <a class="start-brand" href="#Start" aria-label="Gaming Cat 시작 화면">
+                    <span class="start-brand-mark" aria-hidden="true">G</span>
+                    <span>Gaming Cat</span>
+                </a>
+            </header>
+
+            <div class="start-content">
+                <div class="start-welcome" aria-live="polite">
+                    <img src="./images/character/cat/cat_front.png" alt="티니">
+                    <p class="start-message-label">티니와 함께하는 여정</p>
+                    <h1 id="start-title">어떤 길을 걸어볼까요?</h1>
+                    <p class="start-description">숲속의 갈림길에서 티니의 이야기를 듣고, 당신만의 선택으로 길을 만들어 보세요.</p>
+                </div>
+
+                <form id="start-form" class="start-composer" aria-label="게임 시작">
+                    <input type="text" placeholder="AI에게 건넬 말을 입력해 보세요…" aria-label="AI에게 건넬 말" autocomplete="off">
+                    <button type="submit" aria-label="게임 시작">
+                        <span aria-hidden="true">↑</span>
+                    </button>
+                </form>
+                <p class="start-footnote">보내기 버튼을 누르면 숲길이 시작됩니다.</p>
+            </div>
+
+            <footer class="start-footer">
+                <span>AI와 대화하며, 내가 얼마나 기대고 어떻게 선택하는지 돌아봅니다.</span>
+            </footer>
+        </section>
+
         <section id="Road" class="screen-active road-screen" aria-label="Road 화면">
             <header class="road-header">
                 <div><span class="road-eyebrow">티니와 함께 걷는 길</span><h1 id="road-title">이름 없는 숲</h1></div>
