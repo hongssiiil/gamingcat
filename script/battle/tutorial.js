@@ -1,4 +1,9 @@
 const tutorialSteps = {
+    intro: {
+        selector: null,
+        title: "낯선 적이 나타났어",
+        text: "이런 적을 만났네. 괜찮아, 내가 전투 방법을 알려줄게. 화면 아무 곳이나 클릭해서 시작하자!",
+    },
     status: {
         selector: "#player-status",
         title: "상태창을 살펴보자",
@@ -32,12 +37,17 @@ const tutorialSteps = {
     automatic: {
         selector: "#battle-auto-button",
         title: "자동전투 체험하기",
-        text: "자동전투에서는 내가 적의 행동 확률을 보고 대응 행동을 자동으로 실행해. 이번 체험은 한 턴만 진행하고, 턴당 토큰 2개를 써. 눌러서 확인해 보자!",
+        text: "자동전투에서는 내가 적의 행동 확률을 보고 대응 행동을 자동으로 실행해. 버튼을 눌러 한 턴을 진행해 보자. 턴마다 토큰 2개를 써.",
     },
     automaticWait: {
         selector: null,
-        title: "자동으로 한 턴 진행 중",
-        text: "적의 행동을 살펴보고 내가 대응하고 있어. 잠시 기다려 줘!",
+        title: "자동전투 한 턴 진행 중",
+        text: "내가 대응 행동을 실행하고 있어. 이번 턴이 끝나면 자동전투를 멈추고 다음 안내를 보여줄게.",
+    },
+    automaticStop: {
+        selector: "#battle-auto-button",
+        title: "자동전투를 직접 멈춰 보자",
+        text: "자동전투는 여기서 멈춰 있어. 자동전투 중지 버튼을 눌러 종료해 봐. 안내 중에는 자동으로 다시 시작되지 않아.",
     },
     tokens: {
         selector: ".battle-token-resources",
@@ -88,6 +98,7 @@ function render() {
     const rect = isSkillSelection ? null : target?.getBoundingClientRect();
 
     card.innerHTML = `<img src="./images/character/cat/cat_front.png" alt="티니"><div><strong>${step.title}</strong><p>${step.text}</p></div>`;
+    if (currentStep === "intro") card.focus({ preventScroll: true });
     card.style.top = !rect
         ? "50%"
         : rect.bottom < window.innerHeight * 0.55
@@ -131,6 +142,12 @@ function setStep(step) {
 
 function handleTutorialClick(event) {
     if (!active) return;
+    if (currentStep === "intro") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setStep("status");
+        return;
+    }
     const target = getTarget();
     const isAllowedSkill = currentStep === "skill" && event.target.closest?.(".skill-option");
     const isHighlightedTarget = event.target.closest?.(".battle-tutorial-target");
@@ -146,12 +163,18 @@ function handleTutorialClick(event) {
     else if (currentStep === "choose") requestAnimationFrame(() => setStep("skill"));
     else if (currentStep === "skill") setStep("directWait");
     else if (currentStep === "automatic") setStep("automaticWait");
+    else if (currentStep === "automaticStop") setStep("tokens");
     else if (currentStep === "tokens") setStep("done");
     requestAnimationFrame(render);
 }
 
 function handleTutorialKeydown(event) {
     if (!active) return;
+    if (currentStep === "intro" && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        setStep("status");
+        return;
+    }
     const target = getTarget();
     if (currentStep === "skill") {
         if (event.key === "Tab" && target) {
@@ -202,7 +225,7 @@ export function startBattleTutorial(onFinish = () => {}) {
     document.addEventListener("click", handleTutorialClick, true);
     document.addEventListener("keydown", handleTutorialKeydown, true);
     window.addEventListener("resize", resizeListener);
-    setStep("status");
+    setStep("intro");
 }
 
 export function advanceBattleTutorial(step) {

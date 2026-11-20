@@ -3,7 +3,7 @@ import {
     enemyStatus,
     menuSection,
     playerStatus,
-} from "./ui.js?v=29";
+} from "./ui.js?v=41";
 
 const baseWidth = 1440;
 const baseHeight = 778;
@@ -52,8 +52,7 @@ const catSprite = {
 
 let windowWidth;
 let windowHeight;
-let scaleWidth;
-let scaleHeight;
+let battleScale;
 let offsetX;
 let offsetY;
 
@@ -63,7 +62,7 @@ function loadImage(source) {
     return image;
 }
 
-export function preloadBattleBackground(source) {
+function preloadBattleBackground(source) {
     if (battleBackgrounds.has(source)) return battleBackgrounds.get(source);
     const image = loadImage(source);
     const loaded = image.decode().then(() => image);
@@ -98,8 +97,7 @@ function resizeCanvas() {
     windowWidth = window.innerWidth;
     windowHeight = window.innerHeight;
     const fitScale = Math.min(windowWidth / baseWidth, windowHeight / baseHeight);
-    scaleWidth = fitScale;
-    scaleHeight = fitScale;
+    battleScale = fitScale;
     offsetX = (windowWidth - baseWidth * fitScale) / 2;
     offsetY = (windowHeight - baseHeight * fitScale) / 2;
 
@@ -168,12 +166,7 @@ function drawPlayerAttack(animation) {
     enemySprite.flash = false;
     enemySprite.shake = 0;
 
-    if (!animation.hit) {
-        const dodge = Math.sin(effectProgress * Math.PI);
-        enemySprite.offsetX = -100 * dodge;
-        enemySprite.offsetY = -12 * dodge;
-        enemySprite.scaleMultiplier = 1 - 0.04 * dodge;
-    } else if (impactAmount > 0) {
+    if (impactAmount > 0) {
         const hitPulse = Math.max(0, 1 - effectElapsed / (animation.heavy ? 190 : 135));
         enemySprite.flash = true;
         enemySprite.shake = (animation.heavy ? 20 : 8) * hitPulse;
@@ -226,10 +219,7 @@ function drawEntities(state) {
         drawSprite(enemySprite);
     }
 
-    if (state.enemyAttackAnimation && !state.enemyAttackAnimation.hit) {
-        const dodgeProgress = Math.min(1, (performance.now() - state.enemyAttackAnimation.startedAt) / 170);
-        playerSprite.offsetX = -80 * Math.sin(dodgeProgress * Math.PI);
-    } else if (!state.playerAttackAnimation) {
+    if (!state.playerAttackAnimation) {
         playerSprite.offsetX = 0;
     }
     drawSprite(playerSprite);
@@ -274,7 +264,7 @@ function draw(state) {
     context.clearRect(0, 0, windowWidth, windowHeight);
     context.fillStyle = "#000";
     context.fillRect(0, 0, windowWidth, windowHeight);
-    context.setTransform(dpr * scaleWidth, 0, 0, dpr * scaleHeight, dpr * offsetX, dpr * offsetY);
+    context.setTransform(dpr * battleScale, 0, 0, dpr * battleScale, dpr * offsetX, dpr * offsetY);
     drawBackground();
     drawEntities(state);
     window.requestAnimationFrame(() => draw(state));

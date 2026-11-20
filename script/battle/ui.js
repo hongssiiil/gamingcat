@@ -1,6 +1,6 @@
 export const battleSection = document.querySelector("#Battle");
 export const menuSection = document.querySelector(".menu-section");
-export const menuText = document.getElementById("ai-recommendation");
+const menuText = document.getElementById("ai-recommendation");
 const messageKind = document.getElementById("battle-message-kind");
 export const followRecommendationButton = document.getElementById("follow-recommendation-button");
 export const chooseActionButton = document.getElementById("choose-action-button");

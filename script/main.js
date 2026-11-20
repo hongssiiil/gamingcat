@@ -1,4 +1,4 @@
-import { enterBattle, exitBattle } from "./battle.js?v=45";
+import { enterBattle, exitBattle } from "./battle.js?v=51";
 import { enterRoad, exitRoad } from "./road.js";
 
 document.querySelector("#show-road").addEventListener("click", () => {

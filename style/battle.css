@@ -81,7 +81,7 @@ body {
     position: fixed;
     z-index: 2;
     box-sizing: border-box;
-    width: min(34.72vw, 500px);
+    width: calc(var(--battle-scale, 1) * 400px);
     padding: 0;
     color: #eee4c5;
     font-size: calc(var(--battle-scale, 1) * 12px);
@@ -116,7 +116,7 @@ body {
     font-weight: 700;
     line-height: 1.1;
     text-overflow: ellipsis;
-    text-shadow: 1px 1px #161d16;
+    text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 1px) #161d16;
     white-space: nowrap;
 }
 
@@ -126,10 +126,10 @@ body {
     left: 4%;
     width: 23%;
     height: 70%;
-    border: 2px solid #6b6650;
+    border: calc(var(--battle-scale, 1) * 2px) solid #6b6650;
     border-radius: 0;
     background: #19251f;
-    box-shadow: 2px 2px #151b1b;
+    box-shadow: calc(var(--battle-scale, 1) * 2px) calc(var(--battle-scale, 1) * 2px) #151b1b;
     object-fit: contain;
     object-position: center;
     image-rendering: pixelated;
@@ -145,7 +145,7 @@ body {
     gap: calc(var(--battle-scale, 1) * 5px);
     color: #f4e3b1;
     font-size: calc(var(--battle-scale, 1) * 12px);
-    text-shadow: 1px 1px #161d16;
+    text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 1px) #161d16;
 }
 
 .health-row {
@@ -168,10 +168,11 @@ body {
     flex: 1;
     height: calc(var(--battle-scale, 1) * 13px);
     overflow: hidden;
-    border: 2px solid #151b1b;
+    border: calc(var(--battle-scale, 1) * 2px) solid #151b1b;
     border-radius: 0;
     background: #19251f;
-    box-shadow: inset 2px 2px #101713, 2px 2px #101713;
+    box-shadow: inset calc(var(--battle-scale, 1) * 2px) calc(var(--battle-scale, 1) * 2px) #101713,
+        calc(var(--battle-scale, 1) * 2px) calc(var(--battle-scale, 1) * 2px) #101713;
 }
 
 .status-fill {
@@ -182,7 +183,11 @@ body {
 }
 
 .health-bar .status-fill {
-    background: repeating-linear-gradient(90deg, #d65348 0 8px, #c3453d 8px 12px);
+    background: repeating-linear-gradient(
+        90deg,
+        #d65348 0 calc(var(--battle-scale, 1) * 8px),
+        #c3453d calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px)
+    );
 }
 
 .stamina-bar {
@@ -194,7 +199,11 @@ body {
 }
 
 .stamina-bar .status-fill {
-    background: repeating-linear-gradient(90deg, #d4b84f 0 8px, #b39a3d 8px 12px);
+    background: repeating-linear-gradient(
+        90deg,
+        #d4b84f 0 calc(var(--battle-scale, 1) * 8px),
+        #b39a3d calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px)
+    );
 }
 
 .stamina-bar.is-insufficient-feedback {
@@ -202,7 +211,11 @@ body {
 }
 
 .stamina-bar.is-insufficient-feedback .status-fill {
-    background: repeating-linear-gradient(90deg, #df625b 0 8px, #ba4540 8px 12px);
+    background: repeating-linear-gradient(
+        90deg,
+        #df625b 0 calc(var(--battle-scale, 1) * 8px),
+        #ba4540 calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px)
+    );
 }
 
 @keyframes stamina-insufficient-feedback {
@@ -211,21 +224,22 @@ body {
     100% {
         transform: translateX(0);
         border-color: #151b1b;
-        box-shadow: inset 2px 2px #101713, 2px 2px #101713;
+        box-shadow: inset calc(var(--battle-scale, 1) * 2px) calc(var(--battle-scale, 1) * 2px) #101713,
+            calc(var(--battle-scale, 1) * 2px) calc(var(--battle-scale, 1) * 2px) #101713;
     }
 
     20%,
     60% {
         transform: translateX(calc(var(--battle-scale, 1) * -2px));
         border-color: #e76a61;
-        box-shadow: 0 0 5px #e76a61;
+        box-shadow: 0 0 calc(var(--battle-scale, 1) * 5px) #e76a61;
     }
 
     40%,
     80% {
         transform: translateX(calc(var(--battle-scale, 1) * 2px));
         border-color: #e76a61;
-        box-shadow: 0 0 5px #e76a61;
+        box-shadow: 0 0 calc(var(--battle-scale, 1) * 5px) #e76a61;
     }
 }
 
@@ -241,7 +255,7 @@ body {
     font-size: calc(var(--battle-scale, 1) * 11px);
     font-variant-numeric: tabular-nums;
     text-align: right;
-    text-shadow: 1px 1px #161d16;
+    text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 1px) #161d16;
     white-space: nowrap;
 }
 
@@ -252,8 +266,8 @@ body {
     left: 0;
     width: 0;
     height: 0;
-    border: 12px solid transparent;
-    border-image: url("../images/road/Dialogue_UI.png") 80 110 fill / 12px / 0 stretch;
+    border: calc(var(--battle-scale, 1) * 12px) solid transparent;
+    border-image: url("../images/road/Dialogue_UI.png") 80 110 fill / calc(var(--battle-scale, 1) * 12px) / 0 stretch;
     background: #e5cda6;
     background-clip: padding-box;
     color: #3f3224;
@@ -288,7 +302,7 @@ body {
     flex: 0 0 auto;
     margin-right: 0.65em;
     padding: 0.25em 0.55em;
-    border: 2px solid #665333;
+    border: calc(var(--battle-scale, 1) * 2px) solid #665333;
     border-radius: 0;
     color: #352d24;
     background: #ead298;
@@ -314,9 +328,9 @@ body {
     width: 19%;
     max-height: 95%;
     padding: 2%;
-    border: 4px solid #665333;
+    border: calc(var(--battle-scale, 1) * 4px) solid #665333;
     background: #f4e3b1;
-    box-shadow: 3px 3px #8c7248;
+    box-shadow: calc(var(--battle-scale, 1) * 3px) calc(var(--battle-scale, 1) * 3px) #8c7248;
     object-fit: contain;
     image-rendering: pixelated;
 }
@@ -324,7 +338,7 @@ body {
 .recommendation-copy {
     min-width: 0;
     flex: 1;
-    font-size: clamp(12px, 1.65cqw, 25px);
+    font-size: clamp(calc(var(--battle-scale, 1) * 12px), 1.65cqw, calc(var(--battle-scale, 1) * 25px));
 }
 
 .recommendation-copy p {
@@ -336,7 +350,7 @@ body {
 .battle-enemy-probability {
     margin: 0.45em 0 0;
     padding: 0.3em 0.45em;
-    border: 2px solid #665333;
+    border: calc(var(--battle-scale, 1) * 2px) solid #665333;
     color: #283d34;
     background: #ead298;
     font-size: 0.82em;
@@ -364,18 +378,18 @@ body {
     min-height: 0;
     height: 100%;
     padding: 0.2em;
-    border: 8px solid transparent;
-    border-image: url("../images/road/pixel-frame.svg") 8 fill / 8px / 0 stretch;
+    border: calc(var(--battle-scale, 1) * 8px) solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / calc(var(--battle-scale, 1) * 8px) / 0 stretch;
     border-radius: 0;
     color: #eee4c5;
     background: #28352f;
     box-shadow: none;
     font: inherit;
-    font-size: clamp(10px, 1.1cqw, 16px);
+    font-size: clamp(calc(var(--battle-scale, 1) * 10px), 1.1cqw, calc(var(--battle-scale, 1) * 16px));
     font-weight: 800;
     line-height: 1.1;
     text-align: center;
-    text-shadow: 1px 1px #141c17;
+    text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 1px) #141c17;
     overflow-wrap: anywhere;
     image-rendering: pixelated;
     cursor: pointer;
@@ -392,7 +406,7 @@ body {
 }
 
 .menu-actions button:active:not(:disabled) {
-    transform: translateY(2px) scale(0.98);
+    transform: translateY(calc(var(--battle-scale, 1) * 2px)) scale(0.98);
 }
 
 /* Skill selection dialog */
@@ -403,9 +417,10 @@ body {
     display: grid;
     place-items: center;
     box-sizing: border-box;
-    padding: 16px;
+    padding: calc(var(--battle-scale, 1) * 16px);
     isolation: isolate;
     background: rgb(9 15 18 / 72%);
+    font-size: calc(var(--battle-scale, 1) * 16px);
 }
 
 .fight-skills-dialog[hidden] {
@@ -425,8 +440,8 @@ body {
     top: 50%;
     left: 50%;
     z-index: -1;
-    width: min(80vw, 720px, 72vh);
-    height: min(90vh, 112.5vw, 900px);
+    width: min(calc(var(--battle-scale, 1) * 560px), calc(100vw - var(--battle-scale, 1) * 32px));
+    height: min(calc(var(--battle-scale, 1) * 700px), calc(100vh - var(--battle-scale, 1) * 32px));
     border: 0;
     background: url("../images/battle/skills-panel-pixel.png") center / 100% 100% no-repeat;
     content: "";
@@ -436,8 +451,8 @@ body {
 
 .fight-skills-panel {
     position: absolute;
-    width: min(80vw, 720px, 72vh);
-    height: min(90vh, 112.5vw, 900px);
+    width: min(calc(var(--battle-scale, 1) * 560px), calc(100vw - var(--battle-scale, 1) * 32px));
+    height: min(calc(var(--battle-scale, 1) * 700px), calc(100vh - var(--battle-scale, 1) * 32px));
     visibility: hidden;
     object-fit: contain;
 }
@@ -447,17 +462,17 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: clamp(8px, 1.25vh, 18px);
-    width: min(66vw, 590px, 59.4vh);
-    max-height: 86vh;
+    gap: calc(var(--battle-scale, 1) * 9.725px);
+    width: min(calc(var(--battle-scale, 1) * 462.13px), calc(100vw - var(--battle-scale, 1) * 32px));
+    max-height: min(calc(var(--battle-scale, 1) * 669.08px), calc(100vh - var(--battle-scale, 1) * 32px));
 }
 
 .fight-skills-list h2 {
     margin: 0;
     color: #283d34;
-    font-size: clamp(1.1rem, 3vw, 1.7rem);
+    font-size: calc(var(--battle-scale, 1) * 27.2px);
     text-align: center;
-    text-shadow: 1px 1px #f4e3b1;
+    text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 1px) #f4e3b1;
 }
 
 .fight-skill-button {
@@ -466,24 +481,18 @@ body {
     align-items: flex-start;
     justify-content: center;
     width: 100%;
-    min-height: 64px;
-    padding: 10px 16px;
-    border: 6px solid transparent;
-    border-image: url("../images/road/pixel-frame.svg") 8 fill / 6px / 0 stretch;
+    min-height: calc(var(--battle-scale, 1) * 64px);
+    padding: calc(var(--battle-scale, 1) * 10px) calc(var(--battle-scale, 1) * 16px);
+    border: calc(var(--battle-scale, 1) * 6px) solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / calc(var(--battle-scale, 1) * 6px) / 0 stretch;
     border-radius: 0;
     color: #eee4c5;
     background: #28352f;
-    box-shadow: 3px 3px #151b1b;
+    box-shadow: calc(var(--battle-scale, 1) * 3px) calc(var(--battle-scale, 1) * 3px) #151b1b;
     font: inherit;
     text-align: left;
     image-rendering: pixelated;
     cursor: pointer;
-}
-
-.fight-skill-button img {
-    display: block;
-    width: 100%;
-    height: auto;
 }
 
 .fight-skill-button span {
@@ -491,19 +500,14 @@ body {
 }
 
 .fight-skill-button small {
-    margin-top: 3px;
+    margin-top: calc(var(--battle-scale, 1) * 3px);
     color: #c7c7a8;
     font-size: 0.82em;
 }
 
-.fight-skill-button:active img {
-    transform: scale(0.9);
-    opacity: 0.5;
-}
-
 .fight-skill-button:active:not(:disabled) {
-    transform: translateY(2px);
-    box-shadow: 0 1px 0 #583918;
+    transform: translateY(calc(var(--battle-scale, 1) * 2px));
+    box-shadow: 0 calc(var(--battle-scale, 1) * 1px) 0 #583918;
 }
 
 .fight-skill-button:disabled {
@@ -512,9 +516,9 @@ body {
 }
 
 .action-choice-cancel {
-    min-height: 40px;
-    border: 6px solid transparent;
-    border-image: url("../images/road/pixel-frame.svg") 8 fill / 6px / 0 stretch;
+    min-height: calc(var(--battle-scale, 1) * 40px);
+    border: calc(var(--battle-scale, 1) * 6px) solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / calc(var(--battle-scale, 1) * 6px) / 0 stretch;
     border-radius: 0;
     color: #eee4c5;
     background: #28352f;
@@ -583,7 +587,7 @@ body {
     font: inherit;
     font-size: calc(var(--battle-scale, 1) * 22px);
     line-height: 1;
-    text-shadow: 1px 2px #14231a;
+    text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 2px) #14231a;
     cursor: pointer;
     place-items: center;
 }
@@ -607,7 +611,7 @@ body {
     font-size: var(--battle-history-turn-font-size);
     font-weight: 800;
     line-height: 1;
-    text-shadow: 0 1px #fff6ce;
+    text-shadow: 0 calc(var(--battle-scale, 1) * 1px) #fff6ce;
     text-align: center;
     white-space: nowrap;
 }
@@ -659,7 +663,7 @@ body {
     margin: 0 0 calc(var(--battle-scale, 1) * 2px);
     color: #ead298;
     font-size: calc(var(--battle-scale, 1) * 11px);
-    text-shadow: 1px 1px #161d16;
+    text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 1px) #161d16;
 }
 
 .battle-history-card p {
@@ -669,9 +673,9 @@ body {
     overflow: hidden;
     overflow-wrap: anywhere;
     color: #eee4c5;
-    font-size: clamp(3px, calc(var(--battle-scale, 1) * 9px), 11px);
+    font-size: calc(var(--battle-scale, 1) * 9px);
     line-height: 1.1;
-    text-shadow: 1px 1px #161d16;
+    text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 1px) #161d16;
     white-space: pre-line;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
@@ -679,14 +683,16 @@ body {
 
 /* Loss dialog */
 .battle-loss-dialog {
-    width: min(88vw, 420px);
-    padding: 2rem;
-    border: 4px solid transparent;
+    box-sizing: border-box;
+    width: min(calc(var(--battle-scale, 1) * 492px), calc(100vw - var(--battle-scale, 1) * 32px));
+    padding: calc(var(--battle-scale, 1) * 32px);
+    border: calc(var(--battle-scale, 1) * 4px) solid transparent;
     border-radius: 0;
     color: #eee4c5;
     text-align: center;
     background: url("../images/battle/loss-panel-pixel.png") center / 100% 100% no-repeat;
-    box-shadow: 6px 6px #090f12b8;
+    box-shadow: calc(var(--battle-scale, 1) * 6px) calc(var(--battle-scale, 1) * 6px) #090f12b8;
+    font-size: calc(var(--battle-scale, 1) * 16px);
     image-rendering: pixelated;
 }
 
@@ -695,16 +701,16 @@ body {
 }
 
 .battle-loss-dialog p {
-    margin: 0 0 1.5rem;
-    font-size: clamp(1.5rem, 5vw, 2rem);
+    margin: 0 0 calc(var(--battle-scale, 1) * 24px);
+    font-size: calc(var(--battle-scale, 1) * 32px);
     font-weight: 700;
 }
 
 .battle-loss-dialog button {
-    min-width: 7rem;
-    padding: 0.7rem 1.2rem;
-    border: 8px solid transparent;
-    border-image: url("../images/road/pixel-frame.svg") 8 fill / 8px / 0 stretch;
+    min-width: calc(var(--battle-scale, 1) * 112px);
+    padding: calc(var(--battle-scale, 1) * 11.2px) calc(var(--battle-scale, 1) * 19.2px);
+    border: calc(var(--battle-scale, 1) * 8px) solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / calc(var(--battle-scale, 1) * 8px) / 0 stretch;
     border-radius: 0;
     color: #eee4c5;
     background: #28352f;
@@ -723,7 +729,7 @@ body {
     left: 50%;
     box-sizing: border-box;
     width: min(calc(var(--battle-scale, 1) * 440px), calc(100vw - var(--battle-scale, 1) * 28px));
-    max-height: min(82vh, calc(var(--battle-scale, 1) * 500px));
+    max-height: calc(var(--battle-scale, 1) * 500px);
     overflow-y: auto;
     padding: calc(var(--battle-scale, 1) * 12px) calc(var(--battle-scale, 1) * 16px) calc(var(--battle-scale, 1) * 12px) calc(var(--battle-scale, 1) * 12px);
     border: calc(var(--battle-scale, 1) * 3px) solid #665333;
@@ -766,13 +772,8 @@ body {
     z-index: 7 !important;
     pointer-events: auto !important;
     cursor: pointer !important;
-    outline: 3px solid #fff36b;
-    outline-offset: 3px;
-}
-
-.battle-tutorial-target:focus-visible {
-    outline: 3px solid #fff36b;
-    outline-offset: 3px;
+    outline: calc(var(--battle-scale, 1) * 3px) solid #fff36b;
+    outline-offset: calc(var(--battle-scale, 1) * 3px);
 }
 
 .battle-token-resources.battle-tutorial-target {
@@ -789,27 +790,10 @@ body {
 
 /* Keyboard focus */
 #Battle button:focus-visible {
-    outline: 3px solid #fff36b;
-    outline-offset: 3px;
+    outline: calc(var(--battle-scale, 1) * 3px) solid #fff36b;
+    outline-offset: calc(var(--battle-scale, 1) * 3px);
     border-radius: 0;
-    box-shadow: 0 0 0 2px #151b1b, 0 0 0 5px #fff36b;
+    box-shadow: 0 0 0 calc(var(--battle-scale, 1) * 2px) #151b1b,
+        0 0 0 calc(var(--battle-scale, 1) * 5px) #fff36b;
     filter: none;
-}
-
-/* Narrow screens */
-@media (max-width: 600px) {
-    .fight-skills-panel {
-        width: min(94vw, 720px, 70vh);
-        height: min(84vh, 106.25vw, 900px);
-    }
-
-    .fight-skills-list {
-        width: min(86vw, 61vh);
-        gap: clamp(6px, 1vh, 12px);
-    }
-
-    .fight-skill-button {
-        min-height: 50px;
-        padding: 7px 11px;
-    }
 }

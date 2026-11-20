@@ -1,11 +1,10 @@
 export const skillEffects = [
-    { name: "일반 공격", damage: 10, staminaCost: 20, accuracy: 100 },
-    { name: "힘껏 휘두르기", damage: 20, staminaCost: 30, accuracy: 80 },
+    { name: "일반 공격", damage: 10, staminaCost: 20 },
+    { name: "힘껏 휘두르기", damage: 20, staminaCost: 30 },
     {
         name: "숨 고르기",
         damage: 0,
         staminaCost: 0,
-        accuracy: 100,
         staminaRecovery: 40,
         healthRecovery: 10,
     },
@@ -13,15 +12,13 @@ export const skillEffects = [
         name: "방어하기",
         damage: 0,
         staminaCost: 10,
-        accuracy: 100,
         defense: true,
     },
 ];
 
 export const wolfCombatRules = {
-    baseDamage: 15,
-    criticalDamage: 25,
-    baseAccuracy: 70,
+    baseDamage: 20,
+    criticalDamage: 35,
     baseCriticalChance: 30,
     criticalChanceCap: 70,
     staminaCost: 20,
@@ -98,19 +95,15 @@ export function applyPlayerSkill(state, skillIndex, now) {
         state.playerRestFlashUntil = now + 520;
     }
 
-    // Guard reduces damage instead of allowing the defender to evade the attack.
-    const hit = state.enemy.defending || Math.random() * 100 < skill.accuracy;
-    let damage = 0;
+    // Defense reduces damage without cancelling attacks.
+    let damage = skill.damage;
     let blockedByDefense = false;
-    if (hit) {
-        damage = skill.damage;
-        if (skill.damage > 0 && state.enemy.defending) {
-            damage = Math.ceil(skill.damage * (1 - wolfCombatRules.defenseDamageReduction));
-            blockedByDefense = true;
-        }
-        state.enemy.health = Math.max(0, state.enemy.health - damage);
-        damage = previousEnemyHealth - state.enemy.health;
+    if (skill.damage > 0 && state.enemy.defending) {
+        damage = Math.ceil(skill.damage * (1 - wolfCombatRules.defenseDamageReduction));
+        blockedByDefense = true;
     }
+    state.enemy.health = Math.max(0, state.enemy.health - damage);
+    damage = previousEnemyHealth - state.enemy.health;
     if (skill.damage > 0 && state.enemy.defending) {
         state.enemy.defending = false;
     }
@@ -134,23 +127,19 @@ export function applyPlayerSkill(state, skillIndex, now) {
             startedAt: now,
             duration: skill.name === "일반 공격" ? 170 : 430,
             heavy: skill.name !== "일반 공격",
-            hit,
         };
     }
 
-    const message = !hit
-        ? `${skill.name}! 빗나갔다...`
-        : skill.staminaRecovery || skill.healthRecovery
-            ? `${skill.name}! 체력 ${recoveredHealth}, 스태미나 ${recoveredStamina} 회복했다.`
-            : blockedByDefense
-                ? `${skill.name}! 적의 방어로 피해가 줄어 ${damage} 피해를 줬다.`
-                : `${skill.name}! 적에게 ${damage} 피해를 줬다.`;
+    const message = skill.staminaRecovery || skill.healthRecovery
+        ? `${skill.name}! 체력 ${recoveredHealth}, 스태미나 ${recoveredStamina} 회복했다.`
+        : blockedByDefense
+            ? `${skill.name}! 적의 방어로 피해가 줄어 ${damage} 피해를 줬다.`
+            : `${skill.name}! 적에게 ${damage} 피해를 줬다.`;
 
     return {
         kind: skill.damage > 0 ? "attack" : "recovery",
         message,
         skill,
-        hit,
         damage,
         blockedByDefense,
     };
@@ -183,18 +172,14 @@ export function roarAtPlayer(state) {
 }
 
 export function createEnemyAttack(state, now) {
-    const accuracy = wolfCombatRules.baseAccuracy;
     const criticalChance = Math.min(
         wolfCombatRules.criticalChanceCap,
         wolfCombatRules.baseCriticalChance,
     );
-    // Guard reduces damage instead of allowing the defender to evade the attack.
-    const hit = state.player.defending || Math.random() * 100 < accuracy;
     state.enemyAttackAnimation = {
         startedAt: now,
         impactApplied: false,
-        hit,
-        critical: hit && Math.random() * 100 < criticalChance,
+        critical: Math.random() * 100 < criticalChance,
     };
 }
 
@@ -202,11 +187,6 @@ export function applyEnemyAttackImpact(state) {
     const attack = state.enemyAttackAnimation;
     if (!attack || attack.impactApplied) return null;
     attack.impactApplied = true;
-
-    if (!attack.hit) {
-        state.player.defending = false;
-        return "적의 공격을 피했다!";
-    }
 
     const incomingDamage = attack.critical
         ? wolfCombatRules.criticalDamage

@@ -47,11 +47,5 @@ export function renderBattleTokens(tokens, root = document.querySelector("#Battl
     debt.hidden = tokens >= 0;
     debt.textContent = `AI DEBT ${Math.max(0, -tokens)}`;
 
-    const scale = Math.min(window.innerWidth / 1440, window.innerHeight / 778);
-    const offsetX = (window.innerWidth - 1440 * scale) / 2;
-    const offsetY = (window.innerHeight - 778 * scale) / 2;
-    document.documentElement.style.setProperty("--battle-scale", String(scale));
-    document.documentElement.style.setProperty("--battle-offset-x", `${offsetX}px`);
-    document.documentElement.style.setProperty("--battle-offset-y", `${offsetY}px`);
     return resources;
 }

@@ -1,4 +1,4 @@
-import { skillEffects, wolfCombatRules, getEnemyActionProbabilities } from "./rules.js?v=36";
+import { skillEffects, wolfCombatRules, getEnemyActionProbabilities } from "./rules.js?v=39";
 
 function scoreSkill(
     state,
@@ -6,10 +6,7 @@ function scoreSkill(
     probabilities = getEnemyActionProbabilities(state),
 ) {
     const skill = skillEffects[skillIndex];
-    const expectedDamage = Math.min(state.enemy.health, skill.damage * skill.accuracy / 100);
-    const enemySurvivalChance = skill.damage >= state.enemy.health
-        ? 1 - skill.accuracy / 100
-        : 1;
+    const expectedDamage = Math.min(state.enemy.health, skill.damage);
     const expectedHealing = Math.min(
         state.player.maxHealth - state.player.health,
         skill.healthRecovery ?? 0,
@@ -20,12 +17,10 @@ function scoreSkill(
         skill.staminaRecovery ?? 0,
     );
     const staminaAfterAction = staminaAfterCost + expectedStaminaGain;
-    const expectedWolfDamage = wolfCombatRules.baseAccuracy / 100 * (
-        (1 - wolfCombatRules.baseCriticalChance / 100) * wolfCombatRules.baseDamage
-        + wolfCombatRules.baseCriticalChance / 100 * wolfCombatRules.criticalDamage
-    );
+    const expectedWolfDamage = (1 - wolfCombatRules.baseCriticalChance / 100)
+        * wolfCombatRules.baseDamage
+        + wolfCombatRules.baseCriticalChance / 100 * wolfCombatRules.criticalDamage;
     const expectedIncomingDamage = probabilities.attack / 100
-        * enemySurvivalChance
         * expectedWolfDamage;
     const defendedIncomingDamage = skill.defense
         ? expectedIncomingDamage * (1 - wolfCombatRules.defenseDamageReduction)
