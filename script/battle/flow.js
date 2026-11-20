@@ -20,10 +20,58 @@ import { BATTLE_STARTING_TOKENS, consumeBattleToken, renderBattleTokens } from "
 import { getBattleEncounterKind } from "./encounter.js?v=2";
 
 export function createBattleFlow({ state, tokenState, ui, navigation, renderer, tutorial, scheduler }) {
+    const wolfBattleMusic = new Audio("./sounds/Forest%20Final%20Boss.mp3");
+    wolfBattleMusic.loop = true;
+    wolfBattleMusic.preload = "auto";
+    const tutorialBattleMusic = new Audio("./sounds/Forest%20Final%20Boss%20tutorial.mp3");
+    tutorialBattleMusic.loop = true;
+    tutorialBattleMusic.preload = "auto";
+    const battleSounds = {
+        hit: new Audio("./sounds/battle-hit.wav"),
+        heal: new Audio("./sounds/battle-heal.wav"),
+        block: new Audio("./sounds/battle-block.wav"),
+        roar: new Audio("./sounds/battle-roar.mp3"),
+    };
+    Object.values(battleSounds).forEach((sound) => { sound.preload = "auto"; });
+
+    function playBattleSound(name) {
+        const sound = battleSounds[name];
+        if (!sound) return;
+        sound.currentTime = 0;
+        sound.playbackRate = name === "roar" ? 1.15 : 1;
+        sound.play().catch(() => {});
+    }
+
+    function startRoarImpactFeedback() {
+        playBattleSound("roar");
+        const startedAt = performance.now();
+        state.enemyRoarAnimation = { startedAt, duration: 520 };
+        state.playerRoarHitUntil = startedAt + 520;
+        ui.flashRoarStaminaFeedback();
+    }
+
+    function updateBattleMusic() {
+        if (state.enemyKind === "mole" && tutorial.isBattleTutorialActive() && !state.ended) {
+            wolfBattleMusic.pause();
+            wolfBattleMusic.currentTime = 0;
+            tutorialBattleMusic.play().catch(() => {});
+        } else if (state.enemyKind === "wolf" && !state.ended) {
+            tutorialBattleMusic.pause();
+            tutorialBattleMusic.currentTime = 0;
+            wolfBattleMusic.play().catch(() => {});
+        } else {
+            wolfBattleMusic.pause();
+            wolfBattleMusic.currentTime = 0;
+            tutorialBattleMusic.pause();
+            tutorialBattleMusic.currentTime = 0;
+        }
+    }
+
     let tutorialDirectTurnPending = false;
     let tutorialRecommendationTurnPending = false;
     let tutorialAutoTurnPending = false;
     let tutorialAutoPaused = false;
+    let enemyActedBeforePlayer = false;
 
     function getEnemyName() {
         return state.enemyKind === "mole" ? "두더지" : "늑대";
@@ -46,7 +94,9 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         tutorialRecommendationTurnPending = false;
         tutorialAutoTurnPending = false;
         tutorialAutoPaused = false;
+        enemyActedBeforePlayer = false;
         if (state.enemyKind === "mole") tutorial.startBattleTutorial();
+        updateBattleMusic();
     }
 
     function spendToken(command) {
@@ -81,6 +131,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
     }
 
     function beginTurn() {
+        enemyActedBeforePlayer = false;
         state.recommendationRevealed = false;
         state.probabilityRevealed = false;
         state.activeHelpView = "prompt";
@@ -95,12 +146,13 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         };
         state.turnHistory.push(state.currentTurn);
         state.historyIndex = state.turnHistory.length - 1;
-        state.enemyActionProbabilities = getEnemyActionProbabilities(state);
-        state.plannedEnemyAction = chooseEnemyAction(
-            state,
-            Math.random() * 100,
-            state.enemyActionProbabilities,
-        );
+        const tutorialOpening = state.enemyKind === "mole" && state.currentTurn.number === 1;
+        state.enemyActionProbabilities = tutorialOpening
+            ? { attack: 0, recover: 0, defend: 0, roar: 100 }
+            : getEnemyActionProbabilities(state);
+        state.plannedEnemyAction = tutorialOpening
+            ? "roar"
+            : chooseEnemyAction(state, Math.random() * 100, state.enemyActionProbabilities);
         state.currentRecommendation = getTurnRecommendation(
             state,
             tokenState.tokens,
@@ -118,6 +170,55 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         if (state.autoBattleEnabled && !tutorialAutoPaused) scheduler.schedule(runAutoBattleTurn, 120);
     }
 
+    function resolvePlannedRoarBeforePlayer(continuePlayerAction) {
+        if (state.plannedEnemyAction !== "roar") {
+            continuePlayerAction();
+            return;
+        }
+
+        state.plannedEnemyAction = null;
+        enemyActedBeforePlayer = true;
+        const drainedStamina = roarAtPlayer(state);
+        startRoarImpactFeedback();
+        recordTurnField("enemyAction", "포효");
+        recordTurnField("outcome", `${getEnemyName()}의 포효! 플레이어 스태미나 ${drainedStamina} 감소.`);
+        ui.showMenuMessage(`${getEnemyName()}의 포효! 스태미나 ${drainedStamina} 감소.`);
+        ui.updateStatusBars(state);
+
+        scheduler.schedule(() => {
+            if (state.enemyKind === "mole" && state.currentTurn?.number === 1
+                && tutorial.isBattleTutorialActive()) {
+                tutorial.advanceBattleTutorial("roarLesson", continuePlayerAction);
+                return;
+            }
+            continuePlayerAction();
+        }, 520);
+    }
+
+    function finishPlayerAction() {
+        if (state.enemy.health <= 0) {
+            finishBattle(`${getEnemyName()}를 물리쳤다!`);
+            return;
+        }
+        if (!enemyActedBeforePlayer) {
+            startEnemyTurn();
+            return;
+        }
+
+        enemyActedBeforePlayer = false;
+        showTurnRecommendation();
+        ui.setControlsLocked(state, false);
+        ui.followRecommendationButton.focus();
+        if (tutorialDirectTurnPending) {
+            tutorialDirectTurnPending = false;
+            tutorial.advanceBattleTutorial("automatic");
+        }
+        if (tutorialRecommendationTurnPending) {
+            tutorialRecommendationTurnPending = false;
+            tutorial.advanceBattleTutorial("choose");
+        }
+    }
+
     function finishBattle(message) {
         if (state.ended) return;
         if (state.currentTurn && !state.currentTurn.enemyAction) {
@@ -127,6 +228,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         state.player.defending = false;
         state.enemy.defending = false;
         state.ended = true;
+        updateBattleMusic();
         tutorialAutoTurnPending = false;
         tutorialAutoPaused = false;
         if (state.enemyKind === "mole" && state.enemy.health <= 0) {
@@ -151,6 +253,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         state.player.defending = false;
         state.enemy.defending = false;
         state.ended = true;
+        updateBattleMusic();
         state.autoBattleEnabled = false;
         tutorialAutoTurnPending = false;
         tutorialAutoPaused = false;
@@ -231,11 +334,12 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
 
         if (action === "roar") {
             const drainedStamina = roarAtPlayer(state);
+            startRoarImpactFeedback();
             recordTurnField("enemyAction", "포효");
             recordTurnField("outcome", `${getEnemyName()}의 포효! 플레이어 스태미나 ${drainedStamina} 감소.`);
             ui.showMenuMessage(`${getEnemyName()}의 포효! 스태미나 ${drainedStamina} 감소.`);
             ui.updateStatusBars(state);
-            scheduler.schedule(endEnemyTurn, 620);
+            scheduler.schedule(endEnemyTurn, 520);
             return;
         }
 
@@ -247,8 +351,12 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
             createEnemyAttack(state, performance.now());
             scheduler.schedule(() => {
                 const previousHealth = state.player.health;
+                const wasDefending = state.player.defending;
                 const message = applyEnemyAttackImpact(state);
                 if (message) {
+                    if (state.player.health < previousHealth) {
+                        playBattleSound(wasDefending ? "block" : "hit");
+                    }
                     recordTurnDamage("playerDamageReceived", previousHealth - state.player.health);
                     recordTurnField("outcome", message);
                     ui.showMenuMessage(message);
@@ -268,7 +376,12 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         ui.setControlsLocked(state, true);
 
         const resolve = () => {
+            const enemyWasDefending = state.enemy.defending;
             const result = applyPlayerSkill(state, skillIndex, performance.now());
+            if (result.damage > 0) {
+                playBattleSound(enemyWasDefending ? "block" : "hit");
+            }
+            if (result.kind === "recovery") playBattleSound("heal");
             recordTurnDamage("enemyDamageReceived", result.damage ?? 0);
             recordTurnField("outcome", result.message);
             ui.updateStatusBars(state);
@@ -279,28 +392,30 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
                     () => ui.showMenuMessage(result.message),
                     ui.STAMINA_ERROR_FEEDBACK_MS,
                 );
-                scheduler.schedule(startEnemyTurn, 800);
+                scheduler.schedule(finishPlayerAction, 800);
                 return;
             }
 
             ui.showMenuMessage(result.message);
             if (result.kind === "attack") {
                 scheduler.schedule(
-                    startEnemyTurn,
+                    finishPlayerAction,
                     (result.skill.name === "일반 공격" ? 170 : 430) + 500,
                 );
             } else if (result.kind === "recovery") {
-                scheduler.schedule(startEnemyTurn, 1020);
+                scheduler.schedule(finishPlayerAction, 1020);
             } else if (result.kind === "defense") {
-                scheduler.schedule(startEnemyTurn, 520);
+                scheduler.schedule(finishPlayerAction, 520);
             }
         };
 
-        if (skill.damage > 0 && state.player.stamina >= skill.staminaCost) {
-            scheduler.schedule(resolve, 300);
-        } else {
-            resolve();
-        }
+        resolvePlannedRoarBeforePlayer(() => {
+            if (skill.damage > 0 && state.player.stamina >= skill.staminaCost) {
+                scheduler.schedule(resolve, 300);
+            } else {
+                resolve();
+            }
+        });
     }
 
     function attemptEscape() {
@@ -308,16 +423,18 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         recordTurnField("playerChoice", "도망 시도");
         ui.fightSkillsDialog.hidden = true;
         ui.setControlsLocked(state, true);
-        ui.showMenuMessage("도망을 시도한다.");
-        scheduler.schedule(() => {
-            if (Math.random() < 0.8) {
-                recordTurnField("outcome", "도망에 실패했다.");
-                ui.showMenuMessage("도망치는데 실패했다...");
-                scheduler.schedule(startEnemyTurn, 500);
-                return;
-            }
-            finishBattle("무사히 도망쳤다!");
-        }, 1000);
+        resolvePlannedRoarBeforePlayer(() => {
+            ui.showMenuMessage("도망을 시도한다.");
+            scheduler.schedule(() => {
+                if (Math.random() < 0.8) {
+                    recordTurnField("outcome", "도망에 실패했다.");
+                    ui.showMenuMessage("도망치는데 실패했다...");
+                    scheduler.schedule(finishPlayerAction, 500);
+                    return;
+                }
+                finishBattle("무사히 도망쳤다!");
+            }, 1000);
+        });
     }
 
     function runAutoBattleTurn() {
@@ -377,9 +494,8 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         ui.fightSkillsDialog.hidden = true;
         ui.updateStatusBars(state);
         ui.enterBattleScreen();
-        beginTurn();
-        ui.followRecommendationButton.focus();
         beginTutorialIfNeeded();
+        showTurnRecommendation();
     }
 
     async function enterBattle() {
@@ -392,12 +508,17 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
             setEnemyEncounter(getBattleEncounterKind());
             resetBattleState(state);
             ui.updateStatusBars(state);
-            beginTurn();
             beginTutorialIfNeeded();
+            showTurnRecommendation();
         }
+        updateBattleMusic();
     }
 
     function exitBattle() {
+        wolfBattleMusic.pause();
+        wolfBattleMusic.currentTime = 0;
+        tutorialBattleMusic.pause();
+        tutorialBattleMusic.currentTime = 0;
         ui.exitBattleScreen();
     }
 

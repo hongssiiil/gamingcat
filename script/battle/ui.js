@@ -27,6 +27,7 @@ const battleHistoryChoice = document.getElementById("battle-history-choice");
 const battleHistoryResult = document.getElementById("battle-history-result");
 export const STAMINA_ERROR_FEEDBACK_MS = 420;
 let staminaFeedbackTimeout;
+let roarStaminaFeedbackTimeout;
 
 export function enterBattleScreen() {
     battleSection.classList.replace("screen", "screen-active");
@@ -168,6 +169,19 @@ export function flashInsufficientStamina() {
     staminaFeedbackTimeout = window.setTimeout(() => {
         staminaBar.classList.remove("is-insufficient-feedback");
     }, STAMINA_ERROR_FEEDBACK_MS + 40);
+}
+
+export function flashRoarStaminaFeedback() {
+    const staminaBar = playerStatus.querySelector(".stamina-bar");
+    if (!staminaBar) return;
+
+    window.clearTimeout(roarStaminaFeedbackTimeout);
+    staminaBar.classList.remove("is-roar-feedback");
+    void staminaBar.offsetWidth;
+    staminaBar.classList.add("is-roar-feedback");
+    roarStaminaFeedbackTimeout = window.setTimeout(() => {
+        staminaBar.classList.remove("is-roar-feedback");
+    }, 560);
 }
 
 export function openBattleLossDialog() {

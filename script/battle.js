@@ -6,10 +6,10 @@ import {
     advanceBattleTutorial,
     isBattleTutorialActive,
     startBattleTutorial,
-} from "./battle/tutorial.js?v=7";
-import { setBattleBackground, setBattleEnemy, startBattleRenderer } from "./battle/renderer.js?v=44";
-import * as ui from "./battle/ui.js?v=41";
-import { createBattleFlow } from "./battle/flow.js?v=7";
+} from "./battle/tutorial.js?v=11";
+import { setBattleBackground, setBattleEnemy, startBattleRenderer } from "./battle/renderer.js?v=47";
+import * as ui from "./battle/ui.js?v=43";
+import { createBattleFlow } from "./battle/flow.js?v=19";
 import { createBattleController } from "./battle/controller.js?v=2";
 
 const state = createBattleState();

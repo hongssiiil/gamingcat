@@ -3,7 +3,7 @@ import {
     enemyStatus,
     menuSection,
     playerStatus,
-} from "./ui.js?v=41";
+} from "./ui.js?v=43";
 
 const baseWidth = 1440;
 const baseHeight = 778;
@@ -150,7 +150,27 @@ function drawEnemyAttack(animation) {
     }
 }
 
-function drawPlayerAttack(animation) {
+function drawEnemyRoar(state) {
+    const animation = state.enemyRoarAnimation;
+    if (!animation) return;
+
+    const elapsed = performance.now() - animation.startedAt;
+    if (elapsed >= animation.duration) {
+        state.enemyRoarAnimation = null;
+        enemySprite.offsetX = 0;
+        enemySprite.offsetY = 0;
+        enemySprite.scaleMultiplier = 1;
+        return;
+    }
+
+    const intensity = 1 - elapsed / animation.duration;
+    enemySprite.offsetX = Math.sin(elapsed * 0.09) * 9 * intensity;
+    enemySprite.offsetY = Math.sin(elapsed * 0.15) * 3 * intensity;
+    enemySprite.scaleMultiplier = 1 + Math.abs(Math.sin(elapsed * 0.07)) * 0.035 * intensity;
+}
+
+function drawPlayerAttack(state) {
+    const animation = state.playerAttackAnimation;
     if (!animation) return;
 
     const progress = Math.min(1, (performance.now() - animation.startedAt) / animation.duration);
@@ -203,12 +223,14 @@ function drawPlayerAttack(animation) {
         enemySprite.scaleMultiplier = 1;
         enemySprite.flash = false;
         enemySprite.shake = 0;
+        state.playerAttackAnimation = null;
     }
 }
 
 function drawEntities(state) {
     drawEnemyAttack(state.enemyAttackAnimation);
-    drawPlayerAttack(state.playerAttackAnimation);
+    drawPlayerAttack(state);
+    drawEnemyRoar(state);
 
     if (enemySprite.flash && enemySprite.image.complete && enemySprite.image.naturalWidth) {
         context.save();
@@ -220,9 +242,16 @@ function drawEntities(state) {
     }
 
     if (!state.playerAttackAnimation) {
-        playerSprite.offsetX = 0;
+        const hitTimeLeft = state.playerRoarHitUntil - performance.now();
+        const intensity = Math.max(0, Math.min(1, hitTimeLeft / 520));
+        playerSprite.offsetX = Math.sin(performance.now() * 0.09) * 8 * intensity;
+        playerSprite.offsetY = Math.sin(performance.now() * 0.15) * 3 * intensity;
     }
     drawSprite(playerSprite);
+    if (!state.playerAttackAnimation && state.playerRoarHitUntil <= performance.now()) {
+        playerSprite.offsetX = 0;
+        playerSprite.offsetY = 0;
+    }
     drawSprite(catSprite);
 
     const playerHitTimeLeft = state.playerHitFlashUntil - performance.now();
