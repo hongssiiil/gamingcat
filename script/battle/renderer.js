@@ -1,10 +1,9 @@
 import {
     battleHistoryPanel,
-    enemyIntent,
     enemyStatus,
     menuSection,
     playerStatus,
-} from "./ui.js";
+} from "./ui.js?v=41";
 
 const baseWidth = 1440;
 const baseHeight = 778;
@@ -15,13 +14,16 @@ const context = canvas.getContext("2d");
 let battleBackground = loadImage("./images/battle/battle_bg.png");
 const battleBackgrounds = new Map();
 const playerImage = loadImage("./images/character/player/player_diagonal.png");
-const enemyImage = loadImage("./images/battle/wolf.png");
+const enemyImages = {
+    wolf: loadImage("./images/battle/wolf.png"),
+    mole: loadImage("./images/battle/mole.png"),
+};
 const catImage = loadImage("./images/character/cat/cat_diagonal.png");
 
 const enemySprite = {
-    image: enemyImage,
+    image: enemyImages.wolf,
     x: baseWidth * 0.57,
-    y: baseHeight * 0.17,
+    y: baseHeight * 0.22,
     scale: 0.24,
     offsetX: 0,
     offsetY: 0,
@@ -50,8 +52,7 @@ const catSprite = {
 
 let windowWidth;
 let windowHeight;
-let scaleWidth;
-let scaleHeight;
+let battleScale;
 let offsetX;
 let offsetY;
 
@@ -61,7 +62,7 @@ function loadImage(source) {
     return image;
 }
 
-export function preloadBattleBackground(source) {
+function preloadBattleBackground(source) {
     if (battleBackgrounds.has(source)) return battleBackgrounds.get(source);
     const image = loadImage(source);
     const loaded = image.decode().then(() => image);
@@ -72,6 +73,12 @@ export function preloadBattleBackground(source) {
 export async function setBattleBackground(source) {
     battleBackground = await preloadBattleBackground(source);
     drawBackground();
+}
+
+export function setBattleEnemy(kind) {
+    enemySprite.image = enemyImages[kind] ?? enemyImages.wolf;
+    enemySprite.scale = kind === "mole" ? 0.16 : 0.24;
+    enemySprite.y = baseHeight * (kind === "mole" ? 0.29 : 0.22);
 }
 
 function drawSprite(sprite) {
@@ -90,33 +97,32 @@ function resizeCanvas() {
     windowWidth = window.innerWidth;
     windowHeight = window.innerHeight;
     const fitScale = Math.min(windowWidth / baseWidth, windowHeight / baseHeight);
-    scaleWidth = fitScale;
-    scaleHeight = fitScale;
+    battleScale = fitScale;
     offsetX = (windowWidth - baseWidth * fitScale) / 2;
     offsetY = (windowHeight - baseHeight * fitScale) / 2;
 
     menuSection.style.left = `${offsetX}px`;
-    menuSection.style.top = `${offsetY + 544 * fitScale}px`;
+    const menuHeight = 200;
+    menuSection.style.top = `${offsetY + (baseHeight - menuHeight) * fitScale}px`;
     menuSection.style.width = `${baseWidth * fitScale}px`;
-    menuSection.style.height = `${234 * fitScale}px`;
+    menuSection.style.height = `${menuHeight * fitScale}px`;
 
-    enemyIntent.style.left = `${offsetX + 520 * fitScale}px`;
-    enemyIntent.style.top = `${offsetY + 28 * fitScale}px`;
-    enemyIntent.style.width = `${400 * fitScale}px`;
-    battleHistoryPanel.style.left = `${offsetX + 1106 * fitScale}px`;
+    battleHistoryPanel.style.left = `${offsetX + 1128 * fitScale}px`;
     battleHistoryPanel.style.top = `${offsetY + 184 * fitScale}px`;
     battleHistoryPanel.style.width = `${310 * fitScale}px`;
     battleHistoryPanel.style.height = `${350 * fitScale}px`;
 
-    playerStatus.style.left = `${offsetX + 60 * fitScale}px`;
-    playerStatus.style.top = `${offsetY + 28 * fitScale}px`;
+    playerStatus.style.left = `${offsetX + 220 * fitScale}px`;
+    playerStatus.style.top = `${offsetY + 16 * fitScale}px`;
     playerStatus.style.width = `${400 * fitScale}px`;
     playerStatus.style.height = `${140 * fitScale}px`;
-    enemyStatus.style.left = `${offsetX + 988 * fitScale}px`;
-    enemyStatus.style.top = `${offsetY + 28 * fitScale}px`;
+    enemyStatus.style.left = `${offsetX + 820 * fitScale}px`;
+    enemyStatus.style.top = `${offsetY + 16 * fitScale}px`;
     enemyStatus.style.width = `${400 * fitScale}px`;
     enemyStatus.style.height = `${140 * fitScale}px`;
     document.documentElement.style.setProperty("--battle-scale", fitScale);
+    document.documentElement.style.setProperty("--battle-offset-x", `${offsetX}px`);
+    document.documentElement.style.setProperty("--battle-offset-y", `${offsetY}px`);
 
     canvas.style.width = `${windowWidth}px`;
     canvas.style.height = `${windowHeight}px`;
@@ -160,12 +166,7 @@ function drawPlayerAttack(animation) {
     enemySprite.flash = false;
     enemySprite.shake = 0;
 
-    if (!animation.hit) {
-        const dodge = Math.sin(effectProgress * Math.PI);
-        enemySprite.offsetX = -100 * dodge;
-        enemySprite.offsetY = -12 * dodge;
-        enemySprite.scaleMultiplier = 1 - 0.04 * dodge;
-    } else if (impactAmount > 0) {
+    if (impactAmount > 0) {
         const hitPulse = Math.max(0, 1 - effectElapsed / (animation.heavy ? 190 : 135));
         enemySprite.flash = true;
         enemySprite.shake = (animation.heavy ? 20 : 8) * hitPulse;
@@ -209,7 +210,7 @@ function drawEntities(state) {
     drawEnemyAttack(state.enemyAttackAnimation);
     drawPlayerAttack(state.playerAttackAnimation);
 
-    if (enemySprite.flash && enemyImage.complete && enemyImage.naturalWidth) {
+    if (enemySprite.flash && enemySprite.image.complete && enemySprite.image.naturalWidth) {
         context.save();
         context.filter = "sepia(1) saturate(8) hue-rotate(320deg) brightness(1.15)";
         drawSprite(enemySprite);
@@ -218,10 +219,7 @@ function drawEntities(state) {
         drawSprite(enemySprite);
     }
 
-    if (state.enemyAttackAnimation && !state.enemyAttackAnimation.hit) {
-        const dodgeProgress = Math.min(1, (performance.now() - state.enemyAttackAnimation.startedAt) / 170);
-        playerSprite.offsetX = -80 * Math.sin(dodgeProgress * Math.PI);
-    } else if (!state.playerAttackAnimation) {
+    if (!state.playerAttackAnimation) {
         playerSprite.offsetX = 0;
     }
     drawSprite(playerSprite);
@@ -266,7 +264,7 @@ function draw(state) {
     context.clearRect(0, 0, windowWidth, windowHeight);
     context.fillStyle = "#000";
     context.fillRect(0, 0, windowWidth, windowHeight);
-    context.setTransform(dpr * scaleWidth, 0, 0, dpr * scaleHeight, dpr * offsetX, dpr * offsetY);
+    context.setTransform(dpr * battleScale, 0, 0, dpr * battleScale, dpr * offsetX, dpr * offsetY);
     drawBackground();
     drawEntities(state);
     window.requestAnimationFrame(() => draw(state));
