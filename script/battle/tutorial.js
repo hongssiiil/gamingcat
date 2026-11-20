@@ -26,8 +26,13 @@ const tutorialSteps = {
     },
     recommendationWait: {
         selector: null,
-        title: "추천한 행동을 실행 중이야",
-        text: "내가 추천한 행동과 적의 행동이 끝나면 직접 행동을 고르는 안내로 넘어갈게.",
+        title: "",
+        text: "",
+    },
+    roarLesson: {
+        selector: null,
+        title: "포효",
+        text: "방금 상대가 한 행동은 포효야. 포효는 우리 행동보다 먼저 발동되고 포효에 맞으면 스태미나가 20 감소해.",
     },
     choose: {
         selector: "#choose-action-button",
@@ -51,8 +56,8 @@ const tutorialSteps = {
     },
     automaticWait: {
         selector: null,
-        title: "자동전투 한 턴 진행 중",
-        text: "내가 대응 행동을 실행하고 있어. 이번 턴이 끝나면 자동전투를 멈추고 다음 안내를 보여줄게.",
+        title: "",
+        text: "",
     },
     automaticStop: {
         selector: "#battle-auto-button",
@@ -62,15 +67,20 @@ const tutorialSteps = {
     tokens: {
         selector: ".battle-token-resources",
         title: "토큰을 확인해 보자",
-        text: "토큰은 내 도움을 받을 때 사용해. 적 행동 확률은 1개, 추천 확인은 기본 2개지만 확률을 먼저 보면 1개, 자동전투는 턴마다 2개야. 토큰이 모자라도 전투는 계속할 수 있어. 토큰 표시를 눌러 안내를 마치자!",
+        text: "토큰은 내 도움을 받을 때 사용해. 적 행동 확률은 1개, 추천 확인은 기본 2개지만 확률을 먼저 보면 1개, 자동전투는 턴마다 2개야. 토큰이 모자라도 전투는 계속할 수 있어. 이제 두더지를 물리쳐보자!",
     },
 };
 
 let active = false;
 let currentStep = null;
-let onComplete = () => {};
+let onComplete = () => { };
+let onRoarLessonContinue = () => { };
 let card;
 let resizeListener;
+let waitTimer;
+let queuedStep = null;
+const WAIT_STEP_DELAY = 4500;
+const waitSteps = new Set(["directWait"]);
 
 function getTarget() {
     const selector = tutorialSteps[currentStep]?.selector;
@@ -80,6 +90,10 @@ function getTarget() {
 function render() {
     if (!active) return;
     const step = tutorialSteps[currentStep];
+    if (currentStep === "recommendationWait" || currentStep === "automaticWait") {
+        card.hidden = true;
+        return;
+    }
     const target = getTarget();
     const isSkillSelection = currentStep === "skill";
     target?.classList.toggle("battle-tutorial-skill-step", isSkillSelection);
@@ -122,7 +136,10 @@ function render() {
 }
 
 function complete() {
+    window.clearTimeout(waitTimer);
+    queuedStep = null;
     active = false;
+    onRoarLessonContinue = () => { };
     card.hidden = true;
     document.querySelectorAll(".battle-tutorial-target").forEach((element) => {
         element.classList.remove("battle-tutorial-target");
@@ -140,7 +157,17 @@ function complete() {
     onComplete();
 }
 
-function setStep(step) {
+function setStep(step, force = false) {
+    if (!force && waitSteps.has(currentStep) && step !== currentStep) {
+        queuedStep = step;
+        window.clearTimeout(waitTimer);
+        waitTimer = window.setTimeout(() => {
+            const nextStep = queuedStep;
+            queuedStep = null;
+            setStep(nextStep, true);
+        }, WAIT_STEP_DELAY);
+        return;
+    }
     currentStep = step;
     if (step === "done") {
         complete();
@@ -148,6 +175,35 @@ function setStep(step) {
     }
     card.hidden = false;
     render();
+}
+
+function activateCurrentStep() {
+    if (!active) return;
+    if (waitSteps.has(currentStep)) {
+        if (queuedStep) {
+            const nextStep = queuedStep;
+            queuedStep = null;
+            window.clearTimeout(waitTimer);
+            setStep(nextStep, true);
+        }
+        return;
+    }
+    if (currentStep === "intro") {
+        setStep("status");
+        return;
+    }
+    if (currentStep === "roarLesson") {
+        const continuePlayerAction = onRoarLessonContinue;
+        onRoarLessonContinue = () => { };
+        continuePlayerAction();
+        return;
+    }
+    const target = getTarget();
+    if (currentStep === "skill") {
+        target?.querySelector(".skill-option:not(:disabled)")?.click();
+        return;
+    }
+    target?.click();
 }
 
 function handleTutorialClick(event) {
@@ -158,12 +214,19 @@ function handleTutorialClick(event) {
         setStep("status");
         return;
     }
+    if (waitSteps.has(currentStep)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        activateCurrentStep();
+        return;
+    }
     const target = getTarget();
     const isAllowedSkill = currentStep === "skill" && event.target.closest?.(".skill-option");
     const isHighlightedTarget = event.target.closest?.(".battle-tutorial-target");
     if (!target || (!isHighlightedTarget && !isAllowedSkill)) {
         event.preventDefault();
         event.stopImmediatePropagation();
+        activateCurrentStep();
         return;
     }
 
@@ -181,9 +244,10 @@ function handleTutorialClick(event) {
 
 function handleTutorialKeydown(event) {
     if (!active) return;
-    if (currentStep === "intro" && (event.key === "Enter" || event.key === " ")) {
+    if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        setStep("status");
+        event.stopImmediatePropagation();
+        activateCurrentStep();
         return;
     }
     const target = getTarget();
@@ -206,24 +270,13 @@ function handleTutorialKeydown(event) {
         target?.focus({ preventScroll: true });
         return;
     }
-    if (event.key === "Enter" || event.key === " ") {
-        const focusIsAllowed = target === document.activeElement;
-        if (!focusIsAllowed) {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            return;
-        }
-        if (currentStep === "status" || currentStep === "tokens") {
-            event.preventDefault();
-            target.click();
-        }
-        return;
-    }
     event.preventDefault();
     event.stopImmediatePropagation();
 }
 
-export function startBattleTutorial(onFinish = () => {}) {
+export function startBattleTutorial(onFinish = () => { }) {
+    window.clearTimeout(waitTimer);
+    queuedStep = null;
     if (active) {
         document.removeEventListener("click", handleTutorialClick, true);
         document.removeEventListener("keydown", handleTutorialKeydown, true);
@@ -231,6 +284,7 @@ export function startBattleTutorial(onFinish = () => {}) {
     }
     card = document.querySelector("#battle-tutorial-card");
     onComplete = onFinish;
+    onRoarLessonContinue = () => { };
     active = true;
     resizeListener = render;
     document.addEventListener("click", handleTutorialClick, true);
@@ -239,8 +293,13 @@ export function startBattleTutorial(onFinish = () => {}) {
     setStep("intro");
 }
 
-export function advanceBattleTutorial(step) {
-    if (active) setStep(step);
+export function advanceBattleTutorial(step, onContinue = () => { }) {
+    if (!active) {
+        onContinue();
+        return;
+    }
+    if (step === "roarLesson") onRoarLessonContinue = onContinue;
+    setStep(step);
 }
 
 export function isBattleTutorialActive() {

@@ -24,7 +24,9 @@ export function createBattleState() {
         playerAttackAnimation: null,
         playerRestFlashUntil: 0,
         enemyAttackAnimation: null,
+        enemyRoarAnimation: null,
         playerHitFlashUntil: 0,
+        playerRoarHitUntil: 0,
         controlsLocked: false,
         ended: false,
         started: false,
@@ -52,7 +54,9 @@ export function resetBattleState(state) {
     state.playerAttackAnimation = null;
     state.playerRestFlashUntil = 0;
     state.enemyAttackAnimation = null;
+    state.enemyRoarAnimation = null;
     state.playerHitFlashUntil = 0;
+    state.playerRoarHitUntil = 0;
     state.controlsLocked = false;
     state.ended = false;
     state.started = true;

@@ -1,3 +1,11 @@
+@font-face {
+    font-family: "DungGeunMo";
+    src: url("../fonts/DungGeunMo.ttf") format("truetype");
+    font-style: normal;
+    font-weight: normal;
+    font-display: swap;
+}
+
 body:not(.game-started) {
     min-height: 100vh;
     padding: 0;
@@ -221,3 +229,75 @@ body:not(.game-started) #Start {
         transition: none;
     }
 }
+
+/* Match the Battle screen's pixel-art visual language. */
+.start-screen {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    color: #f4e3b1;
+    background: linear-gradient(180deg, rgb(15 31 24 / 76%), rgb(15 31 24 / 93%)), url("../images/backgrounds/home.png") center / cover;
+    font-family: "DungGeunMo", monospace;
+}
+
+.start-screen::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 40%, transparent 20%, rgb(9 18 14 / 45%) 100%),
+        repeating-linear-gradient(0deg, transparent 0 5px, rgb(255 255 255 / 2%) 5px 6px);
+    content: "";
+    pointer-events: none;
+}
+
+.start-screen::after {
+    position: absolute;
+    z-index: -1;
+    right: 8%;
+    bottom: 14%;
+    width: 8px;
+    height: 8px;
+    background: #e6bf69;
+    box-shadow: -32px -32px #e6bf69, 32px -64px #a9c887, 72px 8px #a9c887, -64px 48px #e6bf69;
+    content: "";
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.start-brand-mark {
+    border: 3px solid #a9c887;
+    border-radius: 0;
+    color: #f4e3b1;
+    background: #263c2d;
+    box-shadow: 4px 4px 0 #101a14;
+}
+
+.start-account-note,
+.start-footer,
+.start-footnote { color: #c1bd98; }
+.start-message-label { color: #e6bf69; }
+.start-welcome h1 {
+    font-weight: 400;
+    line-height: 1.45;
+    text-shadow: 3px 3px 0 #18251c;
+}
+.start-description { color: #d1d0b8; }
+
+.start-composer {
+    border: 6px solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / 6px / 0 stretch;
+    background: #263c2d;
+    box-shadow: 0 8px 0 rgb(8 17 12 / 55%);
+}
+
+.start-composer:focus-within { outline: 3px solid #e6bf69; }
+.start-composer input { color: #f4e3b1; }
+.start-composer input::placeholder { color: #b9bd9e; }
+.start-composer button {
+    border: 3px solid #f4e3b1;
+    border-radius: 0;
+    color: #17251d;
+    background: #e6bf69;
+    box-shadow: 3px 3px 0 #101a14;
+}
+.start-composer button:hover { background: #f4d58c; }
