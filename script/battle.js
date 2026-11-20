@@ -16,9 +16,11 @@ import {
     getDisplayedEnemyActionProbabilities,
     getTurnRecommendation,
 } from "./battle/recommendations.js?v=35";
-import { createBattleState, resetBattleState } from "./battle/state.js?v=35";
-import { BATTLE_STARTING_TOKENS, consumeBattleToken, renderBattleTokens } from "./battle/token.js?v=35";
-import { setBattleBackground, startBattleRenderer } from "./battle/renderer.js?v=40";
+import { createBattleState, MOLE_INITIAL_HEALTH, ENEMY_INITIAL_HEALTH, resetBattleState } from "./battle/state.js?v=37";
+import { BATTLE_STARTING_TOKENS, consumeBattleToken, renderBattleTokens } from "./battle/token.js?v=36";
+import { getBattleEncounterKind, markBattleTutorialComplete } from "./battle/encounter.js?v=1";
+import { advanceBattleTutorial, isBattleTutorialActive, startBattleTutorial } from "./battle/tutorial.js?v=3";
+import { setBattleBackground, setBattleEnemy, startBattleRenderer } from "./battle/renderer.js?v=42";
 import {
     actionChoiceCancelButton,
     alternateRunButton,
@@ -37,6 +39,8 @@ import {
     fightSkillButtons,
     fightSkillsDialog,
     followRecommendationButton,
+    enemyName,
+    enemyPortrait,
     openBattleLossDialog,
     playerStatusName,
     renderBattleHistory,
@@ -46,11 +50,35 @@ import {
     STAMINA_ERROR_FEEDBACK_MS,
     updateStatusBars,
     updateBattleActionButtons,
-} from "./battle/ui.js?v=39";
+} from "./battle/ui.js?v=40";
 
 const battleState = createBattleState();
 const battleTokenState = { tokens: BATTLE_STARTING_TOKENS, events: [] };
 const scheduledActions = new Set();
+let tutorialDirectTurnPending = false;
+let tutorialAutoTurnPending = false;
+
+function getEnemyName() {
+    return battleState.enemyKind === "mole" ? "두더지" : "늑대";
+}
+
+function setEnemyEncounter(kind) {
+    battleState.enemyKind = kind;
+    battleState.enemy.maxHealth = kind === "mole" ? MOLE_INITIAL_HEALTH : ENEMY_INITIAL_HEALTH;
+    battleState.enemy.health = battleState.enemy.maxHealth;
+    enemyName.textContent = getEnemyName();
+    enemyPortrait.src = kind === "mole"
+        ? "./images/battle/mole.png"
+        : "./images/character/wolf_icon.png";
+    enemyPortrait.alt = `${getEnemyName()} 아이콘`;
+    setBattleEnemy(kind);
+}
+
+function beginTutorialIfNeeded() {
+    tutorialDirectTurnPending = false;
+    tutorialAutoTurnPending = false;
+    if (battleState.enemyKind === "mole") startBattleTutorial();
+}
 
 function scheduleBattleAction(callback, delay) {
     const timeoutId = window.setTimeout(() => {
@@ -67,9 +95,17 @@ function cancelScheduledActions() {
 }
 
 function spendBattleToken(command) {
-    const spent = consumeBattleToken(battleTokenState, command);
+    const spent = consumeBattleToken(battleTokenState, command, {
+        probabilityAlreadyViewed: command === "recommendation" && battleState.probabilityRevealed,
+    });
     if (spent) renderBattleTokens(battleTokenState.tokens);
     return spent;
+}
+
+function refillBattleTokens() {
+    battleTokenState.tokens = BATTLE_STARTING_TOKENS;
+    battleTokenState.events = [];
+    renderBattleTokens(battleTokenState.tokens);
 }
 
 function recordTurnField(field, value) {
@@ -142,6 +178,9 @@ function finishBattle(message) {
     battleState.player.defending = false;
     battleState.enemy.defending = false;
     battleState.ended = true;
+    if (battleState.enemyKind === "mole" && battleState.enemy.health <= 0) {
+        markBattleTutorialComplete();
+    }
     battleState.autoBattleEnabled = false;
     setControlsLocked(battleState, true);
     fightSkillsDialog.hidden = true;
@@ -178,14 +217,27 @@ function endEnemyTurn() {
         showBattleLoss();
         return;
     }
+    if (tutorialAutoTurnPending) {
+        tutorialAutoTurnPending = false;
+        battleState.autoBattleEnabled = false;
+        showTurnRecommendation();
+        setControlsLocked(battleState, false);
+        followRecommendationButton.focus();
+        advanceBattleTutorial("tokens");
+        return;
+    }
     showTurnRecommendation();
     setControlsLocked(battleState, false);
     followRecommendationButton.focus();
+    if (tutorialDirectTurnPending) {
+        tutorialDirectTurnPending = false;
+        advanceBattleTutorial("automatic");
+    }
 }
 
 function startEnemyTurn() {
     if (battleState.enemy.health <= 0) {
-        finishBattle("늑대를 물리쳤다!");
+        finishBattle(`${getEnemyName()}를 물리쳤다!`);
         return;
     }
     if (battleState.player.health <= 0) {
@@ -202,8 +254,8 @@ function startEnemyTurn() {
     if (action === "recover") {
         recoverEnemyStamina(battleState);
         recordTurnField("enemyAction", "숨을 고름");
-        recordTurnField("outcome", "늑대가 숨을 고르며 스태미나를 회복했다.");
-        showMenuMessage("늑대가 숨을 고르며 스태미나를 회복했다.");
+        recordTurnField("outcome", `${getEnemyName()}가 숨을 고르며 스태미나를 회복했다.`);
+        showMenuMessage(`${getEnemyName()}가 숨을 고르며 스태미나를 회복했다.`);
         updateStatusBars(battleState);
         scheduleBattleAction(endEnemyTurn, 520);
         return;
@@ -212,8 +264,8 @@ function startEnemyTurn() {
     if (action === "defend") {
         defendEnemy(battleState);
         recordTurnField("enemyAction", "방어");
-        recordTurnField("outcome", "늑대가 자세를 낮춰 다음 공격의 피해를 줄일 준비를 했다.");
-        showMenuMessage("늑대가 방어 자세를 취했다. 다음 공격의 피해가 줄어든다.");
+        recordTurnField("outcome", `${getEnemyName()}가 자세를 낮춰 다음 공격의 피해를 줄일 준비를 했다.`);
+        showMenuMessage(`${getEnemyName()}가 방어 자세를 취했다. 다음 공격의 피해가 줄어든다.`);
         updateStatusBars(battleState);
         scheduleBattleAction(endEnemyTurn, 520);
         return;
@@ -222,8 +274,8 @@ function startEnemyTurn() {
     if (action === "roar") {
         const drainedStamina = roarAtPlayer(battleState);
         recordTurnField("enemyAction", "포효");
-        recordTurnField("outcome", `늑대의 포효! 플레이어 스태미나 ${drainedStamina} 감소.`);
-        showMenuMessage(`늑대의 포효! 스태미나 ${drainedStamina} 감소.`);
+        recordTurnField("outcome", `${getEnemyName()}의 포효! 플레이어 스태미나 ${drainedStamina} 감소.`);
+        showMenuMessage(`${getEnemyName()}의 포효! 스태미나 ${drainedStamina} 감소.`);
         updateStatusBars(battleState);
         scheduleBattleAction(endEnemyTurn, 620);
         return;
@@ -231,7 +283,7 @@ function startEnemyTurn() {
 
     spendEnemyStamina(battleState);
     recordTurnField("enemyAction", "공격");
-    showMenuMessage("늑대의 공격!");
+    showMenuMessage(`${getEnemyName()}의 공격!`);
     updateStatusBars(battleState);
     scheduleBattleAction(() => {
         createEnemyAttack(battleState, performance.now());
@@ -346,7 +398,7 @@ function revealEnemyProbabilities() {
         );
     }
     battleState.activeHelpView = "probability";
-    showMenuMessage("늑대의 다음 행동 확률");
+    showMenuMessage(`${getEnemyName()}의 다음 행동 확률`);
     showEnemyProbability(battleState.displayedEnemyActionProbabilities);
     updateBattleActionButtons(battleState);
     probabilityButton.focus();
@@ -362,8 +414,9 @@ function toggleAutoBattle() {
     }
     if (battleState.controlsLocked) return;
     battleState.autoBattleEnabled = true;
+    if (isBattleTutorialActive()) tutorialAutoTurnPending = true;
     setControlsLocked(battleState, false);
-    showMenuMessage("자동전투를 시작할게. 매 턴 1토큰을 사용할게.");
+    showMenuMessage("자동전투를 시작할게. 매 턴 2토큰을 사용할게.");
     scheduleBattleAction(runAutoBattleTurn, 120);
 }
 
@@ -395,24 +448,30 @@ function openActionChoices() {
 function resetBattle() {
     cancelScheduledActions();
     closeBattleLossDialog();
+    refillBattleTokens();
     resetBattleState(battleState);
+    setEnemyEncounter(battleState.enemyKind);
     setControlsLocked(battleState, false);
     fightSkillsDialog.hidden = true;
     updateStatusBars(battleState);
     enterBattleScreen();
     showOpeningRecommendation();
     followRecommendationButton.focus();
+    beginTutorialIfNeeded();
 }
 
 export async function enterBattle() {
     await setBattleBackground(getCurrentRoadBattleBackground());
     playerStatusName.textContent = "나";
     enterBattleScreen();
-    renderBattleTokens(battleTokenState.tokens);
     followRecommendationButton.focus();
-    if (!battleState.started) {
-        battleState.started = true;
+    if (!battleState.started || battleState.ended) {
+        refillBattleTokens();
+        setEnemyEncounter(getBattleEncounterKind());
+        resetBattleState(battleState);
+        updateStatusBars(battleState);
         showOpeningRecommendation();
+        beginTutorialIfNeeded();
     }
 }
 
@@ -426,7 +485,12 @@ probabilityButton.addEventListener("click", revealEnemyProbabilities);
 autoBattleButton.addEventListener("click", toggleAutoBattle);
 
 fightSkillButtons.forEach((button, index) => {
-    button.addEventListener("click", () => resolvePlayerSkill(index));
+    button.addEventListener("click", () => {
+        if (isBattleTutorialActive() && !battleState.autoBattleEnabled) {
+            tutorialDirectTurnPending = true;
+        }
+        resolvePlayerSkill(index);
+    });
 });
 
 alternateRunButton.addEventListener("click", attemptEscape);
@@ -471,7 +535,7 @@ document.addEventListener("keydown", (event) => {
         && (isActionMenuOpen || isMainActionFocused)
     ) {
         const choices = isActionMenuOpen
-            ? [...fightSkillButtons, alternateRunButton, actionChoiceCancelButton]
+            ? [...fightSkillButtons, ...(isBattleTutorialActive() ? [] : [alternateRunButton, actionChoiceCancelButton])]
                 .filter((button) => !button.disabled)
             : mainActions.filter((button) => !button.disabled);
         const focusedIndex = choices.indexOf(document.activeElement);

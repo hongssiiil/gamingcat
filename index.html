@@ -7,9 +7,9 @@
     <title>Gaming Cat</title>
     <link rel="stylesheet" href="style/common.css">
     <link rel="stylesheet" href="style/road.css">
-    <link rel="stylesheet" href="style/battle.css?v=33">
+    <link rel="stylesheet" href="style/battle.css?v=35">
     <link rel="stylesheet" href="start/start.css">
-    <script type="module" src="script/main.js?v=41"></script>
+    <script type="module" src="script/main.js?v=43"></script>
     <script type="module" src="start/start.js"></script>
 </head>
 
@@ -116,9 +116,9 @@
                 </div>
             </aside>
             <section class="battle-status enemy-status" id="enemy-status" aria-label="적 상태">
-                <img class="status-portrait" src="./images/character/wolf_icon.png" alt="늑대 얼굴 아이콘">
+                <img class="status-portrait" src="./images/character/wolf_icon.png" alt="적 아이콘">
                 <div class="status-heading">
-                    <p class="status-name">늑대</p>
+                    <p class="status-name">적</p>
                 </div>
                 <div class="status-row health-row">
                     <span class="status-kind">HP</span>
@@ -167,11 +167,11 @@
                     <button type="button" class="fight-skill-button skill-option" aria-label="숨 고르기, 체력 10 및 스태미나 40 회복, 소모 스태미나 0">
                         <span>숨 고르기</span><small>체력 10 · 스태미나 40 회복</small>
                     </button>
-                    <button type="button" class="fight-skill-button skill-option" aria-label="방어하기, 이번 턴 늑대 공격 피해 50% 감소, 소모 스태미나 10">
-                        <span>방어하기</span><small>이번 턴 늑대 공격 피해 50% 감소 · 스태미나 10</small>
+                    <button type="button" class="fight-skill-button skill-option" aria-label="방어하기, 이번 턴 적 공격 피해 50% 감소, 소모 스태미나 10">
+                        <span>방어하기</span><small>이번 턴 적 공격 피해 50% 감소 · 스태미나 10</small>
                     </button>
-                    <button type="button" class="fight-skill-button alternate-run-button" id="alternate-run-button">
-                        <span>도망 시도</span><small>성공하면 전투를 마치고 숲길로 돌아가요.</small>
+                    <button type="button" class="fight-skill-button alternate-run-button" id="alternate-run-button" aria-label="도망 시도, 성공 확률 80%">
+                        <span>도망 시도</span><small>성공 확률 80% · 성공하면 숲길로 돌아가요.</small>
                     </button>
                     <button type="button" class="action-choice-cancel" id="action-choice-cancel">돌아가기</button>
                 </div>
@@ -193,10 +193,11 @@
                 <div class="menu-actions">
                     <button id="follow-recommendation-button" type="button">추천 행동 보기 · 2토큰</button>
                     <button id="choose-action-button" type="button">직접 행동하기</button>
-                    <button id="battle-probability-button" type="button">늑대 행동 확률 · 1토큰</button>
-                    <button id="battle-auto-button" type="button" aria-pressed="false">자동전투 시작 · 턴당 1토큰</button>
+                    <button id="battle-probability-button" type="button">적 행동 확률 · 1토큰</button>
+                    <button id="battle-auto-button" type="button" aria-pressed="false">자동전투 시작 · 턴당 2토큰</button>
                 </div>
             </div>
+            <aside id="battle-tutorial-card" class="battle-tutorial-card" role="status" aria-live="polite" hidden></aside>
         </section>
     </main>
 </body>

@@ -2,6 +2,7 @@ export const PLAYER_INITIAL_HEALTH = 100;
 export const PLAYER_INITIAL_STAMINA = 100;
 export const ENEMY_INITIAL_HEALTH = 120;
 export const ENEMY_INITIAL_STAMINA = 100;
+export const MOLE_INITIAL_HEALTH = 60;
 
 export function createBattleState() {
     return {
@@ -19,6 +20,7 @@ export function createBattleState() {
             maxStamina: ENEMY_INITIAL_STAMINA,
             defending: false,
         },
+        enemyKind: "wolf",
         playerAttackAnimation: null,
         playerRestFlashUntil: 0,
         enemyAttackAnimation: null,

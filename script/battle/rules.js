@@ -86,7 +86,7 @@ export function applyPlayerSkill(state, skillIndex, now) {
         state.player.defending = true;
         return {
             kind: "defense",
-            message: "방어 자세를 취했다. 이번 턴 늑대 공격의 피해가 줄어든다.",
+            message: "방어 자세를 취했다. 이번 턴 적 공격의 피해가 줄어든다.",
             skill,
         };
     }
@@ -143,7 +143,7 @@ export function applyPlayerSkill(state, skillIndex, now) {
         : skill.staminaRecovery || skill.healthRecovery
             ? `${skill.name}! 체력 ${recoveredHealth}, 스태미나 ${recoveredStamina} 회복했다.`
             : blockedByDefense
-                ? `${skill.name}! 늑대의 방어로 피해가 줄어 ${damage} 피해를 줬다.`
+                ? `${skill.name}! 적의 방어로 피해가 줄어 ${damage} 피해를 줬다.`
                 : `${skill.name}! 적에게 ${damage} 피해를 줬다.`;
 
     return {
@@ -205,7 +205,7 @@ export function applyEnemyAttackImpact(state) {
 
     if (!attack.hit) {
         state.player.defending = false;
-        return "늑대의 공격을 피했다!";
+        return "적의 공격을 피했다!";
     }
 
     const incomingDamage = attack.critical
@@ -220,10 +220,10 @@ export function applyEnemyAttackImpact(state) {
     state.playerHitFlashUntil = performance.now() + 350;
     if (defended) {
         return attack.critical
-            ? `늑대의 치명타를 방어해 ${damage} 피해를 받았다.`
-            : `방어에 성공해 늑대에게 ${damage} 피해를 받았다.`;
+            ? `적의 치명타를 방어해 ${damage} 피해를 받았다.`
+            : `방어에 성공해 적에게 ${damage} 피해를 받았다.`;
     }
     return attack.critical
-        ? `늑대의 치명타! ${damage} 피해를 받았다.`
-        : `늑대에게 ${damage} 피해를 받았다.`;
+        ? `적의 치명타! ${damage} 피해를 받았다.`
+        : `적에게 ${damage} 피해를 받았다.`;
 }

@@ -416,6 +416,10 @@ body {
     container-type: inline-size;
 }
 
+.fight-skills-dialog.battle-tutorial-skill-step #alternate-run-button {
+    display: none;
+}
+
 .fight-skills-dialog::before {
     position: absolute;
     top: 50%;
@@ -708,6 +712,79 @@ body {
     font-weight: 700;
     image-rendering: pixelated;
     cursor: pointer;
+}
+
+.battle-tutorial-card {
+    position: fixed;
+    z-index: 8;
+    display: flex;
+    align-items: flex-start;
+    gap: calc(var(--battle-scale, 1) * 12px);
+    left: 50%;
+    box-sizing: border-box;
+    width: min(calc(var(--battle-scale, 1) * 440px), calc(100vw - var(--battle-scale, 1) * 28px));
+    max-height: min(82vh, calc(var(--battle-scale, 1) * 500px));
+    overflow-y: auto;
+    padding: calc(var(--battle-scale, 1) * 12px) calc(var(--battle-scale, 1) * 16px) calc(var(--battle-scale, 1) * 12px) calc(var(--battle-scale, 1) * 12px);
+    border: calc(var(--battle-scale, 1) * 3px) solid #665333;
+    color: #352d24;
+    background: #f3dfa9;
+    box-shadow: calc(var(--battle-scale, 1) * 4px) calc(var(--battle-scale, 1) * 4px) #151b1b;
+    font-size: calc(var(--battle-scale, 1) * 18px);
+    line-height: 1.5;
+    overscroll-behavior: contain;
+    transform: translateX(-50%);
+}
+
+.battle-tutorial-card > img {
+    box-sizing: border-box;
+    flex: 0 0 calc(var(--battle-scale, 1) * 48px);
+    width: calc(var(--battle-scale, 1) * 48px);
+    height: calc(var(--battle-scale, 1) * 48px);
+    border: calc(var(--battle-scale, 1) * 2px) solid #665333;
+    background: #f4e3b1;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.battle-tutorial-card > div {
+    min-width: 0;
+}
+
+.battle-tutorial-card strong {
+    display: block;
+    margin-bottom: calc(var(--battle-scale, 1) * 5px);
+    color: #283d34;
+    font-size: 1.08em;
+}
+
+.battle-tutorial-card p {
+    margin: 0;
+}
+
+.battle-tutorial-target {
+    z-index: 7 !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    outline: 3px solid #fff36b;
+    outline-offset: 3px;
+}
+
+.battle-tutorial-target:focus-visible {
+    outline: 3px solid #fff36b;
+    outline-offset: 3px;
+}
+
+.battle-token-resources.battle-tutorial-target {
+    z-index: 7;
+}
+
+#player-status.battle-tutorial-target {
+    z-index: 7;
+}
+
+.battle-tutorial-card[hidden] {
+    display: none;
 }
 
 /* Keyboard focus */

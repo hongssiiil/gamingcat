@@ -15,6 +15,8 @@ export const battleLossDialog = document.getElementById("battle-loss-dialog");
 export const battleLossConfirmButton = document.getElementById("battle-loss-confirm");
 export const enemyStatus = document.getElementById("enemy-status");
 export const playerStatus = document.getElementById("player-status");
+export const enemyName = enemyStatus.querySelector(".status-name");
+export const enemyPortrait = enemyStatus.querySelector(".status-portrait");
 export const playerStatusName = playerStatus.querySelector(".status-name");
 export const battleHistoryPanel = document.getElementById("battle-history-panel");
 export const battleHistoryPreviousButton = document.getElementById("battle-history-previous");
@@ -50,7 +52,7 @@ export function setControlsLocked(state, locked) {
     autoBattleButton.setAttribute("aria-pressed", String(state.autoBattleEnabled));
     autoBattleButton.textContent = state.autoBattleEnabled
         ? "자동전투 중지"
-        : "자동전투 시작 · 턴당 1토큰";
+        : "자동전투 시작 · 턴당 2토큰";
     fightSkillButtons.forEach((button) => {
         button.disabled = locked || state.autoBattleEnabled;
     });
@@ -58,15 +60,15 @@ export function setControlsLocked(state, locked) {
 
 export function updateBattleActionButtons(state) {
     followRecommendationButton.textContent = !state.recommendationRevealed
-        ? "추천 행동 보기 · 2토큰"
+        ? `추천 행동 보기 · ${state.probabilityRevealed ? 1 : 2}토큰`
         : state.activeHelpView === "recommendation"
             ? "추천대로 행동"
             : "추천 행동 다시 보기";
     probabilityButton.textContent = !state.probabilityRevealed
-        ? "늑대 행동 확률 · 1토큰"
+        ? `${state.enemyKind === "mole" ? "두더지" : "늑대"} 행동 확률 · 1토큰`
         : state.activeHelpView === "probability"
-            ? "늑대 확률 표시 중"
-            : "늑대 행동 확률 다시 보기";
+            ? `${state.enemyKind === "mole" ? "두더지" : "늑대"} 확률 표시 중`
+            : "적 행동 확률 다시 보기";
     setControlsLocked(state, state.controlsLocked);
 }
 
@@ -131,7 +133,7 @@ export function renderBattleHistory(turns, selectedIndex) {
         포효: "포효했다",
         "행동하지 못함": "행동하지 못했다",
     }[turn?.enemyAction] ?? (turn?.enemyAction ? `${turn.enemyAction}했다` : "아직 행동하지 않았다");
-    battleHistoryResult.textContent = `늑대는 ${enemyAction}. 나는 ${turn?.playerDamageReceived ?? 0}의 데미지를, 늑대는 ${turn?.enemyDamageReceived ?? 0}의 데미지를 입었다.`;
+    battleHistoryResult.textContent = `적은 ${enemyAction}. 나는 ${turn?.playerDamageReceived ?? 0}의 데미지를, 적은 ${turn?.enemyDamageReceived ?? 0}의 데미지를 입었다.`;
 }
 
 function updateStatus(status, entity, type) {

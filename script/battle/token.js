@@ -1,15 +1,17 @@
 export const BATTLE_TOKEN_COSTS = Object.freeze({
     recommendation: 2,
     probability: 1,
-    autoTurn: 1,
+    autoTurn: 2,
 });
 
-export const BATTLE_STARTING_TOKENS = 10;
+export const BATTLE_STARTING_TOKENS = 20;
 
-export function consumeBattleToken(state, command) {
+export function consumeBattleToken(state, command, { probabilityAlreadyViewed = false } = {}) {
     if (!Object.hasOwn(BATTLE_TOKEN_COSTS, command)) return false;
 
-    const cost = BATTLE_TOKEN_COSTS[command];
+    const cost = command === "recommendation" && probabilityAlreadyViewed
+        ? 1
+        : BATTLE_TOKEN_COSTS[command];
     state.tokens -= cost;
     state.events ??= [];
     state.events.push({

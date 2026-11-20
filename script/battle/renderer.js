@@ -14,11 +14,14 @@ const context = canvas.getContext("2d");
 let battleBackground = loadImage("./images/battle/battle_bg.png");
 const battleBackgrounds = new Map();
 const playerImage = loadImage("./images/character/player/player_diagonal.png");
-const enemyImage = loadImage("./images/battle/wolf.png");
+const enemyImages = {
+    wolf: loadImage("./images/battle/wolf.png"),
+    mole: loadImage("./images/battle/mole.png"),
+};
 const catImage = loadImage("./images/character/cat/cat_diagonal.png");
 
 const enemySprite = {
-    image: enemyImage,
+    image: enemyImages.wolf,
     x: baseWidth * 0.57,
     y: baseHeight * 0.22,
     scale: 0.24,
@@ -71,6 +74,12 @@ export function preloadBattleBackground(source) {
 export async function setBattleBackground(source) {
     battleBackground = await preloadBattleBackground(source);
     drawBackground();
+}
+
+export function setBattleEnemy(kind) {
+    enemySprite.image = enemyImages[kind] ?? enemyImages.wolf;
+    enemySprite.scale = kind === "mole" ? 0.16 : 0.24;
+    enemySprite.y = baseHeight * (kind === "mole" ? 0.29 : 0.22);
 }
 
 function drawSprite(sprite) {
@@ -208,7 +217,7 @@ function drawEntities(state) {
     drawEnemyAttack(state.enemyAttackAnimation);
     drawPlayerAttack(state.playerAttackAnimation);
 
-    if (enemySprite.flash && enemyImage.complete && enemyImage.naturalWidth) {
+    if (enemySprite.flash && enemySprite.image.complete && enemySprite.image.naturalWidth) {
         context.save();
         context.filter = "sepia(1) saturate(8) hue-rotate(320deg) brightness(1.15)";
         drawSprite(enemySprite);
