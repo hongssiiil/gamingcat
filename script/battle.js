@@ -1,4 +1,4 @@
-import { enterRoad, getCurrentRoadBattleBackground } from "./road.js";
+import { getCurrentRoadBattleBackground, saveBattleChoice } from "./road.js";
 import {
     applyEnemyAttackImpact,
     applyPlayerSkill,
@@ -58,10 +58,12 @@ function recordTurnField(field, value) {
     if (!battleState.currentTurn) return;
     if (field === "outcome" && battleState.currentTurn.outcome) {
         battleState.currentTurn.outcome = `${battleState.currentTurn.outcome} ${value}`;
+        saveBattleChoice(battleState.currentTurn);
         renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
         return;
     }
     battleState.currentTurn[field] = value;
+    if(battleState.currentTurn.playerChoice) saveBattleChoice(battleState.currentTurn);
     renderBattleHistory(battleState.turnHistory, battleState.historyIndex);
 }
 
@@ -93,8 +95,9 @@ function showTurnRecommendation() {
     beginTurn(getTurnRecommendation(battleState));
 }
 
-function finishBattle(message) {
+function finishBattle(message, result) {
     if (battleState.ended) return;
+    battleState.currentTurn.result = result;
     recordTurnField("outcome", message);
     battleState.ended = true;
     setControlsLocked(battleState, true);
@@ -102,12 +105,13 @@ function finishBattle(message) {
     showMenuMessage(message);
     scheduleBattleAction(() => {
         exitBattle();
-        enterRoad();
+        document.dispatchEvent(new CustomEvent('journey-ended', {detail:{result}}));
     }, 1200);
 }
 
 function showBattleLoss() {
     if (battleState.ended) return;
+    battleState.currentTurn.result = 'defeat';
     recordTurnField("outcome", "플레이어의 체력이 0이 되어 전투를 마쳤다.");
     battleState.ended = true;
     cancelScheduledActions();
@@ -132,7 +136,7 @@ function endEnemyTurn() {
 
 function startEnemyTurn() {
     if (battleState.enemy.health <= 0) {
-        finishBattle("늑대를 물리쳤다!");
+        finishBattle("늑대를 물리쳤다!", "victory");
         return;
     }
     if (battleState.player.health <= 0) {
@@ -189,6 +193,7 @@ function resolvePlayerSkill(skillIndex) {
     if (battleState.controlsLocked) return;
     const skill = skillEffects[skillIndex];
     if (!skill) return;
+    recordChoiceMetadata('skill', skillIndex);
     recordTurnField("playerChoice", skill.name);
     fightSkillsDialog.hidden = true;
     setControlsLocked(battleState, true);
@@ -220,6 +225,7 @@ function resolvePlayerSkill(skillIndex) {
 
 function attemptEscape() {
     if (battleState.controlsLocked) return;
+    recordChoiceMetadata('run');
     recordTurnField("playerChoice", "도망 시도");
     fightSkillsDialog.hidden = true;
     setControlsLocked(battleState, true);
@@ -232,7 +238,7 @@ function attemptEscape() {
             return;
         }
 
-        finishBattle("무사히 도망쳤다!");
+        finishBattle("무사히 도망쳤다!", "escape");
     }, 1000);
 }
 
@@ -279,6 +285,12 @@ export async function enterBattle() {
 export function exitBattle() {
     exitBattleScreen();
 }
+function recordChoiceMetadata(action, skillIndex){
+    const recommendation=battleState.currentRecommendation;
+    Object.assign(battleState.currentTurn,{scene:'wolf',action,recordedAt:Date.now(),tokenUsed:false,
+        accepted:recommendation ? recommendation.action===action && (action==='run'||recommendation.skillIndex===skillIndex) : null});
+}
+export function resetBattleForJourney(){cancelScheduledActions();closeBattleLossDialog();resetBattleState(battleState);battleState.started=false;fightSkillsDialog.hidden=true;setControlsLocked(battleState,false);updateStatusBars(battleState);}
 
 followRecommendationButton.addEventListener("click", acceptRecommendation);
 chooseActionButton.addEventListener("click", openActionChoices);

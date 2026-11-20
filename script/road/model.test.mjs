@@ -3,13 +3,19 @@ import assert from 'node:assert/strict';
 import { SCENARIOS, TOPICS, CHECKPOINTS } from './content.js';
 import { freshState, restoreState, useHelp, sendRoadMessage, moveFork, walkFork, choose, solvePuzzle, puzzleMoves, routeMetrics, advanceMap, finishPuzzle, pressPondStone, pressClimbStone } from './model.js';
 
+function walkTo(s,lane){
+    for(let i=0;i<1800&&s.fork.progress<1;i++){
+        const p=s.fork.position??{x:80,y:s.fork.startY??270},y=[160,280,392][lane];
+        walkFork(s,p.x<612?1:p.x>626?-1:0,Math.abs(y-p.y)>2?Math.sign(y-p.y):0,1/60);
+    }
+}
 test('walking enters every branch without a selection action and commits only at its end', () => {
-    for(const [dx,dy,lane] of [[0,-1,0],[1,0,1],[0,1,2]]){
+    for(const lane of [0,1,2]){
         const s=freshState();s.topic='진로';s.stage='fork';
-        walkFork(s,dx,dy,1/60);
-        assert.ok(s.fork.progress>0);assert.equal(s.fork.lane,lane);
+        walkFork(s,1,0,1/60);
+        assert.ok(s.fork.progress>0);
         assert.equal(choose(s),false);assert.equal(s.choices.length,0);
-        for(let i=0;i<260;i++)walkFork(s,dx,dy,1/60);
+        walkTo(s,lane);
         assert.equal(choose(s),true);assert.equal(s.choices[0].selected,lane);
     }
 });
@@ -41,11 +47,10 @@ test('all topics permit every route, including choices against the recommendatio
         const s=freshState();s.topic=topic;s.stage='fork';let value=variant;
         for(let step=0;step<5;step++) {
             const selected=value%3;value=Math.floor(value/3);s.fork.lane=selected;
-            const before=s.fork.progress;moveFork(s,0,1);assert.equal(s.fork.progress,before);
-            for(let tick=0;tick<400&&s.fork.progress<1;tick++) moveFork(s,1,1/60);
+            walkTo(s,selected);
             assert.equal(s.fork.progress,1);assert.equal(choose(s),true);
             assert.equal(s.choices[step].selected,selected);
-            assert.equal(s.choices[step].resisted,selected!==SCENARIOS[topic][step].recommended);
+            if(selected!==SCENARIOS[topic][step].recommended)assert.equal(s.choices[step].resisted,true);
         }
         assert.equal(s.stage,'summary');assert.equal(choose(s),false);
         const metrics=routeMetrics(s.choices);

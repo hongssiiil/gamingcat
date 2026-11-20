@@ -1,8 +1,16 @@
-import { NOTES, PASSWORD, COSTS, TOPICS, POND, CLIMB, CHECKPOINTS } from './road/content.js';
+import { renderIntroduction } from './road/introduction.js';
+import { STAGE_STATE, STAGE_SPAN, advanceJourney } from './road/journey.js';
+import { NOTES, PASSWORD, COSTS, TOPICS, SCENARIOS, POND, CLIMB } from './road/content.js';
+import { ground, forestIslands, props, canWalk, nearestWalkable } from './road/collision.js';
 import { pixelIcon } from './road/pixel-icons.js';
+import { createForestOcclusion } from './road/occlusion.js';
 import { FOREST_SIGN, nearbyForestTarget, discoverNote } from './road/forest.js';
-import { createForkMotion, updateForkMotion } from './road/fork-motion.js';
-import { STORAGE_KEY, freshState, restoreState, scenario, sendRoadMessage, choose, walkFork, puzzleMoves, solvePuzzle, routeMetrics, pointOnRoute, nextCheckpoint, advanceMap, finishPuzzle, pressPondStone, pressClimbStone } from './road/model.js';
+import { createForkMotion, updateForkMotion, forkPoint } from './road/fork-motion.js';
+import { STORAGE_KEY, freshState, restoreState, scenario, sendRoadMessage, choose, walkFork, puzzleMoves, solvePuzzle, nextCheckpoint, advanceMap, pressPondStone, pressClimbStone } from './road/model.js';
+import { explorationRoute, createExplorationMotion, updateExplorationMotion, mapEncounter } from './road/exploration.js';
+import { NODE_PUZZLES, puzzleNodeId, isPuzzleOpen, isCelebrating, openNodePuzzle, cancelNodePuzzle, completeNodePuzzle, restorePuzzleView } from './road/puzzle-flow.js';
+
+import { createInkMap } from './road/ink-map.js';
 
 const $ = selector => document.querySelector(selector);
 const root = $('#Road'), view = $('#road-view'), modal = $('#road-modal'), body = $('#road-modal-body');
@@ -26,10 +34,11 @@ function recordPuzzleMistake(){
     $('#road-help').classList.add('needs-help');
 }
 let forkTransition = 0;
-let forkMotion, forkIntroElapsed = 0, forkQuestionShown = false, forkRecommendationShown = false, forkReady = false;
-let forkLastSteer = 0;
+let forkMotion, inkMap, forkIntroElapsed=0, forkPaused=false;
+let mapRenderer,mapMotion,mapResizeObserver;
 let state;
 try { state = restoreState(sessionStorage.getItem(STORAGE_KEY)); } catch { state = freshState(); }
+state.player = nearestWalkable(state.player);
 export const journeyChoiceHistory = [];
 const keys = new Set();
 let lastTime = 0, saveElapsed = 0, animationTime = 0, lastFacing = 'front', statusTimer, returnFocus, tokenChangeTimer;
@@ -91,21 +100,43 @@ function animateActor(image, kind, dx, dy) {
     if (image.getAttribute('src') !== path) image.src = path;
     image.style.setProperty('--flip', dx < 0 && direction === 'side' ? -1 : 1);
 }
-// Visible trail coordinates on the existing 1023 × 769 forest image.
-const forestSegments = [
-    [45,552,205,552,37], [205,552,330,483,39], [330,483,739,483,41],
-    [739,483,794,548,36], [794,548,974,548,33], [365,483,404,310,32],
-    [404,310,404,100,31], [330,483,330,643,26], [330,643,466,643,25], [466,643,466,748,32],
-];
-function segmentDistance(x, y, [ax,ay,bx,by]) {
-    const t = clamp(((x-ax)*(bx-ax)+(y-ay)*(by-ay))/((bx-ax)**2+(by-ay)**2),0,1);
-    return Math.hypot(x-ax-t*(bx-ax),y-ay-t*(by-ay));
+const showForestCollisionDebug = new URLSearchParams(location.search).get('collisionDebug')==='1';
+let forestOcclusion;
+function renderForestCollisionDebug(){
+    const svg=svgEl('svg',{class:'road-collision-debug',viewBox:'0 0 1023 769','aria-hidden':'true','pointer-events':'none'});
+    const defs=svgEl('defs'),mask=svgEl('mask',{id:'road-collision-blocked-mask',maskUnits:'userSpaceOnUse',x:0,y:0,width:1023,height:769});
+    mask.append(svgEl('rect',{width:1023,height:769,fill:'white'}));
+    for(const area of [ground]){
+        const points=area.map(([x,y])=>`${x},${y}`).join(' ');
+        mask.append(svgEl('polygon',{points,fill:'black'}));
+    }
+    defs.append(mask);svg.append(defs);
+    svg.append(svgEl('rect',{width:1023,height:769,class:'road-collision-blocked-wash',mask:'url(#road-collision-blocked-mask)'}));
+    for(const area of [ground]){
+        const points=area.map(([x,y])=>`${x},${y}`).join(' ');
+        svg.append(svgEl('polygon',{points,class:'road-collision-walkable'}));
+    }
+    for(const island of forestIslands){
+        const points=island.map(([x,y])=>`${x},${y}`).join(' ');
+        svg.append(svgEl('polygon',{points,class:'road-collision-island'}));
+    }
+    for(const {box:[x,y,width,height]} of props)svg.append(svgEl('rect',{x,y,width,height,class:'road-collision-prop'}));
+    svg.append(svgEl('ellipse',{id:'road-debug-feet',rx:7,ry:4,fill:'#fff',stroke:'#137de8','stroke-width':2}));
+    return svg;
 }
-function canWalk(x,y) { return forestSegments.some(s => segmentDistance(x,y,s) < s[4]); }
 function renderForest() {
     setHeader('이름 없는 숲', 'WASD 이동 · E 상호작용');
     const viewport = el('div','road-forest-viewport'), world = el('div','road-forest-world');
     const bg = el('img','road-forest-image'); bg.src = './images/backgrounds/road_white.png'; bg.alt = '갈림길이 있는 어두운 숲'; bg.draggable = false; world.append(bg);
+    forestOcclusion=createForestOcclusion();world.append(forestOcclusion.element);
+    if(state.stage==='forest'&&showForestCollisionDebug){
+        world.append(renderForestCollisionDebug());
+        const legend=el('div','road-collision-legend');
+        for(const [kind,label] of [['walkable','이동 가능 영역'],['blocked','이동 불가 영역'],['island','숲 장애물'],['prop','오브젝트 발밑 충돌']]){
+            const item=el('span',`road-collision-legend-item ${kind}`);item.append(el('i'),el('span','',label));legend.append(item);
+        }
+        view.append(legend);
+    }
     for (const note of NOTES.filter(note => state.notes.includes(note.id))) {
         const b = button('', () => interactForest(note), 'road-note'); b.append(pixelIcon(note.id)); b.setAttribute('aria-label',`${note.name} 쪽지${state.notes.includes(note.id) ? ' · 읽음' : ''}`);
         b.classList.toggle('is-read',state.notes.includes(note.id)); b.style.left = `${note.x}px`; b.style.top = `${note.y}px`; world.append(b);
@@ -128,6 +159,10 @@ function positionForest(dx=0,dy=0) {
     const ty = clamp(viewport.clientHeight/2-state.player.y*scale,Math.min(0,viewport.clientHeight-769*scale),0);
     world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
     const player = world.querySelector('.road-forest-player'); player.style.left=`${state.player.x}px`; player.style.top=`${state.player.y}px`; animateActor(player,'player',dx,dy);
+    forestOcclusion?.update(state.player.y);
+    world.querySelector('.road-sign-object').style.zIndex=state.player.y<483?'4':'2';
+    const feet=world.querySelector('#road-debug-feet');
+    if(feet){feet.setAttribute('cx',state.player.x);feet.setAttribute('cy',state.player.y);}
     updateForestPrompt();
 }
 function updateForestPrompt(){
@@ -156,12 +191,40 @@ function showPassword() {
     const b=openModal('표지판');
     modal.dataset.layout='sign';
     $('#road-modal-title').classList.add('road-sr-only');
-    b.append(paragraph('자신의 선택에 따라 잎은 듣고 달은 뜨고 비가 내리고 별은 남는다.'));
-    const form=el('form'), label=el('label','','네 자리 암호'), input=el('input'), feedback=el('p');
-    input.id='road-password'; input.inputMode='numeric'; input.maxLength=4; input.pattern='[0-9]{4}'; input.autocomplete='off'; input.required=true; label.htmlFor=input.id; feedback.setAttribute('role','status');
-    const submit=button('확인',()=>{}); submit.type='submit'; form.append(label,input,submit,feedback);
-    form.addEventListener('submit',e=>{e.preventDefault(); if(input.value.trim()===PASSWORD){state.events.push({type:'password-solved'});closeModal();changeStage('routeMissing');}else{feedback.textContent='장치는 열리지 않았다. 다시 생각해 보자.';input.select();}});
-    b.append(form); input.focus();
+    const inscription=el('p','road-sign-inscription');
+    inscription.append(el('span','','자신의 선택에 따라 길은 뚫고 날은 뜨고'),el('span','','비가 내리고 빛은 남는다.'));b.append(inscription);
+    const form=el('form','road-sign-form'),label=el('p','road-sign-label','네 자리 암호'),slots=el('div','road-password-slots'),feedback=el('p','road-sign-feedback');
+    label.id='road-password-label';slots.setAttribute('role','group');slots.setAttribute('aria-labelledby',label.id);
+    feedback.id='road-password-feedback';feedback.setAttribute('role','status');
+    let rejecting=false;
+    const inputs=Array.from({length:4},(_,i)=>{
+        const input=el('input');input.type='text';input.inputMode='numeric';input.maxLength=1;input.autocomplete='off';input.placeholder='_';
+        input.setAttribute('aria-label',`암호 ${i+1}번째 숫자`);input.setAttribute('aria-describedby',feedback.id);
+        input.addEventListener('focus',()=>input.select());
+        input.addEventListener('input',()=>{
+            input.value=input.value.replace(/[^0-9]/g,'').slice(-1);
+            if(input.value&&i<3)inputs[i+1].focus();
+        });
+        input.addEventListener('paste',event=>{
+            event.preventDefault();const digits=event.clipboardData.getData('text').replace(/[^0-9]/g,'').slice(0,4-i);
+            if(!digits)return;[...digits].forEach((digit,n)=>inputs[i+n].value=digit);inputs[Math.min(3,i+digits.length)].focus();
+        });
+        input.addEventListener('keydown',event=>{
+            if(event.key==='Backspace'){event.preventDefault();if(input.value)input.value='';else if(i){inputs[i-1].value='';inputs[i-1].focus();}}
+            if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();inputs[clamp(i+(event.key==='ArrowLeft'?-1:1),0,3)].focus();}
+        });slots.append(input);return input;
+    });
+    const submit=button('자물쇠 열기',()=>{},'road-sign-submit');submit.type='submit';
+    form.append(label,slots,submit,feedback);
+    form.addEventListener('submit',event=>{
+        event.preventDefault();if(rejecting)return;
+        if(inputs.some(input=>!input.value)){feedback.textContent='네 자리 숫자를 모두 새겨 주세요.';inputs.find(input=>!input.value).focus();return;}
+        if(inputs.map(input=>input.value).join('')===PASSWORD){state.events.push({type:'password-solved'});closeModal();changeStage('routeMissing');return;}
+        rejecting=true;feedback.textContent='자물쇠가 열리지 않습니다. 다시 시도해 주세요.';slots.classList.add('is-wrong');submit.disabled=true;
+        inputs.forEach(input=>{input.disabled=true;input.setAttribute('aria-invalid','true');});
+        setTimeout(()=>{slots.classList.remove('is-wrong');inputs.forEach(input=>{input.value='';input.disabled=false;input.removeAttribute('aria-invalid');});submit.disabled=false;rejecting=false;if(modal.open&&slots.isConnected)inputs[0].focus();},550);
+    });
+    b.append(form);inputs[0].focus();
 }
 function renderCard(kicker,title,text,actions) {
     const card=el('article','road-card'), heading=el('h2','',title);
@@ -172,143 +235,132 @@ function renderCard(kicker,title,text,actions) {
     const row=el('div','road-actions'); for(const [label,fn] of actions)row.append(button(label,fn));card.append(row);
     (isPopup?flowDialog:view).append(card);return card;
 }
-function renderTopic() {
-    setHeader('탈출 경로 만들기','당신에게 지금 가장 중요한 방향');
-    const card=renderCard('','당신은 어디로 향하고 싶은가?','당신의 선택을 바탕으로 탈출 경로를 생성합니다.',[]);
-    const list=el('div','road-topic-list');
-    for(const topic of TOPICS)list.append(button(topic,()=>{
-        if(topic!=='기타'){state.topic=topic;changeStage('fork');return;}
-        const b=openModal('어떤 방향이 궁금한가요?'),form=el('form'),label=el('label','','관심사'),input=el('input');input.id='road-interest';input.maxLength=40;input.required=true;label.htmlFor=input.id;
-        const submit=button('이 방향으로 시작',()=>{});submit.type='submit';form.append(label,input,submit);
-        form.addEventListener('submit',e=>{e.preventDefault();if(!input.value.trim())return;state.topic='기타';state.interest=input.value.trim();closeModal();changeStage('fork');});b.append(form);input.focus();
-    }));card.append(list);
-}
+function intro(stage){renderIntroduction(flowDialog,stage,{advance:changeStage,choose:topic=>{state.topic=topic;state.interest='';changeStage('fork');}});}
+function renderTopic(){intro('topic');}
 const NS='http://www.w3.org/2000/svg';
 function svgEl(tag,attrs={},text){const n=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));if(text!=null)n.textContent=text;return n;}
-function svgBase(){
-    const svg=svgEl('svg',{viewBox:'0 0 1000 500',role:'img','aria-label':'플레이어와 고양이가 이동하는 경로 지도'});
-    const defs=svgEl('defs'),pattern=svgEl('pattern',{id:'road-grid',width:32,height:32,patternUnits:'userSpaceOnUse'});
-    pattern.append(svgEl('path',{d:'M 32 0 L 0 0 0 32',fill:'none',stroke:'#365354','stroke-width':0.6}));defs.append(pattern);svg.append(defs,svgEl('rect',{width:1000,height:500,fill:'url(#road-grid)'}));return svg;
+function forkScenario(){return SCENARIOS[state.topic][state.inkJourney.index];}
+function syncForkControls(){
+    const j=state.inkJourney,q=forkScenario(),sheet=view.querySelector('.road-ink-map');if(!sheet)return;
+    sheet.dataset.stageState=j.phase;
+    sheet.dataset.cameraX=j.cameraX.toFixed(2);sheet.dataset.zoom=j.zoom.toFixed(3);
+    sheet.querySelector('h2').textContent=j.phase===STAGE_STATE.COMPLETE?'다섯 번의 선택, 하나로 이어진 길':q.prompt;
+    sheet.querySelector('.road-ink-description').textContent=j.phase===STAGE_STATE.COMPLETE?'완성된 선택 기록: '+state.choices.map((c,i)=>(i+1)+'. '+c.label).join(', '):'WASD 또는 방향키로 자유롭게 걸어 랜드마크에 도착하세요. 티니의 추천: '+q.options[q.recommended]+'. '+q.reason;
+    sheet.querySelector('.road-ink-pause').hidden=j.phase===STAGE_STATE.COMPLETE;
+    sheet.querySelector('.road-ink-finish').hidden=j.phase!==STAGE_STATE.COMPLETE;
 }
-function svgCharacter(svg,id,kind){const g=svgEl('g',{id});g.append(svgEl('image',{href:`./images/character/${kind}/${kind}_side.png`,x:-19,y:-37,width:38,height:43}));svg.append(g);return g;}
 function renderFork(){
-    const q=scenario(state), step=String(state.choices.length+1).padStart(2,'0');
-    setHeader('누가 누구를 이끌까?','↑ / ↓ 인접한 갈래 · → 앞으로 · ← 돌아오기',`${step} / 05`);
-    const startY=[120,250,380][state.choices.at(-1)?.selected??1];
-    forkTransition=0;forkMotion=createForkMotion(state.fork,startY);forkIntroElapsed=0;forkQuestionShown=false;forkRecommendationShown=false;forkReady=state.fork.progress>0;forkLastSteer=0;
-    const desktop=el('div','road-fork-desktop'),chart=el('div','road-chart road-fork-chart'),svg=svgBase();
-    svg.querySelector('rect')?.remove();const bar=el('div','road-map-titlebar');bar.append(el('span','',`갈림길 ${step}`),el('span','',state.interest||state.topic));
-    for(let i=0;i<3;i++){
-        const y=[120,250,380][i],d=`M 110 ${startY} L 300 ${startY} L 530 ${y} L 880 ${y}`;
-        svg.append(svgEl('path',{d,class:'road-route-line'}));
-        if(i===q.recommended)svg.append(svgEl('path',{d,class:'road-route-line is-recommended'}));
-        svg.append(svgEl('text',{x:550,y:y-25,class:'road-svg-label'},`${i+1}. ${q.options[i]}`));
-    }
-    svg.append(svgEl('line',{id:'road-leash',class:'road-leash'}));
-    svgCharacter(svg,'road-route-player','player');svgCharacter(svg,'road-route-cat','cat');
-    const reaction=svgEl('g',{id:'road-cat-reaction',visibility:'hidden',role:'img','aria-label':'티니가 당황하며 잠시 뒤처집니다'});
-    reaction.append(svgEl('path',{d:'M -19 -77 H 19 V -51 H 5 L 0 -45 L -5 -51 H -19 Z',fill:'#f3d69a',stroke:'#35443b','stroke-width':2}),svgEl('text',{x:0,y:-58,'text-anchor':'middle',fill:'#47372a','font-size':17,'font-weight':'bold'},'?!'));
-    svg.append(reaction);chart.append(bar,svg,el('div','road-chart-caption','실선 · 내가 걸을 수 있는 길     점선 · 티니가 추천한 길'));
-    const popups=el('div','road-fork-popups');
-    const question=forkWindow('question',`QUESTION_${step}`,q.prompt);
-    const options=el('div','road-options');
-    q.options.forEach((option,i)=>options.append(el('p','road-walking-option',`${['↑','→','↓'][i]}  ${option}`)));
-    question.querySelector('.road-window-body').append(options,el('p','road-window-hint','↑ / ↓ 로 갈래를 옮기고 → 로 걸어가세요. 왼쪽 갈래에서도 반대 방향을 누르면 가운데로 돌아옵니다.'));
-    const recommendation=forkWindow('recommendation','티니 · 새 메시지','티니의 추천');
-    const recBody=recommendation.querySelector('.road-window-body'),cat=actor('cat');cat.className='road-window-cat';
-    recBody.append(cat,el('strong','road-recommendation-choice',q.options[q.recommended]),paragraph(q.reason),el('span','road-window-hint','결정은 네가 해. 나는 같이 걸을게.'));
-    popups.append(question,recommendation);
-    const taskbar=el('div','road-fork-taskbar');
-    for(const [kind,label] of [['question','질문'],['recommendation','티니 추천']]){
-        const toggle=button(label,()=>{if(kind==='question')forkQuestionShown=true;else forkRecommendationShown=true;const opening=view.querySelector(`#road-fork-${kind}`).hidden;toggleForkWindow(kind,opening);if(opening)view.querySelector(`#road-fork-${kind}-title`).focus({preventScroll:true});});
-        toggle.dataset.window=kind;toggle.setAttribute('aria-controls',`road-fork-${kind}`);toggle.setAttribute('aria-expanded','false');taskbar.append(toggle);
-    }
-    taskbar.append(el('span','road-pressure'));desktop.append(chart,popups,taskbar);view.append(desktop);drawFork();
+    const j=state.inkJourney,q=forkScenario();
+    setHeader(q.prompt,'',String(Math.min(5,state.choices.length+1))+' / 05');
+    forkMotion=createForkMotion(j.arrivedFork??state.fork);forkIntroElapsed=j.index>0?4:0;forkPaused=false;
+    if(j.arrivalActors){forkMotion.player={...j.arrivalActors.player};forkMotion.cat={...j.arrivalActors.cat};}
+    const viewport=el('div','road-ink-viewport'),sheet=el('section','road-ink-map');
+    sheet.setAttribute('aria-label','잉크로 그리는 선택 지도');
+    const title=el('h2','road-sr-only',q.prompt),desc=el('p','road-sr-only road-ink-description',
+        'WASD 또는 방향키로 이동합니다. 티니는 추천 길로 당깁니다. Space: 일시정지. 추천: '+q.options[q.recommended]+'. '+q.reason);
+    const canvas=el('canvas','road-ink-canvas');canvas.setAttribute('aria-hidden','true');
+    const pause=button('Ⅱ 잠시 멈춤',()=>{forkPaused=!forkPaused;pause.textContent=forkPaused?'▶ 계속 걷기':'Ⅱ 잠시 멈춤';pause.setAttribute('aria-pressed',String(forkPaused));},'road-ink-pause');
+    pause.setAttribute('aria-pressed','false');
+    const finish=button('완성한 길 위에서 출발하기 →',()=>changeStage('map'),'road-ink-finish');finish.hidden=true;
+    sheet.append(canvas,title,desc,pause,finish);
+    viewport.append(sheet);view.append(viewport);inkMap=createInkMap(canvas);syncForkControls();drawFork();
 }
-function forkWindow(kind,label,title){
-    const panel=el('section',`road-pixel-window road-window-${kind}`);panel.id=`road-fork-${kind}`;panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-labelledby',`${panel.id}-title`);
-    const bar=el('header','road-window-titlebar'),minimize=button('−',()=>{toggleForkWindow(kind,false);view.querySelector(`[data-window="${kind}"]`).focus();});
-    minimize.setAttribute('aria-label',kind==='question'?'질문 창 접기':'티니 추천 창 접기');bar.append(el('span','',label),minimize);
-    const content=el('div','road-window-body'),heading=el('h2','',title);heading.id=`${panel.id}-title`;heading.tabIndex=-1;content.append(heading);panel.append(bar,content);return panel;
-}
-function toggleForkWindow(kind,open){
-    const panel=view.querySelector(`#road-fork-${kind}`);if(!panel)return;
-    panel.hidden=!open;view.querySelector(`[data-window="${kind}"]`).setAttribute('aria-expanded',String(open));
-}
-function advanceForkIntro(dt){
-    forkIntroElapsed+=dt;
-    if(!forkQuestionShown&&forkIntroElapsed>=0.25){
-        forkQuestionShown=true;toggleForkWindow('question',true);
-        const desktop=view.querySelector('.road-fork-desktop');
-        requestAnimationFrame(()=>requestAnimationFrame(()=>desktop?.classList.add('question-docked')));
-        if(view.contains(document.activeElement)||document.activeElement===document.body)view.querySelector('#road-fork-question-title').focus({preventScroll:true});
-    }
-    if(!forkRecommendationShown&&forkIntroElapsed>=0.7){forkRecommendationShown=true;toggleForkWindow('recommendation',true);}
-}
-
-function drawFork(dt=0,moving=false){
-    const q=scenario(state);if(!q||!forkMotion)return;const f=state.fork;
-    const previous={player:{...forkMotion.player},cat:{...forkMotion.cat}};
-    const surprised=updateForkMotion(forkMotion,f,q.recommended,dt,moving),p=forkMotion.player,c=forkMotion.cat;
-    $('#road-route-player')?.setAttribute('transform',`translate(${p.x},${p.y})`);$('#road-route-cat')?.setAttribute('transform',`translate(${c.x},${c.y})`);
-    const reaction=$('#road-cat-reaction');reaction?.setAttribute('transform',`translate(${c.x},${c.y})`);reaction?.setAttribute('visibility',surprised?'visible':'hidden');
-    const leash=$('#road-leash');if(leash)Object.entries({x1:p.x,y1:p.y-12,x2:c.x,y2:c.y-10}).forEach(([k,v])=>leash.setAttribute(k,v));
-    view.querySelectorAll('[data-lane]').forEach(b=>b.setAttribute('aria-pressed',String(forkReady&&Number(b.dataset.lane)===f.lane)));
-    const pressure=view.querySelector('.road-pressure');if(pressure)pressure.textContent=!forkReady?'방향키로 원하는 길을 직접 걸어가세요.':surprised?'티니: 어? 그쪽으로 가는 거야?':f.resisted?'티니가 네 걸음을 따라온다.':`${f.lane+1}번 길 · → 키를 누르고 걸어가기`;
-    const movingSprites={};
-    for(const kind of ['player','cat']){
-        const dx=forkMotion[kind].x-previous[kind].x,dy=forkMotion[kind].y-previous[kind].y;
-        movingSprites[kind]=Math.hypot(dx,dy)>0.08;
-        if(Math.abs(dx)>0.08)$(`#road-route-${kind} image`)?.setAttribute('transform',`scale(${dx<0?-1:1} 1)`);
-    }
-    animateMapSprites('road-route',p,movingSprites);
+function drawFork(dt=0){
+    const j=state.inkJourney,q=forkScenario();if(!q||!forkMotion)return;
+    const frozen=[STAGE_STATE.ARRIVED,STAGE_STATE.PANNING,STAGE_STATE.ZOOMING,STAGE_STATE.COMPLETE].includes(j.phase);
+    const f=frozen?j.arrivedFork:state.fork;
+    if(!frozen)updateForkMotion(forkMotion,f,q.recommended,dt);
+    inkMap.draw(q,f,forkMotion,j.index+1,state.interest||state.topic,{intro:Math.max(0,4-forkIntroElapsed),paused:forkPaused,journey:j,completedPaths:state.completedPaths});
+    const sheet=view.querySelector('.road-ink-map');sheet.dataset.cameraX=j.cameraX.toFixed(2);sheet.dataset.zoom=j.zoom.toFixed(3);
 }
 function renderMap(summary=false){
-    setHeader(summary?'당신이 만든 경로':'YOUR DECISION PATH',summary?'다섯 선택으로 이어진 길':'→ / ↑ 앞으로 · ← / ↓ 뒤로 · E 구역 진입','05 / 05');
-    const panel=el('section','road-map-parchment');panel.setAttribute('aria-label','숲의 여정 지도');view.append(panel);
-    const title=el('h2','road-map-title',summary?'나의 숲 경로':'당신이 그린 숲길');panel.append(title);
-    if(summary){const heading=el('div','road-map-heading');heading.append(el('h2','','나만의 탈출 경로로 탈출하자!'));panel.append(heading);}
-    const chart=el('div','road-chart road-map-chart'),svg=svgBase(),{points,distances}=routeMetrics(state.choices);
-    svg.querySelector('rect')?.remove();
-    svg.append(svgEl('text',{x:915,y:60,'text-anchor':'middle',class:'road-map-compass'},'N'),svgEl('path',{d:'M 915 70 L 904 99 L 915 92 L 926 99 Z',fill:'#87683e'}));
-    svg.append(svgEl('polyline',{points:points.map(p=>`${p.x},${p.y}`).join(' '),class:'road-route-line'}));
-    const next=nextCheckpoint(state),lockIndex=next?.at??5;
-    if(!summary&&lockIndex<5)svg.append(svgEl('polyline',{points:points.slice(lockIndex).map(p=>`${p.x},${p.y}`).join(' '),class:'road-route-line is-locked'}));
-    points.forEach((p,i)=>{const checkpoint=CHECKPOINTS.find(c=>c.at===i);svg.append(svgEl('circle',{cx:p.x,cy:p.y,r:9,class:`road-node ${distances[i]<=state.mapDistance?'is-visited':''}`}));svg.append(svgEl('text',{x:p.x,y:p.y+35,'text-anchor':'middle',class:'road-svg-label'},i?`${i}`:'출발'));if(checkpoint&&state.completed.includes(checkpoint.id))svg.append(svgEl('text',{x:p.x,y:p.y-28,'text-anchor':'middle',class:'road-svg-checkpoint'},`✓ ${checkpoint.label}`));});
-    if(!summary){svgCharacter(svg,'road-map-cat','cat');svgCharacter(svg,'road-map-player','player');const alert=svgEl('g',{id:'road-map-alert','visibility':'hidden','aria-label':'장애물을 발견했습니다'});alert.append(svgEl('path',{d:'M -10 -76 Q -10 -88 0 -88 Q 10 -88 10 -76 L 0 -66 Z',fill:'#fff0b8',stroke:'#604a2c','stroke-width':2}),svgEl('text',{x:0,y:-74,'text-anchor':'middle',fill:'#4a3722','font-size':14,'font-weight':'bold'},'!'));svg.append(alert);}chart.append(svg);panel.append(chart);
-    const strip=el('div','road-map-strip');
-    if(summary){strip.append(paragraph(`추천과 같은 선택 ${state.choices.filter(c=>c.selected===c.recommended).length}회 · 다른 선택 ${state.choices.filter(c=>c.selected!==c.recommended).length}회`),button('지도 위에서 출발하기 →',()=>changeStage('map')));const details=el('details','road-choice-records');details.append(el('summary','','다섯 선택의 기록'));state.choices.forEach((c,i)=>details.append(paragraph(`${i+1}. ${c.label} · 티니의 추천: ${c.options[c.recommended]} · 고민 ${c.seconds}초`)));strip.append(details);}
-    else strip.append(el('p','road-map-message',''),button('구역 살펴보기 · E',interact,'road-checkpoint-button'));
-    panel.append(strip);if(!summary){const notice=el('div','road-encounter-notice','예상치 못한 장애물을 만났다!');notice.hidden=true;notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');panel.append(notice,el('p','road-map-controls-hint','→ / ↑ 앞으로 · ← / ↓ 뒤로 · E 구역 진입'));drawMap();}
-}
-function drawMap(){
-    const p=pointOnRoute(state.choices,state.mapDistance),c=pointOnRoute(state.choices,Math.max(0,state.mapDistance-35));$('#road-map-player')?.setAttribute('transform',`translate(${p.x},${p.y})`);$('#road-map-cat')?.setAttribute('transform',`translate(${c.x},${c.y})`);
-    const next=nextCheckpoint(state),metric=routeMetrics(state.choices),at=next&&Math.abs(state.mapDistance-metric.distances[next.at])<0.1;
-    const message=view.querySelector('.road-map-message');if(message)message.textContent=at?'예상치 못한 장애물을 만났다!':'길을 따라 앞으로 이동하세요.';
-    const alert=$('#road-map-alert');alert?.setAttribute('transform',`translate(${p.x},${p.y})`);alert?.setAttribute('visibility',at?'visible':'hidden');
-    const notice=view.querySelector('.road-encounter-notice');if(notice)notice.hidden=!at;
-    const b=view.querySelector('.road-checkpoint-button');if(b)b.disabled=!at;
-    animateMapSprites('road-map',p,keys.size>0);
-}
-function animateMapSprites(prefix,point,moving){
-    for(const kind of ['player','cat']){
-        const img=$(`#${prefix}-${kind} image`);if(!img)continue;
-        const bounce=(typeof moving==='object'?moving[kind]:moving)&&Math.floor(animationTime/.175)%2;
-        const file=bounce?(kind==='player'?'player-side-walk-frame.png':'cat-side-squash-more.png'):`${kind}_side.png`;
-        const href=`./images/character/${kind}/${file}`;
-        if(img.getAttribute('href')!==href)img.setAttribute('href',href);
+    if(summary){state.stage='fork';state=restoreState(JSON.stringify(state));save();render();return;}
+    setHeader('당신이 그린 숲길','','');
+    const viewport=el('div','road-explore-viewport'),sheet=el('section','road-ink-map road-explore-map');
+    sheet.setAttribute('aria-label','당신이 그린 숲길 탐험 지도');
+    sheet.append(el('h2','road-sr-only','당신이 그린 숲길'));
+    const description=el('p','road-sr-only road-explore-description');
+    description.setAttribute('aria-live','polite');sheet.append(description);
+    const canvas=el('canvas','road-ink-canvas');canvas.setAttribute('aria-hidden','true');sheet.append(canvas);
+    const action=button('',interact,'road-explore-action');action.hidden=true;sheet.append(action);
+    for(const [direction,label] of [['left','A'],['right','D']]){
+        const control=button('',()=>{},'road-explore-move');
+        control.dataset.direction=direction;control.setAttribute('aria-label',direction==='left'?'왼쪽으로 걷기':'오른쪽으로 걷기');
+        control.textContent=label;
+        control.addEventListener('pointerdown',event=>{
+            event.preventDefault();if(state.stage!=='map'||modal.open||chatOpen)return;
+            keys.clear();keys.add(direction);control.setPointerCapture(event.pointerId);
+        });
+        for(const event of ['pointerup','pointercancel','lostpointercapture'])control.addEventListener(event,()=>keys.delete(direction));
+        control.addEventListener('keydown',event=>{if([' ','Enter'].includes(event.key)){event.preventDefault();keys.add(direction);}});
+        control.addEventListener('keyup',()=>keys.delete(direction));sheet.append(control);
     }
-    const chart=view.querySelector('.road-chart');
-    if(chart&&chart.scrollWidth>chart.clientWidth){const svg=chart.querySelector('svg');chart.scrollLeft=clamp(point.x/1000*svg.clientWidth-chart.clientWidth/2,0,chart.scrollWidth-chart.clientWidth);}
+    viewport.append(sheet);view.append(viewport);
+    const resize=()=>{
+        const width=Math.min(800,Math.max(480,Math.round(viewport.clientWidth)));
+        if(mapRenderer&&canvas.width===width)return;
+        sheet.style.aspectRatio=width+'/480';
+        mapRenderer=createInkMap(canvas,{width});
+        if(!mapMotion||mapMotion.route!==explorationRoute(state.completedPaths)||mapMotion.width!==width){
+            mapMotion=createExplorationMotion(state,width);restorePuzzleView(state,mapMotion);
+        }
+        delete sheet.dataset.status;
+        drawMap();
+    };
+    resize();mapResizeObserver=new ResizeObserver(resize);mapResizeObserver.observe(viewport);
 }
-function renderPuzzle(kind){
-    renderMap();
-    const map=view.querySelector('.road-map-parchment');map.inert=true;map.setAttribute('aria-hidden','true');
+function drawMap(dt=0){
+    if(!mapRenderer||!mapMotion)return;
+    updateExplorationMotion(mapMotion,state,dt);mapRenderer.drawExploration(state,mapMotion);
+    const at=mapEncounter(state),sheet=view.querySelector('.road-explore-map');if(!sheet)return;
+    const puzzleOpen=isPuzzleOpen(state),celebrating=isCelebrating(mapMotion);
+    sheet.dataset.cameraX=mapMotion.cameraX.toFixed(2);sheet.dataset.distance=state.mapDistance.toFixed(2);
+    sheet.dataset.blocked=at?.id??'';sheet.dataset.furthest=state.mapFurthest.toFixed(2);
+    sheet.dataset.isBlocked=String(Boolean(at)||celebrating);sheet.dataset.puzzleOpen=String(puzzleOpen);
+    sheet.dataset.clearedNodes=state.completed.map(puzzleNodeId).filter(Boolean).join(',');
+    sheet.dataset.clearEffect=mapMotion.clearEffect?.nodeId??'';
+    const action=sheet.querySelector('.road-explore-action'),status=puzzleOpen?'puzzle:'+state.stage:celebrating?'clearing':at?.id??'walking';
+    if(sheet.dataset.status!==status){
+        sheet.dataset.status=status;action.hidden=!at||puzzleOpen||celebrating;action.disabled=action.hidden;action.dataset.encounter=at?.id??'';
+        sheet.querySelectorAll('.road-explore-move').forEach(b=>{b.disabled=puzzleOpen||celebrating;});
+        if(at&&!puzzleOpen){
+            const label=at.id==='battle'?'늑대와 마주하기 [E]':'구간 갈아끼우기 [E]';
+            action.textContent=label;
+        }
+        sheet.querySelector('.road-explore-description').textContent=puzzleOpen?'오른쪽 퍼즐 패널에서 구간을 갈아끼우는 중입니다. 지도 이동은 잠시 멈춥니다.':celebrating?'돌이 사라지고 잉크 길이 이어졌습니다.':at?'! 여기 장애물이 있다 ! '+at.label+'. A/D 또는 좌우 방향키로 이동 (막힘). E로 '+(at.id==='battle'?'늑대와 마주하기.':'구간 갈아끼우기.'):'A/D 또는 좌우 방향키로 직접 그린 잉크 길을 탐험하세요.';
+    }
+}
+function openPuzzle(nodeId){
+    if(!openNodePuzzle(state,nodeId,mapMotion))return;
+    keys.clear();root.dataset.stage=state.stage;helpStage=state.stage;puzzleMistakes=0;helpSuggested=false;hideHelpNudge();save();
+    renderPuzzle({nodeId});view.querySelector('.road-puzzle-dock [tabindex="0"]')?.focus({preventScroll:true});
+}
+function closePuzzlePanel(){
+    view.querySelector('.road-puzzle-dock')?.remove();
+    const sheet=view.querySelector('.road-explore-map');if(sheet)delete sheet.dataset.puzzleNode;
+    root.dataset.stage=state.stage;keys.clear();helpStage=state.stage;puzzleMistakes=0;helpSuggested=false;hideHelpNudge();drawMap();save();
+}
+function cancelPuzzle(){
+    if(!cancelNodePuzzle(state))return;
+    closePuzzlePanel();view.querySelector('.road-explore-action')?.focus({preventScroll:true});
+}
+function onPuzzleSuccess(nodeId){
+    if(!completeNodePuzzle(state,nodeId,mapMotion))return false;
+    closePuzzlePanel();view.focus({preventScroll:true});announce('돌이 사라지고 길이 이어졌습니다. 티니와 다시 걸어 보세요.');return true;
+}
+function renderPuzzle({nodeId}){
+    const kind=NODE_PUZZLES[nodeId];if(!kind)return;
+    if(!view.querySelector('.road-explore-map'))renderMap();
+    const map=view.querySelector('.road-explore-map');
+    map.querySelector('.road-puzzle-dock')?.remove();map.dataset.puzzleNode=nodeId;
+    drawMap();
     const title=kind==='pond'?'연못 건너기':'암벽 오르기';
     setHeader(title,'');
-    const overlay=el('div','road-puzzle-overlay'),popup=el('section','road-puzzle-popup');popup.setAttribute('role','dialog');popup.setAttribute('aria-labelledby','road-puzzle-title');
+    const popup=el('section','road-puzzle-popup road-puzzle-dock');popup.dataset.nodeId=nodeId;
+    popup.setAttribute('role','dialog');popup.setAttribute('aria-modal','false');popup.setAttribute('aria-labelledby','road-puzzle-title');
+    popup.append(el('p','road-puzzle-kicker','구간 갈아끼우기 · '+String(nodeId).padStart(2,'0')));
     const top=el('header','road-puzzle-titlebar'),heading=el('h2','',title);heading.id='road-puzzle-title';
-    const close=button('×',()=>changeStage('map'));close.setAttribute('aria-label','퍼즐 닫기');top.append(heading,close);popup.append(top);
+    const close=button('×',cancelPuzzle);close.setAttribute('aria-label','퍼즐 닫기');top.append(heading,close);popup.append(top);
     const wrap=el('div',`road-puzzle-wrap ${kind}`),board=el('div','road-puzzle-board');board.setAttribute('role','group');board.setAttribute('aria-label',kind==='pond'?'연못의 돌판':'암벽의 숫자판');
     for(let i=0;i<16;i++){const current=state.puzzle[kind]===i,b=button('',()=>selectStone(kind,i),'road-stone');b.dataset.cell=i;b.tabIndex=current?0:-1;b.classList.toggle('is-current',current);
         if(kind==='pond'){
@@ -321,32 +373,36 @@ function renderPuzzle(kind){
         b.setAttribute('aria-label',`${Math.floor(i/4)+1}행 ${i%4+1}열, ${kind==='pond'?POND[i].join(' '):CLIMB[i]}${current?', 현재 위치':''}${kind==='pond'&&i===15?', 도착':''}`);board.append(b);
     }
     board.addEventListener('keydown',e=>{const dirs={ArrowLeft:-1,ArrowRight:1,ArrowUp:-4,ArrowDown:4};if(!(e.key in dirs))return;e.preventDefault();e.stopPropagation();const from=Number(e.target.dataset.cell);if(!Number.isInteger(from))return;board.querySelector(`[data-cell="${clamp(from+dirs[e.key],0,15)}"]`)?.focus();});
-    const actions=el('div','road-actions');actions.append(el('span','road-puzzle-progress',`${(kind==='pond'?state.pondTrail:state.climbTrail).length} / 16`),button('다시',()=>{state.puzzle[kind]=0;if(kind==='pond')state.pondTrail=[];else state.climbTrail=[];save();render();view.querySelector('[data-cell="0"]')?.focus({preventScroll:true});}));
-    wrap.append(board,actions);popup.append(wrap);overlay.append(popup);view.append(overlay);
+    const actions=el('div','road-actions');actions.append(el('span','road-puzzle-progress',`${(kind==='pond'?state.pondTrail:state.climbTrail).length} / 16`),button('다시',()=>{state.puzzle[kind]=0;if(kind==='pond')state.pondTrail=[];else state.climbTrail=[];save();renderPuzzle({nodeId});view.querySelector('[data-cell="0"]')?.focus({preventScroll:true});}));
+    wrap.append(board,actions);popup.append(wrap);map.append(popup);
 }
 function selectStone(kind,index){
     {
         const result=kind==='pond'?pressPondStone(state,index):pressClimbStone(state,index);
         if(result==='wrong'||result==='reset')recordPuzzleMistake();
         if(result==='wrong'){announce('순서가 맞지 않습니다. 흰 칸은 유지됩니다.');return;}
-        if(result==='reset'){save();render();view.querySelector('[data-cell="0"]')?.focus({preventScroll:true});announce('순서가 틀려 모두 초기화되었습니다. 시작 칸부터 다시 눌러 주세요.');return;}
+        if(result==='reset'){save();renderPuzzle({nodeId:puzzleNodeId(kind)});view.querySelector('[data-cell="0"]')?.focus({preventScroll:true});announce('순서가 틀려 모두 초기화되었습니다. 시작 칸부터 다시 눌러 주세요.');return;}
     }
     puzzleMistakes=0;hideHelpNudge();
     state.puzzle[kind]=index;
-    if(finishPuzzle(state,kind)){save();render();view.focus();announce('길이 열렸다. 지도 위에서 다음 구역으로 이동하자.');}
-    else{save();render();view.querySelector(`[data-cell="${index}"]`)?.focus({preventScroll:true});}
+    if(!onPuzzleSuccess(puzzleNodeId(kind))){save();renderPuzzle({nodeId:puzzleNodeId(kind)});view.querySelector(`[data-cell="${index}"]`)?.focus({preventScroll:true});}
 }
 function interact(){
     if(!active()||modal.open||chatOpen)return;
     if(state.stage==='forest'){const target=nearbyForestTarget(state.player);if(target)interactForest(target);else announce('주변의 수풀이나 돌에 조금 더 가까이 다가가 보자.');}
-    else if(state.stage==='map'){const next=nextCheckpoint(state),metric=routeMetrics(state.choices);if(next&&Math.abs(state.mapDistance-metric.distances[next.at])<0.1)changeStage(next.id==='battle'?'battleReady':next.id);else announce('지도의 길을 따라 다음 구역으로 이동하자.');}
+    else if(state.stage==='map'){
+        const at=mapEncounter(state);
+        if(!at){announce('잉크 길을 따라 다음 구역으로 이동하세요.');return;}
+        if(at.id==='battle'){changeStage('battleReady');$('#show-battle').click();}
+        else openPuzzle(at.at);
+    }
 }
 function helpAnswer(command){
     const stage=state.stage;
     if(stage==='forest')return{hint:state.notes.length?'쪽지에서 남이 권한 길과 실제로 걸은 길을 구분해 보세요.':'수풀과 돌 주변을 살펴보세요. 가까이 가면 조사할 수 있는 곳에 E가 나타나요.',plan:'수풀과 돌에 가까이 가서 E가 나타나면 조사해 보세요. 네 쪽지에서 실제로 선택한 숫자를 표지판의 상징 순서로 놓으면 돼요.',solve:'잎은 3, 달은 1, 비는 4, 별은 2예요. 표지판의 암호는 3142입니다.'}[command];
     if(stage==='pond'||stage==='climb'){const path=solvePuzzle(stage,state.puzzle[stage],stage==='climb'?state.climbTrail:[]);return{hint:stage==='pond'?'발가락이 향하는 방향과 발자국 개수를 함께 보세요.':'두 자리 숫자는 서로 다른 축을 가리켜요.',plan:stage==='pond'?'시작 칸부터 누르고 발자국 방향으로 발자국 개수만큼 떨어진 칸을 누르세요. 16칸을 순서대로 밝히세요. 흰 칸이 4개 이상일 때 틀리면 초기화돼요.':'십의 자리는 좌우 거리, 일의 자리는 상하 거리예요. 12라면 좌우 1칸과 상하 2칸을 함께 이동한 칸이에요. 0인 축은 움직이지 않아요. 시작 칸부터 16칸을 중복 없이 모두 밝히세요.',solve:path.length?`현재 위치에서 ${path.map(i=>`${Math.floor(i/4)+1}행 ${i%4+1}열`).join(' → ')} 순서로 이동하세요.`:'여기서는 출구로 이어지지 않아요. 퍼즐을 다시 시작한 뒤 경로를 확인해 보세요.'}[command];}
-    if(stage==='fork'){const q=scenario(state);return{hint:'추천의 이유와 내가 중요하게 생각하는 것을 나란히 놓아 보세요.',plan:'↑·↓로 갈래를 향해 걷고 →로 계속 걸으세요. 길 끝에 도착하면 선택이 기록돼요. 제 추천과 달라도 편하게 걸어가세요. 제가 따라갈게요.',solve:`저는 ‘${q.options[q.recommended]}’을 추천해요. ${q.reason} 이 상황에 하나의 정답이 있는 것은 아니에요.`}[command];}
-    if(stage==='map')return{hint:'당신이 만든 지도에 다음 장애물이 표시되어 있어요.',plan:'화살표나 WASD로 길을 따라 이동하고, 장애물에 도착하면 E로 살펴보세요. 퍼즐을 풀면 같은 지도로 돌아와요.',solve:`다음 구역은 ${nextCheckpoint(state).label}입니다. 앞으로 이동하다 멈추는 지점에서 E를 누르세요.`}[command];
+    if(stage==='fork'){const q=forkScenario();return{hint:'추천의 이유와 내가 중요하게 생각하는 것을 나란히 놓아 보세요.',plan:'WASD 또는 방향키로 원하는 곳으로 걸어가세요. 저는 추천 길로 계속 당겨요. 대각선으로 움직이거나 되돌아가며 방향을 조절할 수 있어요. 랜드마크에 도착하면 선택이 기록돼요.',solve:`저는 ‘${q.options[q.recommended]}’을 추천해요. ${q.reason} 이 상황에 하나의 정답이 있는 것은 아니에요.`}[command];}
+    if(stage==='map')return{hint:'당신이 만든 지도에 다음 장애물이 표시되어 있어요.',plan:'A/D 또는 좌우 방향키로 잉크 길을 따라 걸어 보세요. 장애물 앞에서 E를 누르면 오른쪽 퍼즐로 구간을 갈아끼울 수 있어요. 퍼즐을 풀면 같은 자리에서 길이 이어져요.',solve:`다음 구역은 ${nextCheckpoint(state).label}입니다. 앞으로 이동하다 멈추는 지점에서 E를 누르세요.`}[command];
     return '도움이 필요한 숲, 갈림길, 지도, 퍼즐에서 다시 불러 주세요.';
 }
 function showHelp(){
@@ -400,6 +456,7 @@ $('#road-help').addEventListener('click',showHelp);
 $('#road-restart').addEventListener('click',()=>{const b=openModal('새로운 여정');b.append(paragraph('지금까지의 Road 진행과 기록을 지우고 숲에서 다시 시작할까요?'),button('처음부터 시작',()=>{state=freshState();chatInput.value='';closeModal();save();render();}),button('계속하기',closeModal));});
 $('#road-interact').addEventListener('click',interact);
 function render(){
+    mapResizeObserver?.disconnect();mapResizeObserver=null;mapRenderer=null;
     if(helpStage!==state.stage){helpStage=state.stage;puzzleMistakes=0;helpSuggested=false;hideHelpNudge();}
     root.dataset.stage=state.stage;
     const forestScene=hasForestScene(), forestPopup=forestPopupStages.has(state.stage);
@@ -408,10 +465,10 @@ function render(){
     flowDialog.replaceChildren();
     view.replaceChildren();view.scrollTop=0;view.className=`road-view road-stage-${forestScene?'forest':state.stage}`;updateResources();$('#road-controls').hidden=!['forest','fork','map'].includes(state.stage);
     if(forestScene)renderForest();
-    if(state.stage==='routeMissing'){setHeader('경로를 찾을 수 없습니다','');renderCard('','탈출하려면 당신에게 맞는 경로가 필요합니다.','이 숲을 지나는 길을 만들어 주세요.',[['계속',()=>changeStage('contract')]]);}
-    else if(state.stage==='contract'){setHeader('자율성 계약','');renderCard('','나는 내 인생에 주도권을 가지는 것에 동의한다.','동의하지 않으면 여정을 진행할 수 없습니다.',[['동의',()=>changeStage('topic')],['동의하지 않음',()=>changeStage('stopped')]]);}
+    if(state.stage==='routeMissing')intro('routeMissing');
+    else if(state.stage==='contract')intro('contract');
     else if(state.stage==='stopped'){setHeader('여정이 종료되었습니다','');renderCard('','당신은 동의하지 않았습니다.','이곳에서 여정이 멈췄습니다.',[['처음부터 다시 시작',()=>{state=freshState();chatInput.value='';save();render();}]]);}
-    else if(state.stage==='topic')renderTopic();else if(state.stage==='fork')renderFork();else if(state.stage==='summary')renderMap(true);else if(state.stage==='map')renderMap();else if(state.stage==='pond'||state.stage==='climb')renderPuzzle(state.stage);
+    else if(state.stage==='topic')renderTopic();else if(state.stage==='fork')renderFork();else if(state.stage==='summary')renderMap(true);else if(state.stage==='map')renderMap();else if(isPuzzleOpen(state))renderPuzzle({nodeId:puzzleNodeId(state.stage)});
     else if(state.stage==='battleReady'){setHeader('길 위의 낯선 그림자','');renderCard('늑대와 마주침','탈출하는 길에서 늑대와 마주쳤다.','티니가 당신 곁에 멈춰 섭니다.',[['늑대와 마주하기',()=>$('#show-battle').click()],['지도로 돌아가기',()=>changeStage('map')]]);}
     if(forestPopup&&root.classList.contains('screen-active')){
         closeHelp(false);
@@ -425,11 +482,12 @@ window.addEventListener('keydown',e=>{
     if(chatOpen){if(e.key==='Escape'&&!e.isComposing){e.preventDefault();closeHelp();}return;}
     if(modal.open||flowDialog.open||e.target.matches('input,textarea,select'))return;
 
-    if(['pond','climb'].includes(state.stage)&&e.key==='Escape'){e.preventDefault();changeStage('map');return;}
+    if(isPuzzleOpen(state)&&e.key==='Escape'){e.preventDefault();cancelPuzzle();return;}
 
-    if(state.stage==='fork'&&e.key==='Escape'){
-        toggleForkWindow('question',false);toggleForkWindow('recommendation',false);forkQuestionShown=true;forkRecommendationShown=true;view.focus({preventScroll:true});return;
+    if(state.stage==='fork'&&['Escape',' '].includes(e.key)&&!e.target.closest('button')){
+        e.preventDefault();if(!e.repeat)view.querySelector('.road-ink-pause')?.click();return;
     }
+    if(state.stage==='fork'&&state.inkJourney.phase!==STAGE_STATE.ACTIVE)return;
     const key=e.key.toLowerCase();if(key==='e'){e.preventDefault();interact();return;}const dir=keyMap[key];if(!dir||!['forest','fork','map'].includes(state.stage))return;e.preventDefault();
     keys.add(dir);
 });
@@ -447,27 +505,52 @@ function frame(time){
         animationTime+=dt;saveElapsed+=dt;const dx=Number(keys.has('right'))-Number(keys.has('left')),dy=Number(keys.has('down'))-Number(keys.has('up'));
         if(state.stage==='forest'){const length=Math.hypot(dx,dy)||1,x=state.player.x+dx/length*180*dt,y=state.player.y+dy/length*180*dt;if(canWalk(x,state.player.y))state.player.x=x;if(canWalk(state.player.x,y))state.player.y=y;positionForest(dx,dy);}
         else if(state.stage==='fork'){
-            advanceForkIntro(dt);state.fork.seconds+=dt;
-            const reading=!view.querySelector('#road-fork-question').hidden||!view.querySelector('#road-fork-recommendation').hidden;
-            if((dx||dy)&&!forkTransition){
-                forkReady=true;
-                // Up/down nudge one lane at a time. This makes the middle lane
-                // reachable again after steering to either outside branch.
-                if(dy&&dy!==forkLastSteer)state.fork.lane=clamp(state.fork.lane+Math.sign(dy),0,2);
-                forkLastSteer=dy;
-                walkFork(state,dx||Number(dy!==0),0,dt);
-            }else if(!dy)forkLastSteer=0;
-            const movingFork=forkReady&&!reading&&(dx!==0||dy!==0);
-            if(movingFork&&forkIntroElapsed>=0.9){forkQuestionShown=true;forkRecommendationShown=true;toggleForkWindow('question',false);toggleForkWindow('recommendation',false);}
-            drawFork(dt,movingFork);
-            if(forkMotion.player.x>879){forkTransition+=dt;view.querySelector('.road-fork-desktop').classList.add('is-leaving');keys.clear();}
-            if(forkTransition>=0.45&&choose(state)){keys.clear();save();render();view.focus({preventScroll:true});announce(state.stage==='summary'?'다섯 선택이 하나의 길로 이어졌다.':'선택이 기록되었습니다. 다음 갈림길입니다.');}
+            const j=state.inkJourney;
+            if(!forkPaused){
+                if(j.phase===STAGE_STATE.ACTIVE){
+                    const input=dx!==0||dy!==0;
+                    forkIntroElapsed=input?4:forkIntroElapsed+dt;state.fork.seconds+=dt;
+                    if(forkIntroElapsed>=4)walkFork(state,dx,dy,dt);
+                    drawFork(forkIntroElapsed>=4?dt:0);
+                    if(state.fork.progress>=1){
+                        const end=forkPoint(state.fork.lane,1,state.fork.startY);
+                        forkMotion.player={...end};forkMotion.playerMoving=false;forkMotion.catMoving=false;forkMotion.tension=0;
+                        choose(state,{continuous:true});
+                        state.inkJourney.arrivalActors={player:{...forkMotion.player},cat:{...forkMotion.cat}};
+                        keys.clear();syncForkControls();save();announce('선택한 랜드마크에 도착했습니다.');
+                    }
+                }else if(j.phase!==STAGE_STATE.COMPLETE){
+                    keys.clear();
+                    if(j.phase===STAGE_STATE.ARRIVED){
+                        // Let Tiny settle beside the player; keep both in world position while panning.
+                        const rate=1-Math.exp(-8*dt);
+                        forkMotion.cat.x+=(forkMotion.player.x-24-forkMotion.cat.x)*rate;
+                        forkMotion.cat.y+=(forkMotion.player.y-forkMotion.cat.y)*rate;
+                        j.arrivalActors={player:{...forkMotion.player},cat:{...forkMotion.cat}};
+                    }
+                    if(advanceJourney(j,dt,state.completedPaths)){
+                        if(j.phase===STAGE_STATE.NEXT_FORK){
+                            forkMotion.player.x-=STAGE_SPAN;forkMotion.cat.x-=STAGE_SPAN;
+                            state.fork.ink=[[80,state.fork.startY]];forkIntroElapsed=4;
+                            forkMotion.tension=0;
+                        }
+                        syncForkControls();save();
+                        if(j.phase===STAGE_STATE.ACTIVE)announce('다음 갈림길입니다. 방향키로 원하는 길을 걸으세요.');
+                        if(j.phase===STAGE_STATE.COMPLETE)announce('다섯 번의 선택으로 완성한 전체 지도입니다.');
+                    }
+                    drawFork(0);
+                }else drawFork(0);
+            }else drawFork(0);
         }
-        else if(state.stage==='map'){advanceMap(state,dx||-dy,dt);drawMap();}
+        else if(state.stage==='map'){if(!isCelebrating(mapMotion))advanceMap(state,dx,dt);drawMap(dt);}
+        else if(isPuzzleOpen(state))drawMap(dt);
         if(saveElapsed>0.5){saveElapsed=0;save();}
     }requestAnimationFrame(frame);
 }
 export function enterRoad(){root.classList.replace('screen','screen-active');keys.clear();render();if(!flowDialog.open)view.focus({preventScroll:true});}
 export function exitRoad(){closeHelp(false);root.classList.replace('screen-active','screen');keys.clear();if(modal.open)closeModal();if(flowDialog.open)flowDialog.close();save();}
 export function getCurrentRoadBattleBackground(){return state.stage==='forest'?'./images/battle/battle_bg_green.png':'./images/battle/battle_bg_white.png';}
+export function getEndingJourney(){return {choices:state.choices,events:state.events,battles:state.battleHistory||[],notes:state.notes,completed:state.completed,pondTrail:state.pondTrail,climbTrail:state.climbTrail};}
+export function saveBattleChoice(turn){state.battleHistory??=[];if(!state.battleHistory.includes(turn))state.battleHistory.push(turn);save();}
+export function restartJourney(){state=freshState();chatInput.value='';save();enterRoad();}
 save();render();requestAnimationFrame(frame);

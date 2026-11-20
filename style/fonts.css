@@ -1,0 +1,28 @@
+@font-face {
+    font-family: 'DungGeunMo';
+    src: url('../fonts/DungGeunMo.woff2') format('woff2');
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'NeoDGMCode';
+    src: url('../fonts/neodgm_code.woff') format('woff');
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+:root {
+    --game-font-body: 'DungGeunMo', monospace;
+    --game-font-emphasis: 'NeoDGMCode', 'DungGeunMo', monospace;
+}
+#Road, #Ending { font-synthesis: none; }
+#Road :is(h1,h2,h3,h4,h5,h6),
+#Ending :is(h1,h2,h3,h4,h5,h6,strong,b) {
+    /* Keep headings emphatic even inside components with font shorthands. */
+    font-family: var(--game-font-emphasis) !important;
+}
+#Road :is(.intro-title,.road-map-title,.road-map-heading h2,.road-ink-map h2) {
+    font-family: var(--game-font-emphasis) !important;
+}
+#Road .intro-title { font-family: var(--game-font-body) !important; }
