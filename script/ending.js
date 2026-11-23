@@ -1,34 +1,17 @@
-import {endingRecords,endingScenes,constellationName,starPositions,endingAnimation,ENDING_DURATION} from './ending-model.js';
+import {endingRecords,endingScenes,constellationName,constellationTheme,starPositions,endingAnimation,ENDING_DURATION} from './ending-model.js';
+import {starAppearance,drawChoiceStar,drawNightDetails,drawStarlight} from './ending-art.js';
+import {drawDiorama} from './ending-diorama.js';
 import { BODY_FONT, EMPHASIS_FONT, gameFontsReady } from './game-fonts.js';
 
 const background=new Image();
 background.src='./images/ending/night-sky.png';
-const STAR=['000010000','000010000','000111000','001111100','111111111','001111100','000111000','000010000','000010000'];
-// Bresenham on a two-pixel grid: no antialiased paths or strokes.
-function pixelLine(ctx,x0,y0,x1,y1,color,step=2){
-    x0=Math.round(x0/step);y0=Math.round(y0/step);x1=Math.round(x1/step);y1=Math.round(y1/step);
-    const dx=Math.abs(x1-x0),sx=x0<x1?1:-1,dy=-Math.abs(y1-y0),sy=y0<y1?1:-1;
-    let error=dx+dy;ctx.fillStyle=color;
-    while(true){ctx.fillRect(x0*step,y0*step,step,step);if(x0===x1&&y0===y1)break;const e=error*2;if(e>=dy){error+=dy;x0+=sx;}if(e<=dx){error+=dx;y0+=sy;}}
-}
-function pixelStar(ctx,x,y,record,selected,formation=1){
-    const unit=1,ox=Math.round(x)-4,oy=Math.round(y)-4;
-    const color=record.black?'#080b10':record.accepted===true?'#8eafbf':record.accepted===false?'#d5b773':'#d4d5c8';
-    const cells=[];STAR.forEach((row,y)=>[...row].forEach((value,x)=>{if(value==='1')cells.push([x,y]);}));
-    ctx.fillStyle=record.black?'#eee4c5':'#162330';
-    if(formation===1)for(const [x,y] of cells)for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])ctx.fillRect(ox+(x+dx)*unit,oy+(y+dy)*unit,unit,unit);
-    ctx.fillStyle=color;for(const [x,y] of cells){const drift=(1-formation)*4;ctx.fillRect(Math.round(ox+x*unit+(x-4)*drift),Math.round(oy+y*unit+(y-4)*drift),unit,unit);}
-    if(record.tokenUsed){const ring=[[-14,-6],[-6,-14],[6,-14],[14,-6],[14,6],[6,14],[-6,14],[-14,6],[-14,-6]];for(let i=1;i<ring.length;i++)pixelLine(ctx,x+ring[i-1][0],y+ring[i-1][1],x+ring[i][0],y+ring[i][1],'#a89970');}
-    if(selected){for(const sx of [-1,1])for(const sy of [-1,1]){pixelLine(ctx,x+sx*19,y+sy*13,x+sx*19,y+sy*19,'#f1dfaf');pixelLine(ctx,x+sx*13,y+sy*19,x+sx*19,y+sy*19,'#f1dfaf');}}
-}
-
 export function createEnding({onRestart}){
-    const root=document.createElement('section');root.id='Ending';root.className='screen ending-screen';
-    root.innerHTML=`<div class="ending-art"><canvas aria-hidden="true"></canvas><header class="ending-heading"><h1></h1><p>별을 눌러 그 순간의 기억을 펼쳐보세요</p><small data-token hidden>결정적인 순간에 토큰을 사용한 여정</small></header><div class="ending-stars" role="group" aria-label="선택 기록 별자리"></div><p class="ending-empty" hidden>아직 기록된 선택이 없습니다.</p></div><button type="button" class="ending-skip" data-skip>별자리 펼치기</button><article class="ending-record" aria-label="선택한 별의 기록" tabindex="-1" aria-live="polite" hidden></article><div class="ending-actions"><button type="button" class="ending-small-button" data-save>별자리 기록 저장</button><button type="button" class="ending-small-button" data-restart>처음으로</button></div><p role="status" data-status></p><dialog aria-labelledby="ending-reset-title"><h2 id="ending-reset-title">처음으로 돌아갈까요?</h2><p>게임 상태와 선택 기록을 초기화하고 새 여정을 시작합니다.</p><button type="button" data-cancel>취소</button><button type="button" data-confirm>처음부터 시작</button></dialog>`;
+    const root=document.createElement('section');root.id='Ending';root.className='screen ending-screen';root.tabIndex=-1;
+    root.innerHTML=`<div class="ending-art"><canvas aria-hidden="true"></canvas><header class="ending-heading"><h1></h1><p>별을 눌러 그 순간의 기억을 펼쳐보세요</p><div class="ending-legend" aria-label="별의 색과 모양 안내"><span data-kind="followed"><i aria-hidden="true"></i>티니의 추천을 따른 선택</span><span data-kind="direct"><i aria-hidden="true"></i>직접 고른 선택</span><span data-kind="memory"><i aria-hidden="true"></i>여정의 기록</span></div><small data-token hidden>결정적인 순간에 토큰을 사용한 여정</small></header><div class="ending-stars" role="group" aria-label="선택 기록 별자리"></div><div class="ending-tooltip" id="ending-star-tip" role="tooltip" hidden></div><p class="ending-empty" hidden>아직 기록된 선택이 없습니다.</p></div><button type="button" class="ending-skip" data-skip>별자리 펼치기</button><article class="ending-record" aria-label="선택한 별의 기록" tabindex="-1" aria-live="polite" hidden></article><div class="ending-actions"><button type="button" class="ending-small-button" data-save>별자리 기록 저장</button><button type="button" class="ending-small-button" data-restart>처음으로</button></div><p role="status" data-status></p><dialog aria-labelledby="ending-reset-title"><h2 id="ending-reset-title">처음으로 돌아갈까요?</h2><p>게임 상태와 선택 기록을 초기화하고 새 여정을 시작합니다.</p><button type="button" data-cancel>취소</button><button type="button" data-confirm>처음부터 시작</button></dialog>`;
     document.querySelector('main').append(root);
     const $=s=>root.querySelector(s),canvas=$('canvas'),ctx=canvas.getContext('2d'),stars=$('.ending-stars'),panel=$('.ending-record'),dialog=$('dialog');
-    let records=[],positions=[],points=[],title='',selected=-1,focused=0,tokenUsed=false,active=false;
-    let animationFrame,startTime=0,elapsed=0,lastPaint=0;
+    let records=[],positions=[],points=[],title='',theme='traveler',selected=-1,focused=0,hovered=-1,hoverStart=0,tokenUsed=false,active=false;
+    let animationFrame,startTime=0,elapsed=0,lastPaint=0,ambientTime=0,ambientStart=0;
     const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
     function backgroundRect(width,height){
         const ratio=(background.naturalWidth||1672)/(background.naturalHeight||941);
@@ -37,59 +20,65 @@ export function createEnding({onRestart}){
         return {x:Math.max(width-w,Math.min(0,width/2-w*.34)),y:width/height<.8?height-h:Math.max(height-h,Math.min(0,height*.8-h*.8)),w,h};
     }
     function layout(width,height){
-        const bg=backgroundRect(width,height),top=height<500?100:Math.max(145,height*.20);
-        const bottom=Math.max(top+50,Math.min(height*.55,bg.y+bg.h*.57));
-        const w=Math.min(records.length<5?400:540,width*.78),h=Math.min(records.length<5?180:280,bottom-top);
+        const bg=backgroundRect(width,height),top=height<500?140:Math.max(190,height*.27);
+        const bottom=Math.max(top+50,Math.min(height*.62,bg.y+bg.h*.60));
+        const w=Math.min(records.length<5?400:680,width*.78),h=Math.min(records.length<5?180:300,bottom-top);
         return positions.map(p=>({x:Math.round(width/2+(p.x-.5)/.76*w),y:Math.round(top+(p.y-.24)/.28*h)}));
     }
     function draw(context,width,height,selection=false,exportTitle=false){
+        const still=exportTitle||reducedMotion.matches,time=still?0:ambientTime;
         context.imageSmoothingEnabled=false;context.fillStyle='#091526';context.fillRect(0,0,width,height);
-        if(background.complete&&background.naturalWidth){const b=backgroundRect(width,height);context.drawImage(background,Math.round(b.x),Math.round(b.y),Math.ceil(b.w),Math.ceil(b.h));}
+        if(background.complete&&background.naturalWidth)drawDiorama(context,background,backgroundRect(width,height),time,still);
         const coords=layout(width,height);
         const animation=endingAnimation(exportTitle?ENDING_DURATION:elapsed,reducedMotion.matches),done=['complete','settle','fade'].includes(animation.phase);
-        if(animation.phase==='dim'||animation.phase==='gather'){
-            const xs=coords.map(p=>p.x),ys=coords.map(p=>p.y);context.fillStyle='#091526';context.globalAlpha=.14;
-            context.fillRect(Math.min(...xs)-25,Math.min(...ys)-25,Math.max(...xs)-Math.min(...xs)+50,Math.max(...ys)-Math.min(...ys)+50);context.globalAlpha=1;
-        }
-        if(animation.phase==='gather'){
-            const center={x:width/2,y:coords.reduce((sum,p)=>sum+p.y,0)/9};context.fillStyle='#c6ba96';
-            for(let i=0;i<8;i++){const angle=i*2.4,r=(1-animation.progress)*(18+i*4);context.fillRect(Math.round(center.x+Math.cos(angle)*r),Math.round(center.y+Math.sin(angle)*r),2,2);}
-        }
-        for(let i=1;i<9;i++){
-            const progress=done||i<animation.step?1:i===animation.step?Math.min(1,animation.local/.65):0;if(!progress)continue;
-            const a=coords[i-1],b=coords[i],head={x:a.x+(b.x-a.x)*progress,y:a.y+(b.y-a.y)*progress};
-            const gold=!exportTitle&&animation.phase==='trace'&&i>=animation.step-1;
-            context.globalAlpha=animation.phase==='fade'?animation.progress:1;
-            pixelLine(context,a.x,a.y,head.x,head.y,gold?'#b9a779':'#929f9e',1);context.globalAlpha=1;
-            if(progress<1){context.fillStyle='#dac89d';context.fillRect(Math.round(head.x)-1,Math.round(head.y)-1,2,2);context.fillRect(Math.round(head.x)-4,Math.round(head.y)+3,1,1);}
+        drawNightDetails(context,width,height,coords,time,still,theme);
+        for(let i=1;i<records.length;i++){
+            const progress=done||i<animation.step?1:i===animation.step?Math.min(1,animation.local/.8):0;
+            context.save();context.globalAlpha=animation.phase==='fade'?animation.progress:1;
+            drawStarlight(context,coords[i-1],coords[i],starAppearance(records[i]).color,progress);context.restore();
         }
         records.forEach((record,i)=>{
             const built=done||i<animation.step,forming=animation.phase==='trace'&&i===animation.step;
-            const formation=built?1:forming?Math.max(0,Math.min(1,(animation.local-.65)/.35)):1;
-            const visible=built||forming&&animation.local>=.65;
-            const fade=animation.phase==='fade'?animation.progress:1;
-            context.globalAlpha=(record.hasRecord?1:.28)*(visible?.85:.2)*fade;
-            if(animation.phase==='settle')context.globalAlpha*=1+.15*Math.sin(animation.progress*Math.PI);
-            if(exportTitle||animation.phase==='complete')context.globalAlpha=record.hasRecord?1:.28;
-            pixelStar(context,coords[i].x,coords[i].y,record,selection&&i===selected,formation);context.globalAlpha=1;
+            const formation=built?1:forming?Math.min(1,animation.local/.2):0;
+            const travel=forming&&i>0?Math.min(1,animation.local/.8):1;
+            const star=forming&&i>0?{x:coords[i-1].x+(coords[i].x-coords[i-1].x)*travel,y:coords[i-1].y+(coords[i].y-coords[i-1].y)*travel}:coords[i];
+            context.save();context.globalAlpha=(record.hasRecord?1:.4)*(animation.phase==='fade'?animation.progress:1);
+            drawChoiceStar(context,star.x,star.y,record,{highlight:selection&&(i===hovered||i===selected),selected:selection&&i===selected,time:forming?0:time,index:i,formation,ripple:selection&&!still&&i===hovered?time-hoverStart:null});
+            if(formation>0&&travel===1){context.globalAlpha*=.65;context.fillStyle=starAppearance(record).color;context.font='10px '+BODY_FONT;context.textAlign='center';context.fillText(String(i+1).padStart(2,'0'),coords[i].x,coords[i].y+34);}
+            context.restore();
         });
         if(exportTitle){
             context.fillStyle='#ead298';context.textAlign='center';context.font=`${width<600?18:24}px ${EMPHASIS_FONT}`;context.fillText(title,width/2,40,width-32);
-            if(tokenUsed){context.font=`12px ${BODY_FONT}`;context.fillText('결정적인 순간에 토큰을 사용한 여정',width/2,66,width-24);}
+            context.font='11px '+BODY_FONT;context.fillStyle='#b09a70';context.fillText('✦ 티니의 추천을 따른 선택',width/2,64,width-32);context.fillStyle='#82958e';context.fillText('✧ 직접 고른 선택',width/2,82,width-32);
+            if(tokenUsed){context.font=`12px ${BODY_FONT}`;context.fillText('결정적인 순간에 토큰을 사용한 여정',width/2,102,width-24);}
         }
     }
     function render(){
         root.dataset.animation=endingAnimation(elapsed,reducedMotion.matches).phase;
         draw(ctx,canvas.width,canvas.height,true);
         [...stars.children].forEach((button,i)=>{button.style.left=`${points[i]?.x||0}px`;button.style.top=`${points[i]?.y||0}px`;button.classList.toggle('is-selected',i===selected);button.setAttribute('aria-pressed',String(i===selected));button.tabIndex=i===focused?0:-1;});
+        positionTooltip();
     }
-    function complete(){cancelAnimationFrame(animationFrame);elapsed=ENDING_DURATION;$('[data-skip]').hidden=true;render();}
+    function positionTooltip(){
+        const tip=$('.ending-tooltip');if(hovered<0){tip.hidden=true;return;}
+        const r=records[hovered],p=points[hovered];if(!r||!p)return;
+        tip.hidden=false;tip.style.left=Math.max(116,Math.min(canvas.width-116,p.x))+'px';tip.style.top=Math.max(110,p.y-88)+'px';
+    }
+    function preview(index){
+        if(index!==hovered)hoverStart=ambientTime;
+        hovered=index;const tip=$('.ending-tooltip');tip.replaceChildren();
+        if(index>=0){const r=records[index],heading=document.createElement('strong'),text=document.createElement('span');heading.textContent=String(index+1).padStart(2,'0')+' · '+r.scene;text.textContent=starAppearance(r).label;tip.append(heading,text);}
+        render();
+    }
+    function complete(){elapsed=ENDING_DURATION;startTime=performance.now()-ENDING_DURATION;$('[data-skip]').hidden=true;render();}
     function animate(now){
-        if(!active)return;elapsed=now-startTime;
-        if(now-lastPaint>=32){render();lastPaint=now;}
-        if(endingAnimation(elapsed,reducedMotion.matches).phase==='complete'){complete();return;}
-        animationFrame=requestAnimationFrame(animate);
+        if(!active)return;elapsed=now-startTime;ambientTime=now-ambientStart;
+        if(!document.hidden&&now-lastPaint>=40){render();lastPaint=now;}
+        const done=endingAnimation(elapsed,reducedMotion.matches).phase==='complete';
+        if(done)$('[data-skip]').hidden=true;
+        if(!done||!reducedMotion.matches)animationFrame=requestAnimationFrame(animate);
     }
+    reducedMotion.addEventListener('change',()=>{if(active){cancelAnimationFrame(animationFrame);animationFrame=requestAnimationFrame(animate);}});
     function updatePanel(){
         panel.replaceChildren();if(!records.length||selected<0){panel.hidden=true;return;}
         panel.hidden=false;
@@ -101,10 +90,10 @@ export function createEnding({onRestart}){
         panel.append(list);
     }
     function closeRecord(){panel.hidden=true;selected=-1;render();stars.children[focused]?.focus({preventScroll:true});}
-    function select(index,focus=false){if(!records.length)return;complete();selected=(index+records.length)%records.length;focused=selected;updatePanel();render();if(focus)stars.children[selected].focus({preventScroll:true});}
+    function select(index,focus=false){if(!records.length)return;complete();preview(-1);selected=(index+records.length)%records.length;focused=selected;updatePanel();render();if(focus)stars.children[selected].focus({preventScroll:true});}
     function resize(){const bounds=$('.ending-art').getBoundingClientRect();if(!bounds.width)return;canvas.width=Math.round(bounds.width);canvas.height=Math.round(bounds.height);points=layout(canvas.width,canvas.height);render();}
     const resizeObserver=new ResizeObserver(resize);
-    root.addEventListener('keydown',event=>{if(dialog.open)return;if(elapsed<ENDING_DURATION)complete();if(event.key==='Escape'&&!panel.hidden){event.preventDefault();closeRecord();return;}if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();focused=(focused+(event.key==='ArrowRight'?1:-1)+9)%9;render();stars.children[focused].focus({preventScroll:true});}});
+    root.addEventListener('keydown',event=>{if(dialog.open||event.target.closest('#music-controls'))return;if(elapsed<ENDING_DURATION)complete();if(event.key==='Escape'&&hovered>=0){preview(-1);return;}if(event.key==='Escape'&&!panel.hidden){event.preventDefault();closeRecord();return;}if(event.target.closest('.ending-stars')&&(event.key==='ArrowLeft'||event.key==='ArrowRight')){event.preventDefault();focused=(focused+(event.key==='ArrowRight'?1:-1)+9)%9;render();stars.children[focused].focus({preventScroll:true});}});
     root.addEventListener('pointerdown',()=>{if(elapsed<ENDING_DURATION)complete();});
     $('[data-skip]').onclick=complete;
     $('[data-restart]').onclick=()=>dialog.showModal();$('[data-cancel]').onclick=()=>dialog.close();
@@ -114,10 +103,11 @@ export function createEnding({onRestart}){
     function hide(){active=false;cancelAnimationFrame(animationFrame);resizeObserver.disconnect();root.className='screen ending-screen';document.querySelector('.screen-navigation').hidden=false;}
     return {hide,show(journey,result){
         active=true;records=endingScenes(journey,result);positions=starPositions();title=constellationName(endingRecords(journey,result));tokenUsed=records.some(r=>r.tokenUsed)||journey.events?.some(e=>e.type==='help'&&e.cost>0);
+        theme=constellationTheme(endingRecords(journey,result));root.dataset.watermarkTheme=theme;
         root.className='screen-active ending-screen';root.dataset.result=result;root.setAttribute('aria-label',`별자리 엔딩 · ${title}`);$('h1').textContent=title;$('[data-token]').hidden=!tokenUsed;document.querySelector('.screen-navigation').hidden=true;
-        selected=-1;focused=0;stars.replaceChildren();$('[data-status]').textContent='';
-        records.forEach((r,i)=>{const button=document.createElement('button');button.type='button';button.className='ending-star';const label=`${i+1}. ${r.scene}: ${r.hasRecord?r.summary||'선택 기록 있음':'기록 없음'}${r.black?' · 검은 별':''}`;button.setAttribute('aria-label',label);button.title=label;button.dataset.index=i;button.addEventListener('click',()=>select(i,true));stars.append(button);});
-        $('.ending-empty').hidden=true;updatePanel();elapsed=0;resizeObserver.observe($('.ending-art'));resize();$('[data-skip]').hidden=false;cancelAnimationFrame(animationFrame);startTime=performance.now();lastPaint=0;animationFrame=requestAnimationFrame(animate);
-        (stars.children[0]||$('[data-save]')).focus({preventScroll:true});
+        selected=-1;focused=0;hovered=-1;stars.replaceChildren();$('[data-status]').textContent='';
+        records.forEach((r,i)=>{const button=document.createElement('button');button.type='button';button.className='ending-star';const label=`${i+1}. ${r.scene}: ${r.hasRecord?r.summary||'선택 기록 있음':'기록 없음'}${r.black?' · 검은 별':''}`;button.setAttribute('aria-label',label);button.dataset.kind=starAppearance(r).kind;button.setAttribute('aria-describedby','ending-star-tip');button.dataset.index=i;button.addEventListener('pointerenter',()=>preview(i));button.addEventListener('pointerleave',()=>preview(-1));button.addEventListener('focus',()=>{if(button.matches(':focus-visible'))preview(i);});button.addEventListener('blur',()=>preview(-1));button.addEventListener('click',()=>select(i,true));stars.append(button);});
+        $('.ending-empty').hidden=true;updatePanel();elapsed=0;resizeObserver.observe($('.ending-art'));resize();$('[data-skip]').hidden=false;cancelAnimationFrame(animationFrame);startTime=performance.now();ambientStart=startTime;ambientTime=0;lastPaint=0;animationFrame=requestAnimationFrame(animate);
+        root.focus({preventScroll:true});preview(-1);
     }};
 }

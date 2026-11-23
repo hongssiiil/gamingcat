@@ -1,8 +1,11 @@
 import { enterBattle, exitBattle, resetBattleForJourney } from "./battle.js?v=55";
-import { enterRoad, exitRoad, getEndingJourney, restartJourney } from "./road.js";
+import { enterRoad, exitRoad, getEndingJourney, restartJourney, getRoadBattleKind } from "./road.js";
 import { createEnding } from './ending.js';
-const ending=createEnding({onRestart(){resetBattleForJourney();restartJourney();}});
-document.addEventListener('journey-ended',({detail})=>{if(!['victory','escape'].includes(detail.result))return;exitRoad();exitBattle();ending.show(getEndingJourney(),detail.result);});
+import { music, initMusicControls } from './music.js';
+document.addEventListener('journey-restarted',resetBattleForJourney);
+const ending=createEnding({onRestart(){restartJourney();}});
+initMusicControls();
+document.addEventListener('journey-ended',({detail})=>{if(!['victory','escape'].includes(detail.result))return;exitRoad();exitBattle();ending.show(getEndingJourney(),detail.result);music.play('ending');});
 
 document.querySelector("#show-road").addEventListener("click", () => {
     ending.hide();
@@ -13,5 +16,5 @@ document.querySelector("#show-road").addEventListener("click", () => {
 document.querySelector("#show-battle").addEventListener("click", () => {
     ending.hide();
     exitRoad();
-    enterBattle();
+    enterBattle(getRoadBattleKind());
 });

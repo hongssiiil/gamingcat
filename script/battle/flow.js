@@ -16,16 +16,10 @@ import {
     MOLE_INITIAL_HEALTH,
     resetBattleState,
 } from "./state.js?v=37";
-import { BATTLE_STARTING_TOKENS, consumeBattleToken, renderBattleTokens } from "./token.js?v=37";
+import { consumeBattleToken, renderBattleTokens } from "./token.js?v=37";
 import { getBattleEncounterKind } from "./encounter.js?v=2";
 
-export function createBattleFlow({ state, tokenState, ui, navigation, renderer, tutorial, scheduler }) {
-    const wolfBattleMusic = new Audio("./sounds/Forest%20Final%20Boss.mp3");
-    wolfBattleMusic.loop = true;
-    wolfBattleMusic.preload = "auto";
-    const tutorialBattleMusic = new Audio("./sounds/Forest%20Final%20Boss%20tutorial.mp3");
-    tutorialBattleMusic.loop = true;
-    tutorialBattleMusic.preload = "auto";
+export function createBattleFlow({ state, tokenState, ui, navigation, renderer, tutorial, scheduler, music={play(){},stop(){}} }) {
     const battleSounds = {
         hit: new Audio("./sounds/battle-hit.wav"),
         heal: new Audio("./sounds/battle-heal.wav"),
@@ -51,20 +45,8 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
     }
 
     function updateBattleMusic() {
-        if (state.enemyKind === "mole" && tutorial.isBattleTutorialActive() && !state.ended) {
-            wolfBattleMusic.pause();
-            wolfBattleMusic.currentTime = 0;
-            tutorialBattleMusic.play().catch(() => {});
-        } else if (state.enemyKind === "wolf" && !state.ended) {
-            tutorialBattleMusic.pause();
-            tutorialBattleMusic.currentTime = 0;
-            wolfBattleMusic.play().catch(() => {});
-        } else {
-            wolfBattleMusic.pause();
-            wolfBattleMusic.currentTime = 0;
-            tutorialBattleMusic.pause();
-            tutorialBattleMusic.currentTime = 0;
-        }
+        if(state.ended)music.stop(state.enemyKind);
+        else music.play(state.enemyKind);
     }
 
     let tutorialDirectTurnPending = false;
@@ -90,6 +72,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
     }
 
     function beginTutorialIfNeeded() {
+        tutorial.stopBattleTutorial();
         tutorialDirectTurnPending = false;
         tutorialRecommendationTurnPending = false;
         tutorialAutoTurnPending = false;
@@ -103,13 +86,11 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         const spent = consumeBattleToken(tokenState, command, {
             probabilityAlreadyViewed: command === "recommendation" && state.probabilityRevealed,
         });
-        if (spent) renderBattleTokens(tokenState.tokens);
+        if (spent) {navigation.saveTokens?.();renderBattleTokens(tokenState.tokens);}
         return spent;
     }
 
-    function refillTokens() {
-        tokenState.tokens = BATTLE_STARTING_TOKENS;
-        tokenState.events = [];
+    function refreshTokens() {
         renderBattleTokens(tokenState.tokens);
     }
 
@@ -244,6 +225,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         scheduler.schedule(() => {
             exitBattle();
             if(state.enemyKind==='wolf')navigation.onWolfFinished(result);
+            else if(navigation.onTutorialFinished)navigation.onTutorialFinished(result);
             else navigation.enterRoad();
         }, 1200);
     }
@@ -495,7 +477,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
     function resetBattle() {
         scheduler.cancel();
         ui.closeBattleLossDialog();
-        refillTokens();
+        refreshTokens();
         resetBattleState(state);
         setEnemyEncounter(state.enemyKind);
         ui.setControlsLocked(state, false);
@@ -506,14 +488,16 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         showTurnRecommendation();
     }
 
-    async function enterBattle() {
+    async function enterBattle(encounterKind) {
+        refreshTokens();
         await renderer.setBattleBackground(navigation.getCurrentRoadBattleBackground());
         ui.playerStatusName.textContent = "나";
         ui.enterBattleScreen();
         ui.followRecommendationButton.focus();
-        if (!state.started || state.ended) {
-            refillTokens();
-            setEnemyEncounter(getBattleEncounterKind());
+        if (encounterKind || !state.started || state.ended) {
+            scheduler.cancel();
+            refreshTokens();
+            setEnemyEncounter(encounterKind ?? getBattleEncounterKind());
             resetBattleState(state);
             ui.updateStatusBars(state);
             beginTutorialIfNeeded();
@@ -523,10 +507,8 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
     }
 
     function exitBattle() {
-        wolfBattleMusic.pause();
-        wolfBattleMusic.currentTime = 0;
-        tutorialBattleMusic.pause();
-        tutorialBattleMusic.currentTime = 0;
+        tutorial.stopBattleTutorial();
+        music.stop(state.enemyKind);
         ui.exitBattleScreen();
     }
 

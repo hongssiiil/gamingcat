@@ -1,6 +1,11 @@
+import { puzzleHelpAnswer } from './road/puzzle-help.js';
+import { music } from './music.js';
+import { roadMusicTrack } from './music-player.js';
+import { roadBattleKind, finishMapTutorial } from './road/map-battle.js';
 import { renderIntroduction } from './road/introduction.js';
 import { STAGE_STATE, STAGE_SPAN, advanceJourney } from './road/journey.js';
-import { NOTES, PASSWORD, COSTS, TOPICS, SCENARIOS, POND, CLIMB } from './road/content.js';
+import { NOTES, PASSWORD, COSTS, TOPICS, SCENARIOS } from './road/content.js';
+import { puzzleTiles, resetPuzzleProgress } from './road/puzzle-generator.js';
 import { ground, forestIslands, props, canWalk, nearestWalkable } from './road/collision.js';
 import { pixelIcon } from './road/pixel-icons.js';
 import { createForestOcclusion } from './road/occlusion.js';
@@ -19,6 +24,7 @@ const forestPopupStages = new Set(['routeMissing', 'contract', 'stopped', 'topic
 const hasForestScene = () => ['forest','fork','summary','map','pond','climb'].includes(state.stage) || forestPopupStages.has(state.stage);
 const chatPanel = $('#road-chat-panel'), chatLog = $('#road-chat-log'), chatInput = $('#road-chat-input');
 let chatOpen = false;
+let puzzleSolving=false;
 let helpStage, puzzleMistakes = 0, helpSuggested = false;
 function hideHelpNudge(){
     $('#road-help-nudge').hidden=true;
@@ -192,7 +198,7 @@ function showPassword() {
     modal.dataset.layout='sign';
     $('#road-modal-title').classList.add('road-sr-only');
     const inscription=el('p','road-sign-inscription');
-    inscription.append(el('span','','자신의 선택에 따라 길은 뚫고 날은 뜨고'),el('span','','비가 내리고 빛은 남는다.'));b.append(inscription);
+    inscription.append(el('span','','자신의 선택에 따라 잎은 떨어지고 달은 뜨고'),el('span','','비는 내리고 별은 빛난다.'));b.append(inscription);
     const form=el('form','road-sign-form'),label=el('p','road-sign-label','네 자리 암호'),slots=el('div','road-password-slots'),feedback=el('p','road-sign-feedback');
     label.id='road-password-label';slots.setAttribute('role','group');slots.setAttribute('aria-labelledby',label.id);
     feedback.id='road-password-feedback';feedback.setAttribute('role','status');
@@ -324,10 +330,10 @@ function drawMap(dt=0){
         sheet.dataset.status=status;action.hidden=!at||puzzleOpen||celebrating;action.disabled=action.hidden;action.dataset.encounter=at?.id??'';
         sheet.querySelectorAll('.road-explore-move').forEach(b=>{b.disabled=puzzleOpen||celebrating;});
         if(at&&!puzzleOpen){
-            const label=at.id==='battle'?'늑대와 마주하기 [E]':'구간 갈아끼우기 [E]';
+            const label=at.id==='battle'?'늑대와 마주하기 [E]':at.id==='tutorial'?'두더지와 전투 연습 [E]':'장애물 돌파 [E]';
             action.textContent=label;
         }
-        sheet.querySelector('.road-explore-description').textContent=puzzleOpen?'오른쪽 퍼즐 패널에서 구간을 갈아끼우는 중입니다. 지도 이동은 잠시 멈춥니다.':celebrating?'돌이 사라지고 잉크 길이 이어졌습니다.':at?'! 여기 장애물이 있다 ! '+at.label+'. A/D 또는 좌우 방향키로 이동 (막힘). E로 '+(at.id==='battle'?'늑대와 마주하기.':'구간 갈아끼우기.'):'A/D 또는 좌우 방향키로 직접 그린 잉크 길을 탐험하세요.';
+        sheet.querySelector('.road-explore-description').textContent=puzzleOpen?'오른쪽 퍼즐 패널에서 장애물을 돌파하는 중입니다. 지도 이동은 잠시 멈춥니다.':celebrating?'돌이 사라지고 잉크 길이 이어졌습니다.':at?'! 여기 장애물이 있다 ! '+at.label+'. A/D 또는 좌우 방향키로 이동 (막힘). E로 '+(at.id==='battle'?'늑대와 마주하기.':at.id==='tutorial'?'두더지와 전투 연습.':'장애물 돌파.'):'A/D 또는 좌우 방향키로 직접 그린 잉크 길을 탐험하세요.';
     }
 }
 function openPuzzle(nodeId){
@@ -350,33 +356,60 @@ function onPuzzleSuccess(nodeId){
 }
 function renderPuzzle({nodeId}){
     const kind=NODE_PUZZLES[nodeId];if(!kind)return;
+    const tiles=puzzleTiles(state,kind);
     if(!view.querySelector('.road-explore-map'))renderMap();
     const map=view.querySelector('.road-explore-map');
     map.querySelector('.road-puzzle-dock')?.remove();map.dataset.puzzleNode=nodeId;
     drawMap();
-    const title=kind==='pond'?'연못 건너기':'암벽 오르기';
+    const title=kind==='pond'?'연못 징검다리':'바위 발판 오르기';
     setHeader(title,'');
     const popup=el('section','road-puzzle-popup road-puzzle-dock');popup.dataset.nodeId=nodeId;
     popup.setAttribute('role','dialog');popup.setAttribute('aria-modal','false');popup.setAttribute('aria-labelledby','road-puzzle-title');
-    popup.append(el('p','road-puzzle-kicker','구간 갈아끼우기 · '+String(nodeId).padStart(2,'0')));
+    popup.append(el('p','road-puzzle-kicker','장애물 돌파 · '+String(nodeId).padStart(2,'0')));
     const top=el('header','road-puzzle-titlebar'),heading=el('h2','',title);heading.id='road-puzzle-title';
     const close=button('×',cancelPuzzle);close.setAttribute('aria-label','퍼즐 닫기');top.append(heading,close);popup.append(top);
     const wrap=el('div',`road-puzzle-wrap ${kind}`),board=el('div','road-puzzle-board');board.setAttribute('role','group');board.setAttribute('aria-label',kind==='pond'?'연못의 돌판':'암벽의 숫자판');
     for(let i=0;i<16;i++){const current=state.puzzle[kind]===i,b=button('',()=>selectStone(kind,i),'road-stone');b.dataset.cell=i;b.tabIndex=current?0:-1;b.classList.toggle('is-current',current);
         if(kind==='pond'){
-            const [dir,n]=POND[i],paws=el('span','road-paw-cluster');paws.dataset.count=n;
+            const [dir,n]=tiles[i],paws=el('span','road-paw-cluster');paws.dataset.count=n;
             for(let paw=0;paw<n;paw++){const icon=pixelIcon('paw');icon.style.transform=`rotate(${{'↑':0,'→':90,'↓':180,'←':270}[dir]}deg)`;paws.append(icon);}
             if(!n)paws.append(pixelIcon('star'));
             b.append(paws);b.classList.toggle('is-lit',state.pondTrail.includes(i));b.setAttribute('aria-pressed',String(state.pondTrail.includes(i)));
-        }else{b.append(el('span','road-stone-code',String(CLIMB[i])));b.classList.toggle('is-lit',state.climbTrail.includes(i));b.setAttribute('aria-pressed',String(state.climbTrail.includes(i)));}
+        }else{b.append(el('span','road-stone-code',String(tiles[i]).padStart(2,'0')));b.classList.toggle('is-lit',state.climbTrail.includes(i));b.setAttribute('aria-pressed',String(state.climbTrail.includes(i)));}
         if(i===0||(kind==='pond'&&i===15))b.append(el('small','',i===0?'시작':'도착'));if(current)b.append(el('span','road-current-marker','●'));
-        b.setAttribute('aria-label',`${Math.floor(i/4)+1}행 ${i%4+1}열, ${kind==='pond'?POND[i].join(' '):CLIMB[i]}${current?', 현재 위치':''}${kind==='pond'&&i===15?', 도착':''}`);board.append(b);
+        b.setAttribute('aria-label',`${Math.floor(i/4)+1}행 ${i%4+1}열, ${kind==='pond'?tiles[i].join(' '):String(tiles[i]).padStart(2,'0')}${current?', 현재 위치':''}${kind==='pond'&&i===15?', 도착':''}`);board.append(b);
     }
     board.addEventListener('keydown',e=>{const dirs={ArrowLeft:-1,ArrowRight:1,ArrowUp:-4,ArrowDown:4};if(!(e.key in dirs))return;e.preventDefault();e.stopPropagation();const from=Number(e.target.dataset.cell);if(!Number.isInteger(from))return;board.querySelector(`[data-cell="${clamp(from+dirs[e.key],0,15)}"]`)?.focus();});
-    const actions=el('div','road-actions');actions.append(el('span','road-puzzle-progress',`${(kind==='pond'?state.pondTrail:state.climbTrail).length} / 16`),button('다시',()=>{state.puzzle[kind]=0;if(kind==='pond')state.pondTrail=[];else state.climbTrail=[];save();renderPuzzle({nodeId});view.querySelector('[data-cell="0"]')?.focus({preventScroll:true});}));
+    const actions=el('div','road-actions');actions.append(el('span','road-puzzle-progress',`${(kind==='pond'?state.pondTrail:state.climbTrail).length} / 16`),button('다시',()=>{resetPuzzleProgress(state,kind);save();renderPuzzle({nodeId});view.querySelector('[data-cell="0"]')?.focus({preventScroll:true});}));
     wrap.append(board,actions);popup.append(wrap);map.append(popup);
+    if(puzzleSolving)wrap.querySelectorAll('button').forEach(button=>{button.disabled=true;});
 }
-function selectStone(kind,index){
+async function playPuzzleSolution(){
+    if(puzzleSolving)return;
+    const currentState=state,kind=state.stage,nodeId=puzzleNodeId(kind),tiles=puzzleTiles(state,kind);
+    const trail=kind==='pond'?state.pondTrail:state.climbTrail;
+    let path=solvePuzzle(kind,state.puzzle[kind],trail,state);
+    if(!path.length){resetPuzzleProgress(state,kind);path=solvePuzzle(kind,0,[],state);}
+    else if(trail.length)path=path.slice(1);
+    closeHelp(false);puzzleSolving=true;keys.clear();
+    const valid=()=>state===currentState&&state.stage===kind&&puzzleTiles(state,kind)===tiles&&active();
+    const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    try{
+        renderPuzzle({nodeId});
+        for(const cell of path){
+            await pause(400);
+            if(!valid())return;
+            selectStone(kind,cell,true);
+        }
+        await pause(650);
+        if(valid())onPuzzleSuccess(nodeId);
+    }finally{
+        puzzleSolving=false;
+        if(isPuzzleOpen(state)&&active())renderPuzzle({nodeId:puzzleNodeId(state.stage)});
+    }
+}
+function selectStone(kind,index,automatic=false){
+    if(puzzleSolving&&!automatic)return;
     {
         const result=kind==='pond'?pressPondStone(state,index):pressClimbStone(state,index);
         if(result==='wrong'||result==='reset')recordPuzzleMistake();
@@ -385,6 +418,7 @@ function selectStone(kind,index){
     }
     puzzleMistakes=0;hideHelpNudge();
     state.puzzle[kind]=index;
+    if(automatic){save();renderPuzzle({nodeId:puzzleNodeId(kind)});return;}
     if(!onPuzzleSuccess(puzzleNodeId(kind))){save();renderPuzzle({nodeId:puzzleNodeId(kind)});view.querySelector(`[data-cell="${index}"]`)?.focus({preventScroll:true});}
 }
 function interact(){
@@ -393,19 +427,33 @@ function interact(){
     else if(state.stage==='map'){
         const at=mapEncounter(state);
         if(!at){announce('잉크 길을 따라 다음 구역으로 이동하세요.');return;}
-        if(at.id==='battle'){changeStage('battleReady');$('#show-battle').click();}
+        if(at.id==='tutorial')$('#show-battle').click();
+        else if(at.id==='battle'){changeStage('battleReady');$('#show-battle').click();}
         else openPuzzle(at.at);
     }
 }
 function helpAnswer(command){
     const stage=state.stage;
-    if(stage==='forest')return{hint:state.notes.length?'쪽지에서 남이 권한 길과 실제로 걸은 길을 구분해 보세요.':'수풀과 돌 주변을 살펴보세요. 가까이 가면 조사할 수 있는 곳에 E가 나타나요.',plan:'수풀과 돌에 가까이 가서 E가 나타나면 조사해 보세요. 네 쪽지에서 실제로 선택한 숫자를 표지판의 상징 순서로 놓으면 돼요.',solve:'잎은 3, 달은 1, 비는 4, 별은 2예요. 표지판의 암호는 3142입니다.'}[command];
-    if(stage==='pond'||stage==='climb'){const path=solvePuzzle(stage,state.puzzle[stage],stage==='climb'?state.climbTrail:[]);return{hint:stage==='pond'?'발가락이 향하는 방향과 발자국 개수를 함께 보세요.':'두 자리 숫자는 서로 다른 축을 가리켜요.',plan:stage==='pond'?'시작 칸부터 누르고 발자국 방향으로 발자국 개수만큼 떨어진 칸을 누르세요. 16칸을 순서대로 밝히세요. 흰 칸이 4개 이상일 때 틀리면 초기화돼요.':'십의 자리는 좌우 거리, 일의 자리는 상하 거리예요. 12라면 좌우 1칸과 상하 2칸을 함께 이동한 칸이에요. 0인 축은 움직이지 않아요. 시작 칸부터 16칸을 중복 없이 모두 밝히세요.',solve:path.length?`현재 위치에서 ${path.map(i=>`${Math.floor(i/4)+1}행 ${i%4+1}열`).join(' → ')} 순서로 이동하세요.`:'여기서는 출구로 이어지지 않아요. 퍼즐을 다시 시작한 뒤 경로를 확인해 보세요.'}[command];}
+    if(stage==='forest'){
+        if(command==='hint'){
+            const hints=[
+                '돌 뒤에 뭐가 있어! 더 힌트가 필요하면 /hint를 쳐 줘',
+                '표지판에 있는 단어들 순서가 중요해! 더 힌트가 필요하면 /hint를 쳐 줘',
+                '쪽지에서 주도성과 관련있는 단어들을 조합해보자! 더 힌트가 필요하면 /hint를 쳐 줘',
+                '오른쪽에 쪽지 1개, 아래에 2개, 위에 1개, 왼쪽에 1개 있어!',
+            ];
+            const previousHints=state.chat.filter(item=>item.command==='hint'&&item.stage==='forest').length;
+            return hints[Math.min(previousHints,hints.length-1)];
+        }
+        return {plan:'수풀과 돌에 가까이 가서 E가 나타나면 조사해 봐. 네 쪽지에서 실제로 선택한 숫자를 표지판의 상징 순서로 놓으면 돼',solve:'잎은 3, 달은 1, 비는 4, 별은 2야. 표지판의 암호는 3142야.'}[command];
+    }
+    if(stage==='pond'||stage==='climb')return puzzleHelpAnswer(state,command);
     if(stage==='fork'){const q=forkScenario();return{hint:'추천의 이유와 내가 중요하게 생각하는 것을 나란히 놓아 보세요.',plan:'WASD 또는 방향키로 원하는 곳으로 걸어가세요. 저는 추천 길로 계속 당겨요. 대각선으로 움직이거나 되돌아가며 방향을 조절할 수 있어요. 랜드마크에 도착하면 선택이 기록돼요.',solve:`저는 ‘${q.options[q.recommended]}’을 추천해요. ${q.reason} 이 상황에 하나의 정답이 있는 것은 아니에요.`}[command];}
-    if(stage==='map')return{hint:'당신이 만든 지도에 다음 장애물이 표시되어 있어요.',plan:'A/D 또는 좌우 방향키로 잉크 길을 따라 걸어 보세요. 장애물 앞에서 E를 누르면 오른쪽 퍼즐로 구간을 갈아끼울 수 있어요. 퍼즐을 풀면 같은 자리에서 길이 이어져요.',solve:`다음 구역은 ${nextCheckpoint(state).label}입니다. 앞으로 이동하다 멈추는 지점에서 E를 누르세요.`}[command];
+    if(stage==='map')return{hint:'당신이 만든 지도에 다음 장애물이 표시되어 있어요.',plan:'A/D 또는 좌우 방향키로 잉크 길을 따라 걸어 보세요. 장애물 앞에서 E를 누르면 오른쪽 퍼즐로 장애물을 돌파할 수 있어요. 퍼즐을 풀면 같은 자리에서 길이 이어져요.',solve:`다음 구역은 ${nextCheckpoint(state).label}입니다. 앞으로 이동하다 멈추는 지점에서 E를 누르세요.`}[command];
     return '도움이 필요한 숲, 갈림길, 지도, 퍼즐에서 다시 불러 주세요.';
 }
 function showHelp(){
+    if(puzzleSolving)return;
     if(chatOpen){closeHelp();return;}
     puzzleMistakes=0;hideHelpNudge();
     keys.clear(); chatOpen=true; chatPanel.hidden=false;
@@ -447,15 +495,17 @@ $('#road-chat-form').addEventListener('submit',event=>{
     if(!item)return;
     if(state.tokens<previousTokens){const change=$('#road-token-change');change.textContent=`-${previousTokens-state.tokens}`;change.classList.remove('is-changing');void change.offsetWidth;change.classList.add('is-changing');clearTimeout(tokenChangeTimer);tokenChangeTimer=setTimeout(()=>{change.textContent='';change.classList.remove('is-changing');},1800);}
     chatInput.value='';appendChatExchange(item);save();updateResources();
+    if(item.command==='solve'&&['pond','climb'].includes(state.stage)){void playPuzzleSolution();return;}
     chatLog.scrollTop=chatLog.scrollHeight;chatInput.focus({preventScroll:true});
 });
 chatInput.addEventListener('keydown',event=>{
     if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&event.keyCode!==229){event.preventDefault();$('#road-chat-form').requestSubmit();}
 });
 $('#road-help').addEventListener('click',showHelp);
-$('#road-restart').addEventListener('click',()=>{const b=openModal('새로운 여정');b.append(paragraph('지금까지의 Road 진행과 기록을 지우고 숲에서 다시 시작할까요?'),button('처음부터 시작',()=>{state=freshState();chatInput.value='';closeModal();save();render();}),button('계속하기',closeModal));});
+$('#road-restart').addEventListener('click',()=>{const b=openModal('새로운 여정');b.append(paragraph('지금까지의 Road 진행과 기록을 지우고 숲에서 다시 시작할까요?'),button('처음부터 시작',()=>{resetJourneyState();closeModal();save();render();}),button('계속하기',closeModal));});
 $('#road-interact').addEventListener('click',interact);
 function render(){
+    if(root.classList.contains('screen-active'))music.play(roadMusicTrack(state.stage));
     mapResizeObserver?.disconnect();mapResizeObserver=null;mapRenderer=null;
     if(helpStage!==state.stage){helpStage=state.stage;puzzleMistakes=0;helpSuggested=false;hideHelpNudge();}
     root.dataset.stage=state.stage;
@@ -467,7 +517,7 @@ function render(){
     if(forestScene)renderForest();
     if(state.stage==='routeMissing')intro('routeMissing');
     else if(state.stage==='contract')intro('contract');
-    else if(state.stage==='stopped'){setHeader('여정이 종료되었습니다','');renderCard('','당신은 동의하지 않았습니다.','이곳에서 여정이 멈췄습니다.',[['처음부터 다시 시작',()=>{state=freshState();chatInput.value='';save();render();}]]);}
+    else if(state.stage==='stopped'){setHeader('여정이 종료되었습니다','');renderCard('','당신은 동의하지 않았습니다.','이곳에서 여정이 멈췄습니다.',[['처음부터 다시 시작',()=>{resetJourneyState();save();render();}]]);}
     else if(state.stage==='topic')renderTopic();else if(state.stage==='fork')renderFork();else if(state.stage==='summary')renderMap(true);else if(state.stage==='map')renderMap();else if(isPuzzleOpen(state))renderPuzzle({nodeId:puzzleNodeId(state.stage)});
     else if(state.stage==='battleReady'){setHeader('길 위의 낯선 그림자','');renderCard('늑대와 마주침','탈출하는 길에서 늑대와 마주쳤다.','티니가 당신 곁에 멈춰 섭니다.',[['늑대와 마주하기',()=>$('#show-battle').click()],['지도로 돌아가기',()=>changeStage('map')]]);}
     if(forestPopup&&root.classList.contains('screen-active')){
@@ -550,7 +600,14 @@ function frame(time){
 export function enterRoad(){root.classList.replace('screen','screen-active');keys.clear();render();if(!flowDialog.open)view.focus({preventScroll:true});}
 export function exitRoad(){closeHelp(false);root.classList.replace('screen-active','screen');keys.clear();if(modal.open)closeModal();if(flowDialog.open)flowDialog.close();save();}
 export function getCurrentRoadBattleBackground(){return state.stage==='forest'?'./images/battle/battle_bg_green.png':'./images/battle/battle_bg_white.png';}
+export function getRoadBattleKind(){return roadBattleKind(state);}
+// Live access keeps battle on the same wallet even after a journey is restarted.
+export const journeyTokens={get tokens(){return state.tokens;},set tokens(value){state.tokens=value;},get events(){return state.events;}};
+export function saveJourneyTokens(){save();updateResources();}
+export function returnFromTutorial(result){finishMapTutorial(state,result);save();enterRoad();}
 export function getEndingJourney(){return {choices:state.choices,events:state.events,battles:state.battleHistory||[],notes:state.notes,completed:state.completed,pondTrail:state.pondTrail,climbTrail:state.climbTrail};}
 export function saveBattleChoice(turn){state.battleHistory??=[];if(!state.battleHistory.includes(turn))state.battleHistory.push(turn);save();}
-export function restartJourney(){state=freshState();chatInput.value='';save();enterRoad();}
+export function restartJourney(){resetJourneyState();save();enterRoad();}
 save();render();requestAnimationFrame(frame);
+
+function resetJourneyState(){music.reset();state=freshState();chatInput.value='';document.dispatchEvent(new Event('journey-restarted'));}

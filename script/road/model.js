@@ -1,20 +1,21 @@
 import { initialJourney, finishJourneyStage, restoreJourney } from './journey.js';
 import { explorationRoute, explorationLimit, mapEncounter } from './exploration.js';
 import { advanceFork } from './fork-physics.js';
-import { COSTS, POND, CLIMB, CHECKPOINTS, SCENARIOS, TOPICS, NOTES } from './content.js';
+import { COSTS, CHECKPOINTS, SCENARIOS, TOPICS, NOTES } from './content.js';
+import { puzzleTiles, validPuzzle, startPuzzle, hasUniqueClimbMoves, hasLimitedPondSteps } from './puzzle-generator.js';
 export const STORAGE_KEY = 'gamingCatRoadV2';
 export const STAGES = ['forest', 'routeMissing', 'contract', 'stopped', 'topic', 'fork', 'summary', 'map', 'pond', 'climb', 'battleReady'];
 export function freshState() {
-    return { version: 2, stage: 'forest', tokens: 10, notes: [], topic: '', interest: '',
+    return { version: 2, tokenBudgetVersion:1, stage: 'forest', tokens: 20, notes: [], topic: '', interest: '',
         choices: [], completedPaths: [], inkJourney: initialJourney(), events: [], chat: [], player: { x: 340, y: 483 }, mapDistance: 0,
-        mapPathVersion:1,mapFurthest:0,
+        mapPathVersion:1,mapFurthest:0,puzzleBoards:{},
         completed: [], pondTrail: [], climbTrail: [], puzzle: { pond: 0, climb: 0 }, fork: { startY:270, lane: 1, progress: 0, resistance: 0, seconds: 0, resisted: false } };
 }
 export function restoreState(raw) {
     try {
         const s = JSON.parse(raw);
         if (!s || s.version !== 2 || !STAGES.includes(s.stage)) return freshState();
-        if (!Number.isFinite(s.tokens) || s.tokens > 10 || !Array.isArray(s.notes) || !Array.isArray(s.choices) || s.choices.length > 5) return freshState();
+        if (!Number.isFinite(s.tokens) || s.tokens > (s.tokenBudgetVersion===1?20:10) || !Array.isArray(s.notes) || !Array.isArray(s.choices) || s.choices.length > 5) return freshState();
         if (!Array.isArray(s.events) || !Array.isArray(s.chat) || !Array.isArray(s.completed)) return freshState();
         if (s.notes.some(id => !NOTES.some(note => note.id === id)) || new Set(s.notes).size !== s.notes.length) return freshState();
         if (typeof s.interest !== 'string' || s.interest.length > 40 || typeof s.topic !== 'string') return freshState();
@@ -26,17 +27,21 @@ export function restoreState(raw) {
         if (['fork', 'summary', 'map', 'pond', 'climb', 'battleReady'].includes(s.stage) && !TOPICS.includes(s.topic)) return freshState();
         if (s.stage === 'fork' && s.choices.length >= 5 && !['ARRIVED','ZOOMING','COMPLETE'].includes(s.inkJourney?.phase)) return freshState();
         if (['summary', 'map', 'pond', 'climb', 'battleReady'].includes(s.stage) && s.choices.length !== 5) return freshState();
-        if (s.completed.some(k => !['pond', 'climb'].includes(k))) return freshState();
+        if (s.completed.some(k => !['pond', 'climb', 'tutorial'].includes(k))) return freshState();
         if (s.mapDistance < 0 || s.fork.progress > 1 || s.player.x < 0 || s.player.x > 1023 || s.player.y < 0 || s.player.y > 769) return freshState();
         if(s.fork.acceptedLane!=null&&![0,1,2].includes(s.fork.acceptedLane))s.fork.acceptedLane=null;
         for(const key of ['position','catPosition'])if(s.fork[key]&&(!Number.isFinite(s.fork[key].x)||!Number.isFinite(s.fork[key].y)||s.fork[key].x<0||s.fork[key].x>800||s.fork[key].y<0||s.fork[key].y>480))delete s.fork[key];
         if(s.fork.ink!=null&&(!Array.isArray(s.fork.ink)||s.fork.ink.length>1600||s.fork.ink.some(p=>!Array.isArray(p)||p.length!==2||!p.every(Number.isFinite)||p[0]<0||p[0]>800||p[1]<0||p[1]>480)))s.fork.ink=[];
-        // Older saves had no clicked sequence; restart just the pond attempt.
-        const path=solvePuzzle('pond');
+        s.puzzleBoards=s.puzzleBoards&&typeof s.puzzleBoards==='object'&&!Array.isArray(s.puzzleBoards)?s.puzzleBoards:{};
+        for(const kind of ['pond','climb'])if(s.puzzleBoards[kind]&&!validPuzzle(kind,s.puzzleBoards[kind]))startPuzzle(s,kind);
+        // Replace ambiguous unfinished saves without losing the journey or cleared obstacles.
+        if(!s.completed.includes('climb')&&(s.puzzleBoards.climb||s.stage==='climb')&&!hasUniqueClimbMoves(s.puzzleBoards.climb))startPuzzle(s,'climb');
+        if(!s.completed.includes('pond')&&(s.puzzleBoards.pond||s.stage==='pond')&&!hasLimitedPondSteps(s.puzzleBoards.pond))startPuzzle(s,'pond');
+        const path=solvePuzzle('pond',0,[],s);
         if(!Array.isArray(s.pondTrail)||s.pondTrail.length>16||s.pondTrail.some((cell,i)=>cell!==path[i])){
             s.pondTrail=[];s.puzzle.pond=0;
         }else s.puzzle.pond=s.pondTrail.at(-1)??0;
-        if(!Array.isArray(s.climbTrail)||s.climbTrail.length>16||new Set(s.climbTrail).size!==s.climbTrail.length||s.climbTrail.some((cell,i)=>!Number.isInteger(cell)||cell<0||cell>15||(i===0?cell!==0:!puzzleMoves('climb',s.climbTrail[i-1]).includes(cell))))s.climbTrail=[];
+        if(!Array.isArray(s.climbTrail)||s.climbTrail.length>16||new Set(s.climbTrail).size!==s.climbTrail.length||s.climbTrail.some((cell,i)=>!Number.isInteger(cell)||cell<0||cell>15||(i===0?cell!==0:!puzzleMoves('climb',s.climbTrail[i-1],s).includes(cell))))s.climbTrail=[];
         s.puzzle.climb=s.climbTrail.at(-1)??0;
         restoreJourney(s);
         const route=explorationRoute(s.completedPaths);
@@ -59,6 +64,8 @@ export function restoreState(raw) {
         if(s.mapDistance>route.total+.01)return freshState();
         s.mapDistance=Math.min(s.mapDistance,explorationLimit(s,route).distance);
         s.mapFurthest=Math.max(s.mapDistance,Math.min(route.total,Number.isFinite(s.mapFurthest)?s.mapFurthest:0));
+        // Preserve what was spent from the old ten-token allowance, exactly once.
+        if(s.tokenBudgetVersion!==1){s.tokens+=10;s.tokenBudgetVersion=1;}
         return s;
     } catch { return freshState(); }
 }
@@ -114,38 +121,30 @@ export function walkFork(state, dx, dy, dt) {
     if(state.inkJourney?.phase!=='ACTIVE')return;
     const q=scenario(state);if(q)advanceFork(state.fork,q.recommended,dx,dy,dt);
 }
-export function puzzleMoves(kind, from) {
+export function puzzleMoves(kind, from, state) {
+    const tiles=puzzleTiles(state,kind);
     const row = Math.floor(from / 4), col = from % 4;
     let candidates;
     if (kind === 'pond') {
-        const [direction, n] = POND[from];
+        const [direction, n] = tiles[from];
         const [dx, dy] = ({ '→': [1, 0], '←': [-1, 0], '↑': [0, -1], '↓': [0, 1] })[direction] || [0, 0];
         candidates = n ? [[col + dx * n, row + dy * n]] : [];
     } else {
-        const h = Math.floor(CLIMB[from] / 10), v = CLIMB[from] % 10;
+        const h = Math.floor(tiles[from] / 10), v = tiles[from] % 10;
         candidates = [-1,1].flatMap(dx=>[-1,1].map(dy=>[col+dx*h,row+dy*v]));
     }
     return [...new Set(candidates.filter(([x, y]) => x >= 0 && x < 4 && y >= 0 && y < 4).map(([x, y]) => y * 4 + x))].filter(cell=>cell!==from);
 }
-export function solvePuzzle(kind, start = 0, visited = []) {
-    if(kind==='climb'){
+export function solvePuzzle(kind, start = 0, visited = [], state) {
         const used=new Set([...visited,start]);
         function search(cell,path){
-            if(used.size===16)return path;
-            for(const next of puzzleMoves(kind,cell))if(!used.has(next)){
+            if(used.size===16)return kind==='climb'||cell===15?path:null;
+            for(const next of puzzleMoves(kind,cell,state))if(!used.has(next)){
                 used.add(next);const found=search(next,[...path,next]);if(found)return found;used.delete(next);
             }
             return null;
         }
         return search(start,[start])??[];
-    }
-    const queue = [[start]], seen = new Set([start]);
-    while (queue.length) {
-        const path = queue.shift(), last = path.at(-1);
-        if (last === 15) return path;
-        for (const next of puzzleMoves(kind, last)) if (!seen.has(next)) { seen.add(next); queue.push([...path, next]); }
-    }
-    return [];
 }
 export function routePoints(choices) {
     return [{ x: 85, y: 250 }, ...choices.map((c, i) => ({ x: 235 + i * 160, y: [140, 250, 360][c.selected] }))];
@@ -173,7 +172,9 @@ export function advanceMap(state, direction, dt) {
 }
 export function finishPuzzle(state, kind) {
     if (state.completed.includes(kind)) return false;
-    if ((kind === 'pond' ? state.pondTrail : state.climbTrail)?.length !== 16) return false;
+    const trail=kind==='pond'?state.pondTrail:state.climbTrail;
+    if(trail?.length!==16||new Set(trail).size!==16||trail[0]!==0||(kind==='pond'&&trail[15]!==15))return false;
+    if(trail.some((cell,i)=>!Number.isInteger(cell)||cell<0||cell>15||(i>0&&!puzzleMoves(kind,trail[i-1],state).includes(cell))))return false;
     state.completed.push(kind);
     state.events.push({ type: 'puzzle-complete', puzzle: kind });
     state.stage = 'map';
@@ -182,7 +183,7 @@ export function finishPuzzle(state, kind) {
 
 export function pressPondStone(state, index) {
     const trail=state.pondTrail??(state.pondTrail=[]);
-    const expected=trail.length?puzzleMoves('pond',trail.at(-1))[0]:0;
+    const expected=trail.length?puzzleMoves('pond',trail.at(-1),state)[0]:0;
     if(index!==expected||trail.includes(index)){
         if(trail.length>3){state.pondTrail=[];state.puzzle.pond=0;return 'reset';}
         return 'wrong';
@@ -193,7 +194,7 @@ export function pressPondStone(state, index) {
 
 export function pressClimbStone(state,index){
     const trail=state.climbTrail??(state.climbTrail=[]);
-    const valid=trail.length?puzzleMoves('climb',trail.at(-1)).includes(index):index===0;
+    const valid=trail.length?puzzleMoves('climb',trail.at(-1),state).includes(index):index===0;
     if(!valid||trail.includes(index)){
         if(trail.length>3){state.climbTrail=[];state.puzzle.climb=0;return 'reset';}
         return 'wrong';

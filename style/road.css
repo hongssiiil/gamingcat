@@ -103,9 +103,10 @@
 #Road .climb .road-stone { background:#576064; border-color:#87908a; box-shadow:0 5px 0 #242c2f; }
 #Road .road-puzzle-wrap .road-actions { justify-content:center; }
 #Road #road-modal { background:#e5cda6; background-clip:padding-box; color:#3f3224; border:22px solid transparent; border-image:url("../images/road/Dialogue_UI.png") 80 110 fill / 22px / 0 stretch; border-radius:0; image-rendering:pixelated; width:min(570px,calc(100vw - 28px)); max-height:85dvh; padding:18px; box-shadow:none; }
-#Road #road-modal::backdrop { background:#090f12b8; }
-#Road #road-flow-dialog { width:min(700px,calc(100vw - 28px)); max-height:calc(100dvh - 32px); padding:0; border:0; background:transparent; overflow-y:auto; }
-#Road #road-flow-dialog::backdrop { background:#090f12b8; }
+#Road #road-modal::backdrop { background:#050c10cc; }
+#Road #road-flow-dialog { box-sizing:border-box; width:min(700px,calc(100vw - 28px)); max-width:calc(100vw - 28px); max-height:calc(100dvh - 32px); padding:0; border:0; background:transparent; overflow:clip; scrollbar-width:none; -ms-overflow-style:none; }
+#Road #road-flow-dialog::-webkit-scrollbar { display:none;width:0;height:0; }
+#Road #road-flow-dialog::backdrop { background:#050c10cc; }
 #Road #road-flow-dialog .road-card { width:100%; margin:0; }
 #Road.road-forest-scene:not([data-stage="forest"]) .road-footer { display:none; }
 #Road .road-modal-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
@@ -549,7 +550,7 @@ body:has(#Road.screen-active) .screen-navigation button:focus-visible { outline:
     display:flex; align-items:center; justify-content:center; border:2px solid #e2b65b;
     background:#343f2d; box-shadow:3px 3px #6f5735,inset 2px 2px #64704b,inset -2px -2px #242c20;
 }
-#Road .road-ink-map .road-explore-action[data-encounter="battle"] { border-color:#cb674e; background:#483429; }
+#Road .road-ink-map .road-explore-action:is([data-encounter="battle"],[data-encounter="tutorial"]) { border-color:#cb674e; background:#483429; }
 #Road .road-ink-map .road-explore-action:hover { background:#4a583b; transform:translateY(-2px); }
 #Road .road-ink-map .road-explore-action:active { transform:translateY(1px); box-shadow:1px 1px #6f5735; }
 #Road .road-ink-map .road-explore-action[hidden] { display:none; }
@@ -717,4 +718,35 @@ body:has(#Road.screen-active) .screen-navigation button:focus-visible { outline:
     #Road .road-puzzle-dock .road-puzzle-titlebar button { font-size:15px; padding:0 3px; }
     #Road .road-puzzle-dock .road-stone { box-shadow:2px 2px #24372c; }
     #Road .road-puzzle-dock .road-stone.is-current { outline-width:1px; outline-offset:1px; }
+}
+
+/* Darken only the forest behind the playable parchment, keeping its ink crisp. */
+#Road:is([data-stage="fork"],[data-stage="summary"],[data-stage="map"],[data-stage="pond"],[data-stage="climb"]) .road-forest-viewport { filter:brightness(.32); }
+#Road .road-puzzle-overlay { background:#050c1099; }
+/* Functional road controls use carved, stepped pixel edges; map stamps stay unframed. */
+#Road :is(.road-actions button,.road-controls button,.intro-paper button,#road-modal-body>button,.road-sign-submit,.road-notebook,.road-puzzle-titlebar button,#road-modal-close,#road-restart,#road-chat-close,#road-chat-send,.road-ink-pause,.road-explore-move,.road-explore-action) {
+    border:3px solid #463622; border-image:none; border-radius:0;
+    background:#735b3b; color:#f0dfb7; text-shadow:1px 1px #3b2e21;
+    box-shadow:inset 2px 2px #b79a64,inset -2px -2px #51402a,0 3px 0 #2c251c;
+    clip-path:polygon(3px 0,calc(100% - 3px) 0,calc(100% - 3px) 3px,100% 3px,100% calc(100% - 3px),calc(100% - 3px) calc(100% - 3px),calc(100% - 3px) 100%,3px 100%,3px calc(100% - 3px),0 calc(100% - 3px),0 3px,3px 3px);
+    image-rendering:pixelated; transition:none;
+}
+#Road :is(.road-actions button,.road-controls button,.intro-paper button,#road-modal-body>button,.road-sign-submit,.road-notebook,.road-puzzle-titlebar button,#road-modal-close,#road-restart,#road-chat-close,#road-chat-send,.road-ink-pause,.road-explore-move,.road-explore-action):hover { background:#876d47; color:#fff0ca; filter:none; }
+#Road :is(.road-actions button,.road-controls button,.intro-paper button,#road-modal-body>button,.road-sign-submit,.road-notebook,.road-puzzle-titlebar button,#road-modal-close,#road-restart,#road-chat-close,#road-chat-send,.road-ink-pause,.road-explore-move,.road-explore-action):active:not(:disabled) { box-shadow:inset 2px 2px #493a28,inset -2px -2px #a38758; translate:0 2px; }
+#Road :is(.road-actions button,.road-controls button,.intro-paper button,#road-modal-body>button,.road-sign-submit,.road-notebook,.road-puzzle-titlebar button,#road-modal-close,#road-restart,#road-chat-close,#road-chat-send,.road-ink-pause,.road-explore-move,.road-explore-action):focus-visible { outline:none; border-color:#f0d28f; }
+#show-road { border:3px solid #57432b; border-radius:0; background:#735b3b; color:#f0dfb7; font-family:var(--game-font-body); box-shadow:inset 2px 2px #b79a64,inset -2px -2px #493a28; }
+#Road #road-token { white-space:normal; line-height:1.6; }
+/* Light parchment cards keep the topic icons and labels readable. */
+#Road #road-flow-dialog .intro-paper .intro-choice {
+    background:#e5cda6; color:#493722; border-color:#8d7047; text-shadow:none;
+    box-shadow:inset 3px 3px #fff0cd,inset -3px -3px #c3a477,4px 4px #725b3c;
+    clip-path:none;
+}
+#Road #road-flow-dialog .intro-paper .intro-choice:hover,
+#Road #road-flow-dialog .intro-paper .intro-choice:focus-visible {
+    background:#f2dfbc; color:#36291c; border-color:#72532f;
+    box-shadow:inset 3px 3px #fff5db,inset -3px -3px #d2b68c,4px 4px #725b3c;
+}
+#Road #road-flow-dialog .intro-paper .intro-choice:active:not(:disabled) {
+    background:#dbc096; box-shadow:inset 3px 3px #b79869,inset -2px -2px #efdbb5;
 }

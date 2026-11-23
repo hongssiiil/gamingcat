@@ -207,6 +207,7 @@ function activateCurrentStep() {
 }
 
 function handleTutorialClick(event) {
+    if(event.target.closest?.('#music-controls'))return;
     if (!active) return;
     if (currentStep === "intro") {
         event.preventDefault();
@@ -243,6 +244,7 @@ function handleTutorialClick(event) {
 }
 
 function handleTutorialKeydown(event) {
+    if(event.target.closest?.('#music-controls'))return;
     if (!active) return;
     if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -304,4 +306,8 @@ export function advanceBattleTutorial(step, onContinue = () => { }) {
 
 export function isBattleTutorialActive() {
     return active;
+}
+
+export function stopBattleTutorial() {
+    if (active) complete();
 }
