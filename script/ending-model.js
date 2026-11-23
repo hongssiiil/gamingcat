@@ -20,8 +20,11 @@ export function endingRecords({choices=[],battles=[]}={},result){
     return records.map((record,index)=>({...record,black:result==='escape'&&index===records.length-1&&record.result==='escape'}));
 }
 export function constellationName(records){
+    return {cat:'함께 걷는 검은고양이자리',compass:'자신의 길을 낸 나침반자리',traveler:'숲을 건넌 여행자자리'}[constellationTheme(records)];
+}
+export function constellationTheme(records){
     const accepted=records.filter(r=>r.accepted===true).length,rejected=records.filter(r=>r.accepted===false).length;
-    return accepted>rejected?'함께 걷는 검은고양이자리':rejected>accepted?'자신의 길을 낸 나침반자리':'숲을 건넌 여행자자리';
+    return accepted>rejected?'cat':rejected>accepted?'compass':'traveler';
 }
 // Fixed scene order and an open, non-crossing constellation; no action adds nodes.
 export const SCENE_NAMES=Object.freeze(['암호 찾기','갈림길 1','갈림길 2','갈림길 3','갈림길 4','갈림길 5','퍼즐 1','퍼즐 2','늑대 전투']);
@@ -55,17 +58,19 @@ export function endingScenes(journey={},result){
     }
     const turns=battles.filter(t=>t.playerChoice),outcome=['victory','escape','defeat'].includes(result)?result:turns.at(-1)?.result;
     const actionCounts=new Map();turns.forEach(t=>actionCounts.set(t.playerChoice,(actionCounts.get(t.playerChoice)||0)+1));
+    const knownTurns=turns.filter(t=>typeof t.accepted==='boolean'),followedTurns=knownTurns.filter(t=>t.accepted).length;
     if(turns.length||['victory','escape','defeat'].includes(outcome))Object.assign(nodes[8],{hasRecord:true,
         summary:({victory:'늑대 전투에서 승리했어요.',escape:'늑대 전투에서 도주했어요.',defeat:'늑대 전투에서 패배했어요.'})[outcome]||turns.at(-1)?.outcome||'선택한 전투 행동이 기록되어 있어요.',
-        detail:turns.at(-1)?.outcome||null,action:[...actionCounts].map(([action,count])=>`${action} ${count}회`).join(' · '),black:outcome==='escape',tokenUsed:turns.some(t=>t.tokenUsed===true)||null});
+        detail:turns.at(-1)?.outcome||null,action:[...actionCounts].map(([action,count])=>`${action} ${count}회`).join(' · '),black:outcome==='escape',tokenUsed:turns.some(t=>t.tokenUsed===true)||null,
+        accepted:knownTurns.length===turns.length&&knownTurns.length?(followedTurns===knownTurns.length?true:followedTurns===0?false:null):null});
     return nodes;
 }
-export const ENDING_DURATION=4200;
+export const ENDING_DURATION=7000;
 export function endingAnimation(elapsed,reduced=false){
     if(reduced){const progress=Math.min(1,Math.max(0,elapsed/250));return {phase:progress===1?'complete':'fade',progress,step:8,local:1};}
     if(elapsed<400)return {phase:'dim',progress:elapsed/400,step:-1,local:0};
     if(elapsed<850)return {phase:'gather',progress:(elapsed-400)/450,step:-1,local:0};
-    if(elapsed<3650){const progress=(elapsed-850)/2800*9;return {phase:'trace',progress,step:Math.floor(progress),local:progress%1};}
-    if(elapsed<ENDING_DURATION)return {phase:'settle',progress:(elapsed-3650)/550,step:8,local:1};
+    if(elapsed<6450){const progress=(elapsed-850)/5600*9;return {phase:'trace',progress,step:Math.floor(progress),local:progress%1};}
+    if(elapsed<ENDING_DURATION)return {phase:'settle',progress:(elapsed-6450)/550,step:8,local:1};
     return {phase:'complete',progress:1,step:8,local:1};
 }

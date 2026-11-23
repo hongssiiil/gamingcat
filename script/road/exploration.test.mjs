@@ -18,9 +18,9 @@ test('exploration follows the saved ink, including a detour, without changing ch
     for(const node of route.nodes){const p=sampleExploration(route,node.distance);assert.equal(p.x,node.x);assert.equal(p.y,node.y);}
     advanceMap(s,1,1);assert.deepEqual(s.completedPaths,snapshot);
 });
-test('only unsolved 1, 3 and 5 stop movement before the landmark, even with a long frame',()=>{
+test('unsolved puzzles at 1/3, tutorial at 4 and wolf at 5 stop movement, even with a long frame',()=>{
     const s=completedMap(),route=explorationRoute(s.completedPaths);
-    for(const [at,id] of [[1,'pond'],[3,'climb'],[5,'battle']]){
+    for(const [at,id] of [[1,'pond'],[3,'climb'],[4,'tutorial'],[5,'battle']]){
         assert.equal(advanceMap(s,1,100).id,id);
         assert.equal(s.mapDistance,route.nodes[at-1].distance-76);
         assert.equal(mapEncounter(s).id,id);

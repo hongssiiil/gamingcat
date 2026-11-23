@@ -20,18 +20,22 @@ test('only the encountered puzzle opens, with movement and camera frozen',()=>{
     assert.equal(state.mapDistance,distance);assert.equal(motion.cameraX,camera);assert.equal(motion.catDistance,cat);
     assert.equal(completeNodePuzzle(state,1,motion),false);assert.deepEqual(state.completed,[]);
 });
-test('cancel and reopen keep the original partial puzzle and restore the blocked node',()=>{
+test('cancel and reopen generate a fresh attempt; reload preserves its board and progress',()=>{
     const {state,motion}=encounter(),distance=state.mapDistance;
     openNodePuzzle(state,1,motion);
-    for(const cell of solvePuzzle('pond').slice(0,5))pressPondStone(state,cell);
+    for(const cell of solvePuzzle('pond',0,[],state).slice(0,5))pressPondStone(state,cell);
+    const previousBoard=state.puzzleBoards.pond;
     const trail=[...state.pondTrail];
     assert(cancelNodePuzzle(state));assert.equal(state.stage,'map');assert.equal(mapEncounter(state).at,1);
     assert.deepEqual(state.pondTrail,trail);assert.equal(state.mapDistance,distance);assert.deepEqual(state.completed,[]);
-    assert(openNodePuzzle(state,1,motion));assert.deepEqual(state.pondTrail,trail);
+    assert(openNodePuzzle(state,1,motion));assert.deepEqual(state.pondTrail,[]);
+    assert.notEqual(state.puzzleBoards.pond,previousBoard);
+    for(const cell of solvePuzzle('pond',0,[],state).slice(0,3))pressPondStone(state,cell);
     const restored=restoreState(JSON.stringify(state)),restoredMotion=createExplorationMotion(restored);
     assert(restorePuzzleView(restored,restoredMotion));
     assert.equal(restoredMotion.cameraX,motion.cameraX);assert.equal(restoredMotion.catDistance,motion.catDistance);
-    assert.deepEqual(restored.pondTrail,trail);assert.equal(restored.stage,'pond');
+    assert.deepEqual(restored.pondTrail,state.pondTrail);assert.equal(restored.stage,'pond');
+    assert.deepEqual(restored.puzzleBoards,state.puzzleBoards);
 });
 test('existing answers clear each corresponding node once and unlock its ink after the celebration',()=>{
     const {state,motion}=encounter(),choices=structuredClone(state.choices),paths=structuredClone(state.completedPaths);
@@ -39,7 +43,7 @@ test('existing answers clear each corresponding node once and unlock its ink aft
         advanceMap(state,1,100);updateExplorationMotion(motion,state,.05);
         const distance=state.mapDistance,camera=motion.cameraX,cat=motion.catDistance;
         assert(openNodePuzzle(state,nodeId,motion));
-        for(const cell of solvePuzzle(kind))press(state,cell);
+        for(const cell of solvePuzzle(kind,0,[],state))press(state,cell);
         assert.equal(completeNodePuzzle(state,nodeId===1?3:1,motion),false);
         assert(completeNodePuzzle(state,nodeId,motion));assert.equal(state.stage,'map');assert(state.completed.includes(kind));
         assert.equal(completeNodePuzzle(state,nodeId,motion),false);

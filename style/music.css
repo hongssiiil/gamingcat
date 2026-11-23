@@ -1,0 +1,21 @@
+#music-controls{position:fixed;top:auto;right:auto;margin:0;padding:0;border:0;overflow:visible;background:transparent;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));z-index:10000;font:12px var(--game-font-body,monospace);color:#ead298;line-height:1.6;}
+#music-controls button{font:inherit;cursor:pointer;border:2px solid #a58a52;border-radius:0;background:#24362e;color:#f0dfae;box-shadow:2px 2px 0 #161f1b,inset 2px 2px 0 #405143;padding:8px 12px;min-height:44px;}
+#music-controls button:hover{background:#3b5041;}
+#music-controls :focus-visible{outline:3px solid #fff0ba;outline-offset:3px;}
+#music-controls .music-toggle{display:grid;place-items:center;width:44px;padding:8px;}
+#music-controls svg{width:24px;height:24px;}
+#music-controls .music-cross,#music-controls[data-muted=true] .music-waves{display:none;}
+#music-controls[data-muted=true] .music-cross{display:block;}
+#music-panel{position:absolute;left:0;bottom:56px;width:min(248px,calc(100vw - 32px));padding:14px;background:#e7cfa3;color:#4a3824;border:3px solid #83633e;box-shadow:4px 4px 0 #1a231c,inset 2px 2px 0 #fae9bc;}
+#music-panel[hidden]{display:none;}
+#music-controls .music-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:12px;}
+#music-controls .music-close{padding:0;width:36px;min-height:36px;}
+#music-panel label{display:flex;justify-content:space-between;}
+#music-volume{width:100%;height:32px;margin:6px 0 10px;accent-color:#384c37;cursor:pointer;}
+#music-volume{appearance:none;background:transparent;}
+#music-volume::-webkit-slider-runnable-track{height:8px;background:#b69a68;border:2px solid #80663f;}
+#music-volume::-webkit-slider-thumb{appearance:none;width:16px;height:24px;margin-top:-10px;background:#344b38;border:2px solid #eedaa6;border-radius:0;box-shadow:2px 2px #4a3824;}
+#music-volume::-moz-range-track{height:4px;background:#b69a68;border:2px solid #80663f;}
+#music-volume::-moz-range-thumb{width:12px;height:20px;background:#344b38;border:2px solid #eedaa6;border-radius:0;}
+#music-controls .music-mute{width:100%;}
+@media(pointer:coarse){body.game-started #music-controls{bottom:calc(150px + env(safe-area-inset-bottom));}}

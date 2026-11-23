@@ -1,7 +1,8 @@
 import { finishPuzzle } from './model.js';
 import { mapEncounter } from './exploration.js';
+import { startPuzzle } from './puzzle-generator.js';
 
-// These are adapters to the existing puzzles, not new boards or answer rules.
+// Each encounter opens a new board; rendering and retrying keep that board.
 export const NODE_PUZZLES=Object.freeze({1:'pond',3:'climb'});
 export const puzzleNodeId=kind=>Number(Object.keys(NODE_PUZZLES).find(id=>NODE_PUZZLES[id]===kind))||null;
 export const isPuzzleOpen=state=>puzzleNodeId(state.stage)!==null;
@@ -10,6 +11,7 @@ export const isCelebrating=motion=>Boolean(motion?.clearEffect&&motion.clearEffe
 export function openNodePuzzle(state,nodeId,motion){
     const kind=NODE_PUZZLES[nodeId],at=mapEncounter(state);
     if(state.stage!=='map'||!kind||at?.at!==nodeId||state.completed.includes(kind)||isCelebrating(motion))return false;
+    startPuzzle(state,kind);
     state.puzzleView={nodeId,cameraX:motion.cameraX,catDistance:motion.catDistance,direction:motion.direction};
     state.stage=kind;
     return true;

@@ -39,10 +39,10 @@ test('nine fixed positions are stable, separated and have no crossing segments',
     const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
     for(let i=0;i<6;i++)for(let j=i+2;j<8;j++)assert.equal(cross(p[i],p[i+1],p[j])*cross(p[i],p[i+1],p[j+1])<0&&cross(p[j],p[j+1],p[i])*cross(p[j],p[j+1],p[i+1])<0,false);
 });
-test('4.2 second animation gathers, traces nine nodes, settles then completes',()=>{
+test('7 second animation gives each traveling star time to draw its connection',()=>{
     assert.equal(endingAnimation(0).phase,'dim');assert.equal(endingAnimation(500).phase,'gather');assert.equal(endingAnimation(850).step,0);
-    for(let i=0;i<9;i++)assert.equal(endingAnimation(850+(i+.5)*2800/9).step,i);
-    assert.equal(endingAnimation(3800).phase,'settle');assert.equal(endingAnimation(ENDING_DURATION).phase,'complete');
+    for(let i=0;i<9;i++)assert.equal(endingAnimation(850+(i+.5)*5600/9).step,i);
+    assert.equal(endingAnimation(6600).phase,'settle');assert.equal(endingAnimation(ENDING_DURATION).phase,'complete');
 });
 test('reduced motion is only a 250ms fade with no gathering or tracing',()=>{
     assert.equal(endingAnimation(100,true).phase,'fade');assert.equal(endingAnimation(250,true).phase,'complete');

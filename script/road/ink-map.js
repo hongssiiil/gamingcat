@@ -22,6 +22,7 @@ function load(key,url,crop=false){
 }
 load('paper','./images/road/Dialogue_UI.png');
 load('wolf','./images/battle/wolf.png',true);
+load('mole','./images/battle/mole.png',true);
 for(const kind of ['player','cat']){
     load(kind,'./images/character/'+kind+'/'+kind+'_side.png',true);
     load(kind+'Walk','./images/character/'+kind+'/'+(kind==='player'?'player-side-walk-frame.png':'cat-side-squash-more.png'),true);
@@ -101,20 +102,22 @@ export function createInkMap(canvas,{width=800,height=480}={}){
         ctx.globalAlpha=.055;ctx.fillStyle='#64462c';
         for(let i=0;i<400;i++){const x=28+(i*139%741),y=25+(i*83%425);ctx.fillRect(x,y,i%3+1,1);}ctx.globalAlpha=1;
     }
-    function compass(angle=null){
-        ctx.globalAlpha=.16;const x=128,y=368,r=53;
-        for(let a=0;a<360;a+=4){const t=a*Math.PI/180,u=(a+4)*Math.PI/180;line(x+Math.cos(t)*r,y+Math.sin(t)*r,x+Math.cos(u)*r,y+Math.sin(u)*r,'#644d34');}
-        for(let a=0;a<8;a++){const t=a*Math.PI/4;
-            const tip=[x+Math.sin(t)*r,y+Math.cos(t)*r],left=[x+Math.sin(t+.5)*12,y+Math.cos(t+.5)*12];
-            polygon([[x,y],tip,left],'#644d34');
+    let compassBitmap;
+    function compass(cx=96,cy=365){
+        if(!compassBitmap){
+            compassBitmap=ns();compassBitmap.width=81;compassBitmap.height=95;
+            const ink=compassBitmap.getContext('2d');ink.imageSmoothingEnabled=false;ink.fillStyle='#795d38';
+            // Rasterize once on the same one-pixel grid as the landscape sketches.
+            ink.fillRect(40,18,1,73);ink.fillRect(4,54,73,1);
+            for(let y=-28;y<=28;y++)for(let x=-28;x<=28;x++){
+                if(Math.abs(x)*28+Math.abs(y)*5<=140||Math.abs(x)*5+Math.abs(y)*28<=140)ink.fillRect(40+x,54+y,1,1);
+            }
+            const glyph=['10001','11001','10101','10011','10001'];
+            glyph.forEach((row,ry)=>[...row].forEach((pixel,rx)=>{if(pixel==='1')ink.fillRect(35+rx*2,2+ry*2,2,2);}));
         }
-        line(x-64,y,x+64,y,'#644d34');line(x,y-64,x,y+64,'#644d34');
-        if(angle!==null){
-            const tip=[x+Math.sin(angle)*43,y-Math.cos(angle)*43],back=[x-Math.sin(angle)*27,y+Math.cos(angle)*27];
-            const left=[x+Math.cos(angle)*6,y+Math.sin(angle)*6],right=[x-Math.cos(angle)*6,y-Math.sin(angle)*6];
-            ctx.globalAlpha=.3;polygon([tip,left,right],'#705331');polygon([back,left,right],'#927447');
-        }
-        text('N',x,y-68,12,'#644d34','bold','center');ctx.globalAlpha=1;
+        // Composite the whole mark once so crossed strokes do not become darker.
+        ctx.save();ctx.globalAlpha=.22;ctx.imageSmoothingEnabled=false;
+        ctx.drawImage(compassBitmap,Math.round(cx)-40,Math.round(cy)-54);ctx.restore();
     }
     function stamp(lane,x,y){
         ctx.save();ctx.translate(x-34,y-60);
@@ -152,6 +155,23 @@ export function createInkMap(canvas,{width=800,height=480}={}){
         ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.rotate(angle);ctx.fillStyle=INK;
         ctx.fillRect(-2,-1,5,4);ctx.fillRect(-5,-4,2,3);ctx.fillRect(-2,-6,2,3);ctx.fillRect(1,-6,2,3);ctx.fillRect(4,-4,2,3);ctx.restore();
     }
+    const footprintBitmaps=new Map();
+    function humanFootprint(x,y,angle){
+        const direction=((Math.round(angle/(Math.PI/4))%8)+8)%8;
+        if(!footprintBitmaps.has(direction)){
+            const bitmap=ns();bitmap.width=11;bitmap.height=11;
+            const ink=bitmap.getContext('2d');ink.imageSmoothingEnabled=false;ink.fillStyle=ROAD_INK;
+            const a=direction*Math.PI/4,c=Math.cos(a),s=Math.sin(a);
+            for(let py=-5;py<=5;py++)for(let px=-5;px<=5;px++){
+                const u=Math.round(px*c+py*s),v=Math.round(-px*s+py*c);
+                // Separate heel on the left and longer forefoot pointing right.
+                if((u>=-3&&u<-1&&v>=-1&&v<2)||(u>=0&&u<4&&v>=-2&&v<2))ink.fillRect(px+5,py+5,1,1);
+            }
+            footprintBitmaps.set(direction,bitmap);
+        }
+        ctx.save();ctx.globalAlpha=.85;ctx.imageSmoothingEnabled=false;
+        ctx.drawImage(footprintBitmaps.get(direction),Math.round(x)-5,Math.round(y)-5);ctx.restore();
+    }
     function route(lane,progress,color,width,dashed=false,startY=270){
         let last=forkPoint(lane,0,startY);
         for(let i=1;i<=Math.ceil(progress*260);i++){
@@ -184,7 +204,7 @@ export function createInkMap(canvas,{width=800,height=480}={}){
             for(let i=0;i<4;i++)line(x+i*4,y-15+i*3,x+i*4+4,y-11+i*3,sepia);
         }
         ctx.restore();
-        if(withCompass){ctx.save();ctx.translate(-32,-9);compass();ctx.restore();}
+        if(withCompass)compass();
     }
     function overviewLandmark(path,x,y,reveal){
         const dark='#51432f',stone='#99835d',light='#d9c39a';
@@ -332,7 +352,7 @@ export function createInkMap(canvas,{width=800,height=480}={}){
         for(let tile=Math.floor(scroll/720)-1;tile<=Math.floor(scroll/720)+1;tile++){
             ctx.save();ctx.translate(tile*720-scroll,20);overviewDecorations(1,false);ctx.restore();
         }
-        ctx.save();ctx.translate(-25,-7);compass(motion.direction*Math.PI/2+(motion.moving?Math.sin(motion.time*5)*.055:0));ctx.restore();
+        compass();
         for(const segment of explorationInk(route,state.completed)){
             const a=project(segment.a),b=project(segment.b);
             if(Math.max(a[0],b[0])<24||Math.min(a[0],b[0])>W-24)continue;
@@ -345,9 +365,8 @@ export function createInkMap(canvas,{width=800,height=480}={}){
             if(x<24||x>W-24)continue;
             const [nx,ny]=project(sampleExploration(route,distance+3));
             const angle=Math.atan2(ny-y,nx-x),side=step%2?1:-1;
-            ctx.save();ctx.translate(Math.round(x-Math.sin(angle)*side*5),Math.round(y+Math.cos(angle)*side*5));
-            ctx.rotate(angle);ctx.globalAlpha=1;ctx.fillStyle=ROAD_INK;
-            ctx.fillRect(-3,-2,4,4);ctx.fillRect(2,-1,2,3);ctx.restore();
+            // Shoe prints alternate sides; their toes face along the route toward the player.
+            humanFootprint(Math.round(x-Math.sin(angle)*side*5),Math.round(y+Math.cos(angle)*side*5),angle);
         }
         ctx.globalAlpha=1;
         for(const node of route.nodes){
@@ -359,8 +378,8 @@ export function createInkMap(canvas,{width=800,height=480}={}){
             const checkpoint=CHECKPOINTS.find(c=>c.at===node.index+1);
             if(!checkpoint||state.completed.includes(checkpoint.id))continue;
             ctx.globalAlpha=1;
-            if(checkpoint.id==='battle'){
-                ctx.save();ctx.filter='brightness(.48)';sprite('wolf',x+3,y+5,52);ctx.restore();
+            if(checkpoint.id==='battle'||checkpoint.id==='tutorial'){
+                ctx.save();ctx.filter='brightness(.48)';sprite(checkpoint.id==='tutorial'?'mole':'wolf',x+3,y+5,52);ctx.restore();
                 warningMarker(x+3,y-92,true,motion.time);
             }else{
                 for(let xx=-29;xx<=29;xx+=8){line(x+xx,y+14,x+xx+3,y+14,'#8f7044');line(x+xx,y-10,x+xx+3,y-10,'#8f7044');}
@@ -390,7 +409,7 @@ export function createInkMap(canvas,{width=800,height=480}={}){
         ctx.restore();
         text('당신이 그린 숲길',48,43,W<600?23:26,INK,'bold');
         line(48,410,W-48,410,'#a68a5d');
-        const instruction=puzzleOpen?'구간을 갈아끼우는 중':effect?'티니: 길이 이어졌어!':at?'[A][D] 이동 (막힘)':'[A][D] 이동';
+        const instruction=puzzleOpen?'장애물을 돌파하는 중':effect?'티니: 길이 이어졌어!':at?'[A][D] 이동 (막힘)':'[A][D] 이동';
         text(instruction,at||puzzleOpen?W*.29:W*.5,433,W<600?14:13,'#6b5133','bold','center');
     }
     const landmarkCache=new Map();
@@ -412,14 +431,20 @@ export function createInkMap(canvas,{width=800,height=480}={}){
         const activePath=[STAGE_STATE.ACTIVE,STAGE_STATE.NEXT_FORK].includes(phase);
         ctx.clearRect(0,0,W,H);paper();
         if(overview){drawOverview(j,completedPaths);return;}
-        ctx.save();ctx.beginPath();ctx.rect(27,27,746,426);ctx.clip();
-        ctx.translate(-j.cameraX*zoom,240*(1-zoom));ctx.scale(zoom,zoom);
-        // The center paper and watermark are world objects sliding beneath the viewport rim.
         const img=images.paper.img;
+        ctx.save();ctx.beginPath();ctx.rect(27,27,746,426);ctx.clip();
+        ctx.translate(Math.round(-j.cameraX*zoom),Math.round(240*(1-zoom)));ctx.scale(zoom,zoom);
+        // The center paper and watermark are world objects sliding beneath the viewport rim.
         for(let tile=-1;tile<=6;tile++){
             if(img.complete&&img.naturalWidth)ctx.drawImage(img,110,65,img.width-220,img.height-130,tile*STAGE_SPAN,-1000,STAGE_SPAN,2480);
-            ctx.save();ctx.translate(tile*STAGE_SPAN,0);compass();ctx.restore();
         }
+        ctx.restore();
+        // Keep the compass above the parchment, but under paths, characters, and chosen assets.
+        ctx.save();ctx.beginPath();ctx.rect(27,27,746,426);ctx.clip();
+        compass();
+        ctx.restore();
+        ctx.save();ctx.beginPath();ctx.rect(27,27,746,426);ctx.clip();
+        ctx.translate(Math.round(-j.cameraX*zoom),Math.round(240*(1-zoom)));ctx.scale(zoom,zoom);
         for(const path of completedPaths){
             brushTrail(path.points,path.index,1);
             const arriving=phase===STAGE_STATE.ARRIVED&&path.index===j.index;

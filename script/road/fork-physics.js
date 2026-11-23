@@ -5,6 +5,8 @@ export const FORK_GOAL_Y=[160,280,392];
 export const PLAYER_SPEED=96;
 export const CAT_PULL_SPEED=42;
 export const TETHER_LENGTH=72;
+const STAMP_BOUNDS={left:586,right:654,top:-73,bottom:5};
+const PLAYER_HITBOX={halfWidth:18,height:48};
 export function advanceFork(f,recommended,dx,dy,dt){
     dt=clamp(dt,0,.05);
     if(f.progress>=1)return;
@@ -31,7 +33,10 @@ export function advanceFork(f,recommended,dx,dy,dt){
     if(separation>TETHER_LENGTH){cat.x=p.x+(cat.x-p.x)*TETHER_LENGTH/separation;cat.y=p.y+(cat.y-p.y)*TETHER_LENGTH/separation;}
     f.lane=FORK_GOAL_Y.reduce((best,y,i)=>Math.abs(y-p.y)<Math.abs(FORK_GOAL_Y[best]-p.y)?i:best,0);
     f.progress=clamp((p.x-80)/540,0,.999);
-    if(Math.hypot(p.x-620,p.y-FORK_GOAL_Y[f.lane])<14)f.progress=1;
+    const goalY=FORK_GOAL_Y[f.lane];
+    const touchesStamp=p.x+PLAYER_HITBOX.halfWidth>=STAMP_BOUNDS.left&&p.x-PLAYER_HITBOX.halfWidth<=STAMP_BOUNDS.right
+        &&p.y>=goalY+STAMP_BOUNDS.top&&p.y-PLAYER_HITBOX.height<=goalY+STAMP_BOUNDS.bottom;
+    if(touchesStamp||Math.hypot(p.x-620,p.y-goalY)<14)f.progress=1;
     f.ink??=[[80,f.startY??270]];
     const tail=f.ink.at(-1);
     if(!tail||Math.hypot(p.x-tail[0],p.y-tail[1])>=2||f.progress===1)f.ink.push([p.x,p.y]);

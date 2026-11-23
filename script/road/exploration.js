@@ -43,7 +43,7 @@ export function inkVisibility(distance,furthest){
 const inkSegments=new WeakMap();
 export function explorationInk(route,completed){
     const key=completed.join('|'),cached=inkSegments.get(route);if(cached?.key===key)return cached.segments;
-    const gaps=CHECKPOINTS.filter(c=>c.id!=='battle'&&!completed.includes(c.id)).map(c=>route.nodes[c.at-1]).filter(Boolean);
+    const gaps=CHECKPOINTS.filter(c=>['pond','climb'].includes(c.id)&&!completed.includes(c.id)).map(c=>route.nodes[c.at-1]).filter(Boolean);
     const segments=[];
     for(let i=1;i<route.points.length;i++){
         const a=route.points[i-1],b=route.points[i];let intervals=[[a.distance,b.distance]];
