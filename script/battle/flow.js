@@ -249,7 +249,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         ui.fightSkillsDialog.hidden = true;
         state.playerAttackAnimation = null;
         state.enemyAttackAnimation = null;
-        ui.openBattleLossDialog();
+        ui.openBattleLossDialog(state.enemyKind);
     }
 
     function endEnemyTurn() {
@@ -436,6 +436,17 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
             return;
         }
 
+        if (tokenState.tokens <= 0) {
+            const availableSkills = skillEffects
+                .map((skill, index) => ({ skill, index }))
+                .filter(({ skill }) => state.player.stamina >= skill.staminaCost);
+            const randomSkill = availableSkills[Math.floor(Math.random() * availableSkills.length)];
+            state.currentRecommendation = null;
+            recordTurnField("recommendation", "토큰 부족으로 무작위 선택");
+            resolvePlayerSkill(randomSkill.index, true);
+            return;
+        }
+
         const recommendation = getTurnRecommendation(
             state,
             tokenState.tokens,
@@ -488,6 +499,13 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         showTurnRecommendation();
     }
 
+    function abandonBattle() {
+        if (!state.ended) return;
+        ui.closeBattleLossDialog();
+        state.ended = false;
+        finishBattle("무사히 도망쳤다!", "escape");
+    }
+
     async function enterBattle(encounterKind) {
         refreshTokens();
         await renderer.setBattleBackground(navigation.getCurrentRoadBattleBackground());
@@ -514,6 +532,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
 
     return {
         attemptEscape,
+        abandonBattle,
         enterBattle,
         exitBattle,
         onManualSkillSelected,

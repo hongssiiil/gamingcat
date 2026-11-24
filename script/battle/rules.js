@@ -34,22 +34,39 @@ export function getEnemyActionProbabilities(state) {
         return { attack: 0, recover: 100, defend: 0, roar: 0 };
     }
 
+    let probabilities;
     if (state.enemy.stamina < state.enemy.maxStamina) {
         const remainingProbability = 70 / 3;
-        return {
+        probabilities = {
             attack: remainingProbability,
             recover: 30,
             defend: remainingProbability,
             roar: remainingProbability,
         };
+    } else {
+        const actionProbability = 100 / 3;
+        probabilities = {
+            attack: actionProbability,
+            recover: 0,
+            defend: actionProbability,
+            roar: actionProbability,
+        };
     }
 
-    const actionProbability = 100 / 3;
+    if (state.enemyKind !== "wolf" || !(state.player.maxHealth > 0)) return probabilities;
+
+    const healthRatio = Math.max(0, Math.min(1, state.player.health / state.player.maxHealth));
+    const addedAttackProbability = (1 - healthRatio) * 30;
+    const otherActionsProbability = 100 - probabilities.attack;
+    if (addedAttackProbability <= 0 || otherActionsProbability <= 0) return probabilities;
+
+    const otherActionsScale = (otherActionsProbability - addedAttackProbability)
+        / otherActionsProbability;
     return {
-        attack: actionProbability,
-        recover: 0,
-        defend: actionProbability,
-        roar: actionProbability,
+        attack: probabilities.attack + addedAttackProbability,
+        recover: probabilities.recover * otherActionsScale,
+        defend: probabilities.defend * otherActionsScale,
+        roar: probabilities.roar * otherActionsScale,
     };
 }
 

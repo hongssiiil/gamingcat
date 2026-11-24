@@ -135,12 +135,6 @@ body:not(.game-started) #Start {
     box-shadow: 0 0.35rem 1.5rem rgb(0 0 0 / 18%);
 }
 
-.start-composer:focus-within {
-    border-color: #777;
-    outline: 2px solid rgb(255 255 255 / 18%);
-    outline-offset: 2px;
-}
-
 .start-composer input {
     flex: 1;
     min-width: 0;
@@ -290,7 +284,6 @@ body:not(.game-started) #Start {
     box-shadow: 0 8px 0 rgb(8 17 12 / 55%);
 }
 
-.start-composer:focus-within { outline: 3px solid #e6bf69; }
 .start-composer input { color: #f4e3b1; }
 .start-composer input::placeholder { color: #b9bd9e; }
 .start-composer button {

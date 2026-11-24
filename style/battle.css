@@ -706,6 +706,9 @@ body {
 .battle-loss-dialog {
     box-sizing: border-box;
     width: min(calc(var(--battle-scale, 1) * 492px), calc(100vw - var(--battle-scale, 1) * 32px));
+    aspect-ratio: 2 / 1;
+    place-content: center;
+    gap: calc(var(--battle-scale, 1) * 8px);
     padding: calc(var(--battle-scale, 1) * 32px);
     border: calc(var(--battle-scale, 1) * 4px) solid transparent;
     border-radius: 0;
@@ -717,14 +720,24 @@ body {
     image-rendering: pixelated;
 }
 
+.battle-loss-dialog[open] {
+    display: grid;
+}
+
 .battle-loss-dialog::backdrop {
     background: rgb(0 0 0 / 72%);
 }
 
 .battle-loss-dialog p {
-    margin: 0 0 calc(var(--battle-scale, 1) * 24px);
+    margin: 0;
     font-size: calc(var(--battle-scale, 1) * 32px);
     font-weight: 700;
+}
+
+.battle-loss-actions {
+    display: flex;
+    justify-content: center;
+    gap: calc(var(--battle-scale, 1) * 12px);
 }
 
 .battle-loss-dialog button {

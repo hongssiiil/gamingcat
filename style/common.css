@@ -11,7 +11,7 @@ body {
 }
 
 .screen-navigation {
-    display: flex;
+    display: none;
     gap: 0.5rem;
     position: fixed;
     top: 1rem;

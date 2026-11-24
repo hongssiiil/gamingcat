@@ -10,9 +10,9 @@
     <link rel="stylesheet" href="style/music.css">
     <link rel="stylesheet" href="style/ending.css">
     <link rel="stylesheet" href="style/road.css">
-    <link rel="stylesheet" href="style/battle.css?v=38">
+    <link rel="stylesheet" href="style/battle.css?v=39">
     <link rel="stylesheet" href="start/start.css">
-    <script type="module" src="script/main.js?v=52"></script>
+    <script type="module" src="script/main.js?v=53"></script>
     <script type="module" src="start/start.js"></script>
 </head>
 
@@ -21,7 +21,6 @@
         <button type="button" id="show-road">Road</button>
         <button type="button" id="show-battle">Battle</button>
     </nav>
-
     <main>
         <section id="Start" class="start-screen screen-active" aria-labelledby="start-title">
             <header class="start-header">
@@ -55,24 +54,36 @@
 
         <section id="Road" class="screen-active road-screen" aria-label="Road 화면">
             <header class="road-header">
-                <div><span class="road-eyebrow">티니와 함께 걷는 길</span><h1 id="road-title">이름 없는 숲</h1></div>
-                <div class="road-resources"><span id="road-token">토큰 30</span><span id="road-token-change" class="road-token-change" aria-live="polite"></span><span id="road-debt" hidden></span><button type="button" id="road-restart">다시 시작</button></div>
+                <div><span class="road-eyebrow">티니와 함께 걷는 길</span>
+                    <h1 id="road-title">이름 없는 숲</h1>
+                </div>
+                <div class="road-resources"><span id="road-token">토큰 30</span><span id="road-token-change"
+                        class="road-token-change" aria-live="polite"></span><span id="road-debt" hidden></span><button
+                        type="button" id="road-restart">다시 시작</button></div>
             </header>
             <div id="road-view" tabindex="0" aria-label="게임 화면"></div>
-            <footer class="road-footer"><span id="road-instructions">WASD 이동 · E 상호작용</span><span id="road-progress"></span></footer>
+            <footer class="road-footer"><span id="road-instructions">WASD 이동 · E 상호작용</span><span
+                    id="road-progress"></span></footer>
             <p id="road-status" class="road-status" role="status" aria-live="polite"></p>
-            <button type="button" id="road-help" class="road-help" aria-label="티니에게 도움 요청하기" aria-controls="road-chat-panel" aria-expanded="false"><span id="road-help-nudge" class="road-help-nudge" role="status" hidden></span><img src="./images/character/cat/cat_front.png" alt=""><span class="road-help-copy"><strong>도움</strong><small>티니에게 물어보기</small></span></button>
+            <button type="button" id="road-help" class="road-help" aria-label="티니에게 도움 요청하기"
+                aria-controls="road-chat-panel" aria-expanded="false"><span id="road-help-nudge" class="road-help-nudge"
+                    role="status" hidden></span><img src="./images/character/cat/cat_front.png" alt=""><span
+                    class="road-help-copy"><strong>도움</strong><small>티니에게 물어보기</small></span></button>
             <section id="road-chat-panel" class="road-chat-panel" aria-labelledby="road-chat-title" hidden>
                 <header class="road-chat-header">
                     <img src="./images/character/cat/cat_front.png" alt="">
-                    <div><h2 id="road-chat-title">티니</h2><span>숲길을 안내하는 고양이</span></div>
+                    <div>
+                        <h2 id="road-chat-title">티니</h2><span>숲길을 안내하는 고양이</span>
+                    </div>
                     <button type="button" id="road-chat-close" aria-label="티니 대화 닫기">×</button>
                 </header>
-                <div id="road-chat-log" class="road-chat-log" role="log" aria-label="티니와의 대화" aria-live="polite" aria-relevant="additions"></div>
+                <div id="road-chat-log" class="road-chat-log" role="log" aria-label="티니와의 대화" aria-live="polite"
+                    aria-relevant="additions"></div>
                 <form id="road-chat-form" class="road-chat-form">
                     <label for="road-chat-input" class="road-sr-only">티니에게 메시지 보내기</label>
                     <div class="road-chat-composer">
-                        <textarea id="road-chat-input" rows="2" maxlength="300" placeholder="티니에게 메시지 보내기…" aria-describedby="road-chat-command-guide"></textarea>
+                        <textarea id="road-chat-input" rows="2" maxlength="300" placeholder="티니에게 메시지 보내기…"
+                            aria-describedby="road-chat-command-guide"></textarea>
                         <button type="submit" id="road-chat-send" aria-label="메시지 전송">↑</button>
                     </div>
                     <p id="road-chat-command-guide">/hint 1 · /plan 3 · /solve 8 토큰</p>
@@ -87,7 +98,10 @@
             </div>
             <dialog id="road-flow-dialog" aria-labelledby="road-flow-title"></dialog>
             <dialog id="road-modal" aria-labelledby="road-modal-title">
-                <div class="road-modal-top"><h2 id="road-modal-title"></h2><button type="button" id="road-modal-close" aria-label="닫기">×</button></div>
+                <div class="road-modal-top">
+                    <h2 id="road-modal-title"></h2><button type="button" id="road-modal-close"
+                        aria-label="닫기">×</button>
+                </div>
                 <div id="road-modal-body"></div>
             </dialog>
         </section>
@@ -106,15 +120,24 @@
                 <div class="battle-history-cards" aria-live="polite">
                     <article class="battle-history-card">
                         <img src="./images/character/cat/cat_front.png" alt="">
-                        <div><h3>추천</h3><p id="battle-history-recommendation">추천을 기다리는 중</p></div>
+                        <div>
+                            <h3>추천</h3>
+                            <p id="battle-history-recommendation">추천을 기다리는 중</p>
+                        </div>
                     </article>
                     <article class="battle-history-card">
                         <img src="./images/character/player/player_icon.png" alt="">
-                        <div><h3>선택</h3><p id="battle-history-choice">아직 선택 전</p></div>
+                        <div>
+                            <h3>선택</h3>
+                            <p id="battle-history-choice">아직 선택 전</p>
+                        </div>
                     </article>
                     <article class="battle-history-card">
                         <img src="./images/battle/history_result_icon.png" alt="전투 결과 아이콘">
-                        <div><h3>결과</h3><p id="battle-history-result">아직 선택 전</p></div>
+                        <div>
+                            <h3>결과</h3>
+                            <p id="battle-history-result">아직 선택 전</p>
+                        </div>
                     </article>
                 </div>
             </aside>
@@ -125,32 +148,37 @@
                 </div>
                 <div class="status-row health-row">
                     <span class="status-kind">HP</span>
-                    <div class="status-bar health-bar" role="progressbar" aria-label="적 체력" aria-valuemin="0" aria-valuemax="120" aria-valuenow="120">
+                    <div class="status-bar health-bar" role="progressbar" aria-label="적 체력" aria-valuemin="0"
+                        aria-valuemax="120" aria-valuenow="120">
                         <span class="status-fill"></span>
                     </div>
                 </div>
                 <div class="status-row stamina-row">
                     <span class="status-kind">스태미나</span>
-                    <div class="status-bar stamina-bar enemy-stamina-bar" role="progressbar" aria-label="적 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                    <div class="status-bar stamina-bar enemy-stamina-bar" role="progressbar" aria-label="적 스태미나"
+                        aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
                         <span class="status-fill"></span>
                     </div>
                 </div>
             </section>
             <section class="battle-status player-status" id="player-status" aria-label="플레이어 상태">
-                <img class="status-portrait player-status-portrait" src="./images/character/player/player_status_icon.png" alt="플레이어 아이콘">
+                <img class="status-portrait player-status-portrait"
+                    src="./images/character/player/player_status_icon.png" alt="플레이어 아이콘">
                 <div class="status-heading">
                     <p class="status-name">플레이어</p>
                 </div>
                 <div class="status-row health-row">
                     <span class="status-kind">HP</span>
-                    <div class="status-bar health-bar" role="progressbar" aria-label="플레이어 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                    <div class="status-bar health-bar" role="progressbar" aria-label="플레이어 체력" aria-valuemin="0"
+                        aria-valuemax="100" aria-valuenow="100">
                         <span class="status-fill"></span>
                     </div>
                     <span class="status-value" id="player-health-value">100 / 100</span>
                 </div>
                 <div class="status-row stamina-row">
                     <span class="status-kind">스태미나</span>
-                    <div class="status-bar stamina-bar" role="progressbar" aria-label="플레이어 스태미나" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                    <div class="status-bar stamina-bar" role="progressbar" aria-label="플레이어 스태미나" aria-valuemin="0"
+                        aria-valuemax="100" aria-valuenow="100">
                         <span class="status-fill"></span>
                     </div>
                     <span class="status-value" id="player-stamina-value">100 / 100</span>
@@ -164,24 +192,31 @@
                     <button type="button" class="fight-skill-button skill-option" aria-label="일반 공격, 위력 10, 소모 스태미나 20">
                         <span>일반 공격</span><small>위력 10 · 스태미나 20</small>
                     </button>
-                    <button type="button" class="fight-skill-button skill-option" aria-label="힘껏 휘두르기, 위력 20, 소모 스태미나 30">
+                    <button type="button" class="fight-skill-button skill-option"
+                        aria-label="힘껏 휘두르기, 위력 20, 소모 스태미나 30">
                         <span>힘껏 휘두르기</span><small>위력 20 · 스태미나 30</small>
                     </button>
-                    <button type="button" class="fight-skill-button skill-option" aria-label="숨 고르기, 체력 10 및 스태미나 40 회복, 소모 스태미나 0">
+                    <button type="button" class="fight-skill-button skill-option"
+                        aria-label="숨 고르기, 체력 10 및 스태미나 40 회복, 소모 스태미나 0">
                         <span>숨 고르기</span><small>체력 10 · 스태미나 40 회복</small>
                     </button>
-                    <button type="button" class="fight-skill-button skill-option" aria-label="방어하기, 이번 턴 적 공격 피해 50% 감소, 소모 스태미나 10">
+                    <button type="button" class="fight-skill-button skill-option"
+                        aria-label="방어하기, 이번 턴 적 공격 피해 50% 감소, 소모 스태미나 10">
                         <span>방어하기</span><small>이번 턴 적 공격 피해 50% 감소 · 스태미나 10</small>
                     </button>
-                    <button type="button" class="fight-skill-button alternate-run-button" id="alternate-run-button" aria-label="도망 시도, 성공 확률 20%">
+                    <button type="button" class="fight-skill-button alternate-run-button" id="alternate-run-button"
+                        aria-label="도망 시도, 성공 확률 20%">
                         <span>도망 시도</span><small>성공 확률 20% · 성공하면 숲길로 돌아가요.</small>
                     </button>
                     <button type="button" class="action-choice-cancel" id="action-choice-cancel">돌아가기</button>
                 </div>
             </section>
             <dialog id="battle-loss-dialog" class="battle-loss-dialog" aria-labelledby="battle-loss-text">
-                <p id="battle-loss-text">다시 해보자</p>
-                <button type="button" id="battle-loss-confirm">확인</button>
+                <p id="battle-loss-text">졌다...</p>
+                <div class="battle-loss-actions">
+                    <button type="button" id="battle-loss-retry">회귀하기</button>
+                    <button type="button" id="battle-loss-abandon">포기하기</button>
+                </div>
             </dialog>
             <div class="menu-section">
                 <img id="menu-background" src="./images/battle/battle_menu.png" alt="">
@@ -190,7 +225,8 @@
                     <div class="recommendation-copy">
                         <span id="battle-message-kind" class="battle-message-kind" hidden></span>
                         <p id="ai-recommendation">어떤 행동을 할까?</p>
-                        <p id="battle-enemy-probability" class="battle-enemy-probability" role="status" aria-live="polite" hidden></p>
+                        <p id="battle-enemy-probability" class="battle-enemy-probability" role="status"
+                            aria-live="polite" hidden></p>
                     </div>
                 </div>
                 <div class="menu-actions">
@@ -200,7 +236,8 @@
                     <button id="battle-auto-button" type="button" aria-pressed="false">자동전투 시작 · 턴당 2토큰</button>
                 </div>
             </div>
-            <aside id="battle-tutorial-card" class="battle-tutorial-card" role="status" aria-live="polite" hidden></aside>
+            <aside id="battle-tutorial-card" class="battle-tutorial-card" role="status" aria-live="polite" hidden>
+            </aside>
         </section>
     </main>
 </body>

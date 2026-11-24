@@ -12,7 +12,8 @@ export const fightSkillButtons = fightSkillsDialog.querySelectorAll(".skill-opti
 export const alternateRunButton = document.getElementById("alternate-run-button");
 export const actionChoiceCancelButton = document.getElementById("action-choice-cancel");
 export const battleLossDialog = document.getElementById("battle-loss-dialog");
-export const battleLossConfirmButton = document.getElementById("battle-loss-confirm");
+export const battleLossRetryButton = document.getElementById("battle-loss-retry");
+export const battleLossAbandonButton = document.getElementById("battle-loss-abandon");
 export const enemyStatus = document.getElementById("enemy-status");
 export const playerStatus = document.getElementById("player-status");
 export const enemyName = enemyStatus.querySelector(".status-name");
@@ -184,9 +185,10 @@ export function flashRoarStaminaFeedback() {
     }, 560);
 }
 
-export function openBattleLossDialog() {
+export function openBattleLossDialog(enemyKind) {
+    battleLossAbandonButton.hidden = enemyKind === "mole";
     battleLossDialog.showModal();
-    battleLossConfirmButton.focus();
+    battleLossRetryButton.focus();
 }
 
 export function closeBattleLossDialog() {

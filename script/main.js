@@ -1,4 +1,4 @@
-import { enterBattle, exitBattle, resetBattleForJourney } from "./battle.js?v=55";
+import { enterBattle, exitBattle, resetBattleForJourney } from "./battle.js?v=57";
 import { enterRoad, exitRoad, getEndingJourney, restartJourney, getRoadBattleKind } from "./road.js";
 import { createEnding } from './ending.js';
 import { music, initMusicControls } from './music.js';

@@ -133,7 +133,8 @@ export function createBattleController({ state, tokenState, flow, ui, tutorial }
         ui.battleLossDialog.addEventListener("cancel", (event) => {
             event.preventDefault();
         });
-        ui.battleLossConfirmButton.addEventListener("click", flow.resetBattle);
+        ui.battleLossRetryButton.addEventListener("click", flow.resetBattle);
+        ui.battleLossAbandonButton.addEventListener("click", flow.abandonBattle);
     }
 
     return { bind, acceptRecommendation, revealEnemyProbabilities };

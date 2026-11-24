@@ -10,8 +10,8 @@ import {
     stopBattleTutorial,
 } from "./battle/tutorial.js?v=11";
 import { setBattleBackground, setBattleEnemy, startBattleRenderer } from "./battle/renderer.js?v=47";
-import * as ui from "./battle/ui.js?v=43";
-import { createBattleFlow } from "./battle/flow.js?v=19";
+import * as ui from "./battle/ui.js?v=44";
+import { createBattleFlow } from "./battle/flow.js?v=21";
 import { createBattleController } from "./battle/controller.js?v=2";
 
 const state = createBattleState();
