@@ -21,19 +21,19 @@ test('walking enters every branch without a selection action and commits only at
     }
 });
 
-test('help costs retain the twenty-token journey allowance', () => {
+test('help costs retain the thirty-token journey allowance', () => {
     const s=freshState();
     for(const cmd of ['hint','plan','solve','solve']) assert.equal(useHelp(s,cmd,'answer'),true);
-    assert.equal(s.tokens,0); assert.equal(s.events.length,4);
-    assert.equal(useHelp(s,'unknown',''),false); assert.equal(s.tokens,0);
+    assert.equal(s.tokens,10); assert.equal(s.events.length,4);
+    assert.equal(useHelp(s,'unknown',''),false); assert.equal(s.tokens,10);
 });
 test('old ten-token saves migrate once while preserving spending and events',()=>{
     const s=freshState();delete s.tokenBudgetVersion;s.tokens=6;
     s.events.push({type:'help',stage:'forest',command:'plan',cost:3});
     const restored=restoreState(JSON.stringify(s));
-    assert.equal(restored.tokens,16);assert.deepEqual(restored.events,s.events);
-    assert.equal(restoreState(JSON.stringify(restored)).tokens,16);
-    assert.equal(freshState().tokens,20);
+    assert.equal(restored.tokens,26);assert.deepEqual(restored.events,s.events);
+    assert.equal(restoreState(JSON.stringify(restored)).tokens,26);
+    assert.equal(freshState().tokens,30);
 });
 test('typed commands charge once; ordinary messages and typos do not spend tokens', () => {
     const s=freshState();let calls=0;
@@ -43,12 +43,12 @@ test('typed commands charge once; ordinary messages and typos do not spend token
         const reply=sendRoadMessage(s,message,answer);
         assert.equal(reply.command,null);assert.equal(reply.message,message);
     }
-    assert.equal(s.tokens,20);assert.equal(calls,0);
+    assert.equal(s.tokens,30);assert.equal(calls,0);
     for(const command of [' /hint ','/PLAN 힌트 줘','/solve','/solve'])sendRoadMessage(s,command,answer);
-    assert.equal(s.tokens,0);assert.equal(calls,4);assert.equal(s.events.length,4);
+    assert.equal(s.tokens,10);assert.equal(calls,4);assert.equal(s.events.length,4);
     assert.deepEqual(restoreState(JSON.stringify(s)),s);
     s.stage='contract';sendRoadMessage(s,'/hint',answer);
-    assert.equal(s.tokens,0);assert.equal(calls,4);
+    assert.equal(s.tokens,10);assert.equal(calls,4);
     assert.equal(useHelp(s,'constructor','invalid'),false);
 });
 test('all topics permit every route, including choices against the recommendation', () => {
@@ -98,4 +98,16 @@ test('obstacles lock the map, completion preserves location and unlocks only the
 });
 test('missing, legacy and malformed saves start safely', () => {
     for(const data of [null,'{','[]','{"version":1}',JSON.stringify({...freshState(),fork:null})]) assert.deepEqual(restoreState(data),freshState());
+});
+
+test('twenty-token saves migrate once, including negative balances, without erasing progress',()=>{
+    for(const balance of [20,12,0,-15]){
+        const s=freshState();s.tokenBudgetVersion=1;s.tokens=balance;
+        s.events.push({type:'help',command:'solve',cost:8});
+        const restored=restoreState(JSON.stringify(s));
+        assert.equal(restored.tokens,balance+10);
+        assert.equal(restored.tokenBudgetVersion,2);
+        assert.deepEqual(restored.events,s.events);
+        assert.deepEqual(restoreState(JSON.stringify(restored)),restored);
+    }
 });

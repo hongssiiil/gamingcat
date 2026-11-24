@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {finishMapTutorial} from './map-battle.js';
 import {freshState,choose,advanceMap,solvePuzzle,pressPondStone,pressClimbStone,restoreState} from './model.js';
 import {createExplorationMotion,updateExplorationMotion,mapEncounter,explorationInk} from './exploration.js';
 import {openNodePuzzle,cancelNodePuzzle,completeNodePuzzle,isCelebrating,restorePuzzleView} from './puzzle-flow.js';
@@ -40,6 +41,7 @@ test('cancel and reopen generate a fresh attempt; reload preserves its board and
 test('existing answers clear each corresponding node once and unlock its ink after the celebration',()=>{
     const {state,motion}=encounter(),choices=structuredClone(state.choices),paths=structuredClone(state.completedPaths);
     for(const [nodeId,kind,press] of [[1,'pond',pressPondStone],[3,'climb',pressClimbStone]]){
+        if(nodeId===3){advanceMap(state,1,100);assert(finishMapTutorial(state,'victory'));}
         advanceMap(state,1,100);updateExplorationMotion(motion,state,.05);
         const distance=state.mapDistance,camera=motion.cameraX,cat=motion.catDistance;
         assert(openNodePuzzle(state,nodeId,motion));
@@ -55,7 +57,7 @@ test('existing answers clear each corresponding node once and unlock its ink aft
         updateExplorationMotion(motion,state,.02);assert.equal(isCelebrating(motion),false);
         assert.deepEqual(restoreState(JSON.stringify(state)).completed,state.completed);
     }
-    assert.deepEqual(state.completed,['pond','climb']);
+    assert.deepEqual(state.completed,['pond','tutorial','climb']);
     assert.equal(state.events.filter(e=>e.type==='puzzle-complete').length,2);
     assert.deepEqual(state.choices,choices);assert.deepEqual(state.completedPaths,paths);
 });

@@ -4,7 +4,7 @@ import { createBattleFlow } from './flow.js';
 import { createBattleState, MOLE_INITIAL_HEALTH, ENEMY_INITIAL_HEALTH } from './state.js';
 
 function setup(){
-    const state=createBattleState(),tokenState={tokens:20,events:[]},pending=[],calls=[];
+    const state=createBattleState(),tokenState={tokens:30,events:[]},pending=[],calls=[];
     let active=false;
     const noop=()=>{};
     const ui={

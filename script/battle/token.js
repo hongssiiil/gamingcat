@@ -4,7 +4,7 @@ export const BATTLE_TOKEN_COSTS = Object.freeze({
     autoTurn: 2,
 });
 
-export const BATTLE_STARTING_TOKENS = 20;
+export const BATTLE_STARTING_TOKENS = 30;
 
 export function consumeBattleToken(state, command, { probabilityAlreadyViewed = false } = {}) {
     if (!Object.hasOwn(BATTLE_TOKEN_COSTS, command)) return false;

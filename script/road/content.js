@@ -50,7 +50,7 @@ export const POND = [
 export const CLIMB = [12, 13, 22, 13, 32, 21, 12, 10, 21, 22, 11, 12, 12, 11, 22, 23];
 export const CHECKPOINTS = [
     { at: 1, id: 'pond', label: '연못', message: '연못에서 예상치 못한 장애물을 만났다.' },
+    { at: 2, id: 'tutorial', label: '두더지', message: '두더지와 전투 방법을 연습해 보자.' },
     { at: 3, id: 'climb', label: '암벽', message: '길이 가파른 암벽으로 이어진다.' },
-    { at: 4, id: 'tutorial', label: '두더지', message: '두더지와 전투 방법을 연습해 보자.' },
     { at: 5, id: 'battle', label: '늑대', message: '탈출하는 길에서 늑대와 마주쳤다.' },
 ];

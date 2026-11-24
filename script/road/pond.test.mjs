@@ -13,22 +13,19 @@ test('pond visits all 16 cells once, lights only correct clicks and completes at
     assert.equal(finishPuzzle(s,'pond'),true);
 });
 
-test('wrong clicks preserve zero through three white cells; reset from four onwards',()=>{
+test('errors preserve zero to two lit cells and undo one step from three onwards',()=>{
     const path=solvePuzzle('pond');
     for(let count=0;count<16;count++){
         const s=freshState();path.slice(0,count).forEach(cell=>pressPondStone(s,cell));
-        const wrong=(path[count]+1)%16;
-        assert.equal(pressPondStone(s,wrong),count<=3?'wrong':'reset');
-        assert.deepEqual(s.pondTrail,count<=3?path.slice(0,count):[]);
-        if(count>3){assert.equal(s.puzzle.pond,0);assert.equal(pressPondStone(s,0),'correct');}
+        const wrong=count?path[0]:1;
+        assert.equal(pressPondStone(s,wrong),count>=3?'backtrack':'wrong');
+        const remaining=count>=3?count-1:count;
+        assert.deepEqual(s.pondTrail,path.slice(0,remaining));
+        assert.equal(s.puzzle.pond,path[remaining-1]??0);
+        assert.deepEqual(restoreState(JSON.stringify(s)),s);
+        path.slice(remaining).forEach(cell=>pressPondStone(s,cell));
+        assert.equal(finishPuzzle(s,'pond'),true);
     }
-});
-
-test('duplicate clicks cannot increase the white count and obey the same reset rule',()=>{
-    const s=freshState(),path=solvePuzzle('pond');
-    path.slice(0,3).forEach(cell=>pressPondStone(s,cell));
-    assert.equal(pressPondStone(s,path[2]),'wrong');assert.equal(s.pondTrail.length,3);
-    pressPondStone(s,path[3]);assert.equal(pressPondStone(s,path[3]),'reset');
 });
 
 test('pond trail persists; old saves and invalid sequences restart only the pond attempt',()=>{
