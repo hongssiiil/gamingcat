@@ -2,7 +2,11 @@ import { enterRoad, getCurrentRoadBattleBackground, saveBattleChoice, returnFrom
 import { music } from './music.js';
 import { createBattleState, resetBattleState } from "./battle/state.js?v=37";
 
-import { markBattleTutorialComplete } from "./battle/encounter.js?v=2";
+import {
+    hasCompletedBattleTutorial,
+    markBattleTutorialComplete,
+    resetBattleTutorialCompletion,
+} from "./battle/encounter.js?v=3";
 import {
     advanceBattleTutorial,
     isBattleTutorialActive,
@@ -11,7 +15,7 @@ import {
 } from "./battle/tutorial.js?v=11";
 import { setBattleBackground, setBattleEnemy, startBattleRenderer } from "./battle/renderer.js?v=47";
 import * as ui from "./battle/ui.js?v=44";
-import { createBattleFlow } from "./battle/flow.js?v=21";
+import { createBattleFlow } from "./battle/flow.js?v=22";
 import { createBattleController } from "./battle/controller.js?v=2";
 
 const state = createBattleState();
@@ -34,6 +38,7 @@ function cancel() {
 
 const tutorial = {
     advanceBattleTutorial,
+    hasCompletedBattleTutorial,
     isBattleTutorialActive,
     markBattleTutorialComplete,
     startBattleTutorial,
@@ -59,7 +64,7 @@ startBattleRenderer(state);
 export const enterBattle = flow.enterBattle;
 export const exitBattle = flow.exitBattle;
 export function resetBattleForJourney(){
-    cancel();stopBattleTutorial();resetBattleState(state);state.started=false;
+    cancel();stopBattleTutorial();resetBattleTutorialCompletion();resetBattleState(state);state.started=false;
     ui.fightSkillsDialog.hidden=true;ui.setControlsLocked(state,false);
     ui.updateStatusBars(state);
 }

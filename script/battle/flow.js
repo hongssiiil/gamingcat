@@ -78,7 +78,9 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         tutorialAutoTurnPending = false;
         tutorialAutoPaused = false;
         enemyActedBeforePlayer = false;
-        if (state.enemyKind === "mole") tutorial.startBattleTutorial();
+        if (state.enemyKind === "mole" && !tutorial.hasCompletedBattleTutorial?.()) {
+            tutorial.startBattleTutorial(tutorial.markBattleTutorialComplete);
+        }
         updateBattleMusic();
     }
 
