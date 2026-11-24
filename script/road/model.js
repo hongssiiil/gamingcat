@@ -6,7 +6,7 @@ import { puzzleTiles, validPuzzle, startPuzzle, hasUniqueClimbMoves, hasLimitedP
 export const STORAGE_KEY = 'gamingCatRoadV2';
 export const STAGES = ['forest', 'routeMissing', 'contract', 'stopped', 'topic', 'fork', 'summary', 'map', 'pond', 'climb', 'battleReady'];
 export function freshState() {
-    return { version: 2, tokenBudgetVersion:1, stage: 'forest', tokens: 20, notes: [], topic: '', interest: '',
+    return { version: 2, tokenBudgetVersion:2, stage: 'forest', tokens: 30, notes: [], topic: '', interest: '',
         choices: [], completedPaths: [], inkJourney: initialJourney(), events: [], chat: [], player: { x: 340, y: 483 }, mapDistance: 0,
         mapPathVersion:1,mapFurthest:0,puzzleBoards:{},
         completed: [], pondTrail: [], climbTrail: [], puzzle: { pond: 0, climb: 0 }, fork: { startY:270, lane: 1, progress: 0, resistance: 0, seconds: 0, resisted: false } };
@@ -15,7 +15,7 @@ export function restoreState(raw) {
     try {
         const s = JSON.parse(raw);
         if (!s || s.version !== 2 || !STAGES.includes(s.stage)) return freshState();
-        if (!Number.isFinite(s.tokens) || s.tokens > (s.tokenBudgetVersion===1?20:10) || !Array.isArray(s.notes) || !Array.isArray(s.choices) || s.choices.length > 5) return freshState();
+        if (!Number.isFinite(s.tokens) || s.tokens > (s.tokenBudgetVersion===2?30:s.tokenBudgetVersion===1?20:10) || !Array.isArray(s.notes) || !Array.isArray(s.choices) || s.choices.length > 5) return freshState();
         if (!Array.isArray(s.events) || !Array.isArray(s.chat) || !Array.isArray(s.completed)) return freshState();
         if (s.notes.some(id => !NOTES.some(note => note.id === id)) || new Set(s.notes).size !== s.notes.length) return freshState();
         if (typeof s.interest !== 'string' || s.interest.length > 40 || typeof s.topic !== 'string') return freshState();
@@ -64,8 +64,13 @@ export function restoreState(raw) {
         if(s.mapDistance>route.total+.01)return freshState();
         s.mapDistance=Math.min(s.mapDistance,explorationLimit(s,route).distance);
         s.mapFurthest=Math.max(s.mapDistance,Math.min(route.total,Number.isFinite(s.mapFurthest)?s.mapFurthest:0));
-        // Preserve what was spent from the old ten-token allowance, exactly once.
-        if(s.tokenBudgetVersion!==1){s.tokens+=10;s.tokenBudgetVersion=1;}
+        // An older save can have the third puzzle open before the relocated tutorial.
+        // Return to the new encounter instead of leaving an unfinishable puzzle open.
+        if(s.tokenBudgetVersion!==2&&s.stage==='climb'&&!s.completed.includes('tutorial')){
+            s.stage='map';delete s.puzzleView;
+        }
+        // Increase legacy allowances once, preserving spending and journey progress.
+        if(s.tokenBudgetVersion!==2){s.tokens+=s.tokenBudgetVersion===1?10:20;s.tokenBudgetVersion=2;}
         return s;
     } catch { return freshState(); }
 }
@@ -185,7 +190,7 @@ export function pressPondStone(state, index) {
     const trail=state.pondTrail??(state.pondTrail=[]);
     const expected=trail.length?puzzleMoves('pond',trail.at(-1),state)[0]:0;
     if(index!==expected||trail.includes(index)){
-        if(trail.length>3){state.pondTrail=[];state.puzzle.pond=0;return 'reset';}
+        if(trail.length>=3){trail.pop();state.puzzle.pond=trail.at(-1)??0;return 'backtrack';}
         return 'wrong';
     }
     trail.push(index);state.puzzle.pond=index;
@@ -196,7 +201,7 @@ export function pressClimbStone(state,index){
     const trail=state.climbTrail??(state.climbTrail=[]);
     const valid=trail.length?puzzleMoves('climb',trail.at(-1),state).includes(index):index===0;
     if(!valid||trail.includes(index)){
-        if(trail.length>3){state.climbTrail=[];state.puzzle.climb=0;return 'reset';}
+        if(trail.length>=3){trail.pop();state.puzzle.climb=trail.at(-1)??0;return 'backtrack';}
         return 'wrong';
     }
     trail.push(index);state.puzzle.climb=index;

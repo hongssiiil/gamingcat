@@ -20,12 +20,18 @@ test('reference prefix leads to all 16 cells, not the old EXIT',()=>{
     assert.equal(path.at(-1),7);assert.equal(finishPuzzle(s,'climb'),true);
 });
 
-test('three white cells survive errors, four white cells reset on invalid or repeated clicks',()=>{
-    for(const count of [0,1,2,3,4,8]){
-        const s=freshState();solvePuzzle('climb').slice(0,count).forEach(cell=>pressClimbStone(s,cell));
-        const wrong=count?0:1;
-        assert.equal(pressClimbStone(s,wrong),count>3?'reset':'wrong');
-        assert.equal(s.climbTrail.length,count>3?0:count);
+test('errors preserve zero to two lit cells and undo one step from three onwards',()=>{
+    const path=solvePuzzle('climb');
+    for(let count=0;count<16;count++){
+        const s=freshState();path.slice(0,count).forEach(cell=>pressClimbStone(s,cell));
+        const wrong=count?path[0]:1;
+        assert.equal(pressClimbStone(s,wrong),count>=3?'backtrack':'wrong');
+        const remaining=count>=3?count-1:count;
+        assert.deepEqual(s.climbTrail,path.slice(0,remaining));
+        assert.equal(s.puzzle.climb,path[remaining-1]??0);
+        assert.deepEqual(restoreState(JSON.stringify(s)),s);
+        path.slice(remaining).forEach(cell=>pressClimbStone(s,cell));
+        assert.equal(finishPuzzle(s,'climb'),true);
     }
 });
 

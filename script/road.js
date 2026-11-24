@@ -412,9 +412,9 @@ function selectStone(kind,index,automatic=false){
     if(puzzleSolving&&!automatic)return;
     {
         const result=kind==='pond'?pressPondStone(state,index):pressClimbStone(state,index);
-        if(result==='wrong'||result==='reset')recordPuzzleMistake();
-        if(result==='wrong'){announce('순서가 맞지 않습니다. 흰 칸은 유지됩니다.');return;}
-        if(result==='reset'){save();renderPuzzle({nodeId:puzzleNodeId(kind)});view.querySelector('[data-cell="0"]')?.focus({preventScroll:true});announce('순서가 틀려 모두 초기화되었습니다. 시작 칸부터 다시 눌러 주세요.');return;}
+        if(result==='wrong'||result==='backtrack')recordPuzzleMistake();
+        if(result==='wrong'){const count=(kind==='pond'?state.pondTrail:state.climbTrail).length;announce(count?'순서가 맞지 않습니다. 밝힌 칸은 유지됩니다.':'시작 칸부터 눌러 주세요.');return;}
+        if(result==='backtrack'){save();renderPuzzle({nodeId:puzzleNodeId(kind)});view.querySelector(`[data-cell="${state.puzzle[kind]}"]`)?.focus({preventScroll:true});announce('순서가 틀려 직전 칸으로 돌아왔습니다. 이어서 눌러 주세요.');return;}
     }
     puzzleMistakes=0;hideHelpNudge();
     state.puzzle[kind]=index;
