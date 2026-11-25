@@ -10,9 +10,9 @@
     <link rel="stylesheet" href="style/music.css">
     <link rel="stylesheet" href="style/ending.css">
     <link rel="stylesheet" href="style/road.css">
-    <link rel="stylesheet" href="style/battle.css?v=39">
+    <link rel="stylesheet" href="style/battle.css?v=52">
     <link rel="stylesheet" href="start/start.css">
-    <script type="module" src="script/main.js?v=54"></script>
+    <script type="module" src="script/main.js?v=63"></script>
     <script type="module" src="start/start.js"></script>
 </head>
 
@@ -108,10 +108,16 @@
 
         <section id="Battle" class="screen" aria-label="Battle 화면">
             <canvas id="battle-canvas"></canvas>
-            <aside class="battle-history-panel" id="battle-history-panel" aria-labelledby="battle-history-title">
-                <div class="battle-history-header">
-                    <h2 id="battle-history-title">전투 기록</h2>
-                </div>
+            <details class="battle-history-panel" id="battle-history-panel" aria-labelledby="battle-history-title">
+                <summary class="battle-history-header">
+                    <svg class="battle-history-icon" aria-hidden="true">
+                        <use href="./images/battle/history-icons.svg#record"></use>
+                    </svg>
+                    <span id="battle-history-title">전투 기록</span>
+                    <svg class="battle-history-toggle" aria-hidden="true">
+                        <use href="./images/battle/history-icons.svg#chevron"></use>
+                    </svg>
+                </summary>
                 <div class="battle-history-navigator">
                     <button id="battle-history-previous" type="button" aria-label="이전 턴">‹</button>
                     <span id="battle-history-turn-label">1턴 / 1턴</span>
@@ -140,7 +146,7 @@
                         </div>
                     </article>
                 </div>
-            </aside>
+            </details>
             <section class="battle-status enemy-status" id="enemy-status" aria-label="적 상태">
                 <img class="status-portrait" src="./images/character/wolf_icon.png" alt="적 아이콘">
                 <div class="status-heading">
@@ -184,31 +190,42 @@
                     <span class="status-value" id="player-stamina-value">100 / 100</span>
                 </div>
             </section>
-            <section id="fight-skills-dialog" class="fight-skills-dialog" role="dialog" aria-label="다른 행동 선택"
-                aria-modal="true" hidden>
-                <img class="fight-skills-panel" src="./images/battle/fight_skills_panel.png" alt="">
+            <section id="fight-skills-dialog" class="fight-skills-dialog" role="dialog" aria-label="전투 행동 선택"
+                hidden>
                 <div class="fight-skills-list">
-                    <h2>다른 행동 선택</h2>
                     <button type="button" class="fight-skill-button skill-option" aria-label="일반 공격, 위력 10, 소모 스태미나 20">
-                        <span>일반 공격</span><small>위력 10 · 스태미나 20</small>
+                        <svg class="action-icon" aria-hidden="true"><use href="./images/battle/action-icons.svg#attack"></use></svg>
+                        <span>공격</span>
+                        <small class="action-stats"><span><svg aria-hidden="true"><use href="./images/battle/action-icons.svg#impact"></use></svg>10</span><span><svg aria-hidden="true"><use href="./images/battle/action-icons.svg#stamina"></use></svg>20</span></small>
                     </button>
                     <button type="button" class="fight-skill-button skill-option"
                         aria-label="힘껏 휘두르기, 위력 20, 소모 스태미나 30">
-                        <span>힘껏 휘두르기</span><small>위력 20 · 스태미나 30</small>
+                        <svg class="action-icon" aria-hidden="true"><use href="./images/battle/action-icons.svg#heavy"></use></svg>
+                        <span>힘껏 휘두르기</span>
+                        <small class="action-stats"><span><svg aria-hidden="true"><use href="./images/battle/action-icons.svg#impact"></use></svg>20</span><span><svg aria-hidden="true"><use href="./images/battle/action-icons.svg#stamina"></use></svg>30</span></small>
                     </button>
                     <button type="button" class="fight-skill-button skill-option"
                         aria-label="숨 고르기, 체력 10 및 스태미나 40 회복, 소모 스태미나 0">
-                        <span>숨 고르기</span><small>체력 10 · 스태미나 40 회복</small>
+                        <svg class="action-icon" aria-hidden="true"><use href="./images/battle/action-icons.svg#heal"></use></svg>
+                        <span>숨 고르기</span>
+                        <small class="action-stats"><span><svg aria-hidden="true"><use href="./images/battle/action-icons.svg#health"></use></svg>+10</span><span><svg aria-hidden="true"><use href="./images/battle/action-icons.svg#stamina"></use></svg>+40</span></small>
                     </button>
                     <button type="button" class="fight-skill-button skill-option"
                         aria-label="방어하기, 이번 턴 적 공격 피해 50% 감소, 소모 스태미나 10">
-                        <span>방어하기</span><small>이번 턴 적 공격 피해 50% 감소 · 스태미나 10</small>
+                        <svg class="action-icon" aria-hidden="true"><use href="./images/battle/action-icons.svg#defend"></use></svg>
+                        <span>방어</span>
+                        <small class="action-stats"><span>½ 피해</span><span><svg aria-hidden="true"><use href="./images/battle/action-icons.svg#stamina"></use></svg>10</span></small>
                     </button>
                     <button type="button" class="fight-skill-button alternate-run-button" id="alternate-run-button"
                         aria-label="도망 시도, 성공 확률 20%">
-                        <span>도망 시도</span><small>성공 확률 20% · 성공하면 숲길로 돌아가요.</small>
+                        <svg class="action-icon" aria-hidden="true"><use href="./images/battle/action-icons.svg#escape"></use></svg>
+                        <span>도주</span>
+                        <small class="action-stats"><span>20%</span></small>
                     </button>
-                    <button type="button" class="action-choice-cancel" id="action-choice-cancel">돌아가기</button>
+                    <button type="button" class="fight-skill-button action-choice-cancel" id="action-choice-cancel" aria-label="행동 선택 닫기">
+                        <svg class="action-icon" aria-hidden="true"><use href="./images/battle/action-icons.svg#back"></use></svg>
+                        <span>닫기</span>
+                    </button>
                 </div>
             </section>
             <dialog id="battle-loss-dialog" class="battle-loss-dialog" aria-labelledby="battle-loss-text">
@@ -216,6 +233,12 @@
                 <div class="battle-loss-actions">
                     <button type="button" id="battle-loss-retry">회귀하기</button>
                     <button type="button" id="battle-loss-abandon">포기하기</button>
+                </div>
+            </dialog>
+            <dialog id="battle-victory-dialog" class="battle-loss-dialog battle-victory-dialog" aria-labelledby="battle-victory-text">
+                <p id="battle-victory-text"></p>
+                <div class="battle-loss-actions">
+                    <button type="button" id="battle-victory-confirm">확인</button>
                 </div>
             </dialog>
             <div class="menu-section">

@@ -16,7 +16,7 @@ body {
 
 #Battle {
     --battle-history-title-font-size: calc(var(--battle-scale, 1) * 14px);
-    --battle-history-turn-font-size: calc(var(--battle-scale, 1) * 18px);
+    --battle-history-turn-font-size: calc(var(--battle-scale, 1) * 14px);
     color: #eee4c5;
     font-family: "DungGeunMo", monospace;
 }
@@ -53,14 +53,29 @@ body {
 
 .battle-token-count,
 .battle-token-debt {
-    display: inline-block;
-    padding: calc(var(--battle-scale, 1) * 12px) calc(var(--battle-scale, 1) * 14px);
     border: calc(var(--battle-scale, 1) * 8px) solid transparent;
     border-image: url("../images/road/pixel-frame.svg") 8 fill / calc(var(--battle-scale, 1) * 8px) / 0 stretch;
     background: #202b22;
     color: #f4e3b1;
-    font-size: calc(var(--battle-scale, 1) * 13px);
     white-space: nowrap;
+}
+
+.battle-token-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: calc(var(--battle-scale, 1) * 72px);
+    padding: calc(var(--battle-scale, 1) * 16px) calc(var(--battle-scale, 1) * 20px);
+    font-size: calc(var(--battle-scale, 1) * 26px);
+    line-height: 1;
+}
+
+.battle-token-debt {
+    display: inline-block;
+    padding: calc(var(--battle-scale, 1) * 12px) calc(var(--battle-scale, 1) * 14px);
+    color: #f4ae9d;
+    font-size: calc(var(--battle-scale, 1) * 13px);
 }
 
 .battle-token-count::before {
@@ -68,12 +83,37 @@ body {
     content: "◆ ";
 }
 
-.battle-token-debt {
-    color: #f4ae9d;
-}
-
 .battle-token-debt[hidden] {
     display: none !important;
+}
+
+.battle-token-loss {
+    position: absolute;
+    top: 0;
+    right: calc(var(--battle-scale, 1) * 8px);
+    color: #ff6259;
+    font-size: calc(var(--battle-scale, 1) * 32px);
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: none;
+    text-shadow: calc(var(--battle-scale, 1) * 2px) calc(var(--battle-scale, 1) * 2px) #161d16;
+    opacity: 0;
+}
+
+.battle-token-loss.is-visible {
+    animation: battle-token-loss 650ms ease-out forwards;
+}
+
+@keyframes battle-token-loss {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(calc(var(--battle-scale, 1) * -24px));
+    }
 }
 
 /* Player and enemy status panels */
@@ -183,11 +223,9 @@ body {
 }
 
 .health-bar .status-fill {
-    background: repeating-linear-gradient(
-        90deg,
-        #d65348 0 calc(var(--battle-scale, 1) * 8px),
-        #c3453d calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px)
-    );
+    background: repeating-linear-gradient(90deg,
+            #d65348 0 calc(var(--battle-scale, 1) * 8px),
+            #c3453d calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px));
 }
 
 .stamina-bar {
@@ -199,11 +237,9 @@ body {
 }
 
 .stamina-bar .status-fill {
-    background: repeating-linear-gradient(
-        90deg,
-        #d4b84f 0 calc(var(--battle-scale, 1) * 8px),
-        #b39a3d calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px)
-    );
+    background: repeating-linear-gradient(90deg,
+            #d4b84f 0 calc(var(--battle-scale, 1) * 8px),
+            #b39a3d calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px));
 }
 
 .stamina-bar.is-insufficient-feedback {
@@ -211,11 +247,9 @@ body {
 }
 
 .stamina-bar.is-insufficient-feedback .status-fill {
-    background: repeating-linear-gradient(
-        90deg,
-        #df625b 0 calc(var(--battle-scale, 1) * 8px),
-        #ba4540 calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px)
-    );
+    background: repeating-linear-gradient(90deg,
+            #df625b 0 calc(var(--battle-scale, 1) * 8px),
+            #ba4540 calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px));
 }
 
 .stamina-bar.is-roar-feedback {
@@ -223,17 +257,33 @@ body {
 }
 
 .stamina-bar.is-roar-feedback .status-fill {
-    background: repeating-linear-gradient(
-        90deg,
-        #ed5149 0 calc(var(--battle-scale, 1) * 8px),
-        #b92e34 calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px)
-    );
+    background: repeating-linear-gradient(90deg,
+            #ed5149 0 calc(var(--battle-scale, 1) * 8px),
+            #b92e34 calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 12px));
 }
 
 @keyframes stamina-roar-feedback {
-    0%, 100% { transform: translateX(0); border-color: #151b1b; }
-    16%, 50%, 83% { transform: translateX(calc(var(--battle-scale, 1) * -4px)); border-color: #ff5b50; box-shadow: 0 0 calc(var(--battle-scale, 1) * 7px) #ed5149; }
-    33%, 66% { transform: translateX(calc(var(--battle-scale, 1) * 4px)); border-color: #ff5b50; box-shadow: 0 0 calc(var(--battle-scale, 1) * 7px) #ed5149; }
+
+    0%,
+    100% {
+        transform: translateX(0);
+        border-color: #151b1b;
+    }
+
+    16%,
+    50%,
+    83% {
+        transform: translateX(calc(var(--battle-scale, 1) * -4px));
+        border-color: #ff5b50;
+        box-shadow: 0 0 calc(var(--battle-scale, 1) * 7px) #ed5149;
+    }
+
+    33%,
+    66% {
+        transform: translateX(calc(var(--battle-scale, 1) * 4px));
+        border-color: #ff5b50;
+        box-shadow: 0 0 calc(var(--battle-scale, 1) * 7px) #ed5149;
+    }
 }
 
 @keyframes stamina-insufficient-feedback {
@@ -265,6 +315,7 @@ body {
     .stamina-bar.is-insufficient-feedback {
         animation: none;
     }
+
     .stamina-bar.is-roar-feedback {
         animation: none;
     }
@@ -433,97 +484,107 @@ body {
 /* Skill selection dialog */
 .fight-skills-dialog {
     position: fixed;
-    inset: 0;
-    z-index: 5;
+    z-index: 6;
+    bottom: var(--battle-offset-y, 0px);
+    left: var(--battle-offset-x, 0px);
     display: grid;
-    place-items: center;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: stretch;
+    gap: calc(var(--battle-scale, 1) * 8px);
     box-sizing: border-box;
-    padding: calc(var(--battle-scale, 1) * 16px);
-    isolation: isolate;
-    background: rgb(9 15 18 / 72%);
-    font-size: calc(var(--battle-scale, 1) * 16px);
+    width: calc(var(--battle-scale, 1) * 1440px);
+    height: calc(var(--battle-scale, 1) * 200px);
+    padding: calc(var(--battle-scale, 1) * 18px) calc(var(--battle-scale, 1) * 24px);
+    border: calc(var(--battle-scale, 1) * 12px) solid transparent;
+    border-image: url("../images/road/Dialogue_UI.png") 80 110 fill / calc(var(--battle-scale, 1) * 12px) / 0 stretch;
+    background: #e5cda6;
+    color: #3f3224;
+    font-size: clamp(10px, calc(var(--battle-scale, 1) * 16px), 16px);
+    image-rendering: pixelated;
 }
 
 .fight-skills-dialog[hidden] {
     display: none;
 }
 
-.fight-skills-dialog:not([hidden]) {
-    container-type: inline-size;
+#Battle:has(.fight-skills-dialog:not([hidden])) .menu-section {
+    visibility: hidden;
+}
+
+.fight-skills-list {
+    display: contents;
 }
 
 .fight-skills-dialog.battle-tutorial-skill-step #alternate-run-button {
     display: none;
 }
 
-.fight-skills-dialog::before {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    z-index: -1;
-    width: min(calc(var(--battle-scale, 1) * 560px), calc(100vw - var(--battle-scale, 1) * 32px));
-    height: min(calc(var(--battle-scale, 1) * 700px), calc(100vh - var(--battle-scale, 1) * 32px));
-    border: 0;
-    background: url("../images/battle/skills-panel-pixel.png") center / 100% 100% no-repeat;
-    content: "";
-    image-rendering: pixelated;
-    transform: translate(-50%, -50%);
-}
-
-.fight-skills-panel {
-    position: absolute;
-    width: min(calc(var(--battle-scale, 1) * 560px), calc(100vw - var(--battle-scale, 1) * 32px));
-    height: min(calc(var(--battle-scale, 1) * 700px), calc(100vh - var(--battle-scale, 1) * 32px));
-    visibility: hidden;
-    object-fit: contain;
-}
-
-.fight-skills-list {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: calc(var(--battle-scale, 1) * 9.725px);
-    width: min(calc(var(--battle-scale, 1) * 462.13px), calc(100vw - var(--battle-scale, 1) * 32px));
-    max-height: min(calc(var(--battle-scale, 1) * 669.08px), calc(100vh - var(--battle-scale, 1) * 32px));
-}
-
-.fight-skills-list h2 {
-    margin: 0;
-    color: #283d34;
-    font-size: calc(var(--battle-scale, 1) * 27.2px);
-    text-align: center;
-    text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 1px) #f4e3b1;
+.fight-skills-dialog.battle-tutorial-skill-step {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .fight-skill-button {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    justify-items: center;
+    align-content: center;
+    align-items: center;
     justify-content: center;
-    width: 100%;
-    min-height: calc(var(--battle-scale, 1) * 64px);
-    padding: calc(var(--battle-scale, 1) * 10px) calc(var(--battle-scale, 1) * 16px);
-    border: calc(var(--battle-scale, 1) * 6px) solid transparent;
-    border-image: url("../images/road/pixel-frame.svg") 8 fill / calc(var(--battle-scale, 1) * 6px) / 0 stretch;
+    min-width: 0;
+    min-height: 0;
+    padding: calc(var(--battle-scale, 1) * 5px);
+    border: calc(var(--battle-scale, 1) * 5px) solid transparent;
+    border-image: url("../images/road/pixel-frame.svg") 8 fill / calc(var(--battle-scale, 1) * 5px) / 0 stretch;
     border-radius: 0;
     color: #eee4c5;
     background: #28352f;
-    box-shadow: calc(var(--battle-scale, 1) * 3px) calc(var(--battle-scale, 1) * 3px) #151b1b;
+    box-shadow: calc(var(--battle-scale, 1) * 2px) calc(var(--battle-scale, 1) * 2px) #151b1b;
     font: inherit;
-    text-align: left;
+    font-size: clamp(10px, calc(var(--battle-scale, 1) * 16px), 16px);
+    line-height: 1.05;
+    text-align: center;
     image-rendering: pixelated;
     cursor: pointer;
 }
 
-.fight-skill-button span {
+.fight-skill-button>span {
+    position: relative;
+    top: calc(var(--battle-scale, 1) * -6px);
     font-weight: 800;
+    white-space: nowrap;
 }
 
 .fight-skill-button small {
-    margin-top: calc(var(--battle-scale, 1) * 3px);
-    color: #c7c7a8;
-    font-size: 0.82em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6em;
+    min-height: 1.2em;
+    color: #f4e3b1;
+    font-size: 0.95em;
+    white-space: nowrap;
+}
+
+.fight-skill-button small span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15em;
+}
+
+.action-icon {
+    display: block;
+    width: clamp(22px, calc(var(--battle-scale, 1) * 44px), 44px);
+    height: clamp(22px, calc(var(--battle-scale, 1) * 44px), 44px);
+    margin: 0 auto calc(var(--battle-scale, 1) * 2px);
+    color: #f4e3b1;
+    fill: currentColor;
+    image-rendering: pixelated;
+}
+
+.action-stats svg {
+    width: clamp(10px, calc(var(--battle-scale, 1) * 16px), 16px);
+    height: clamp(10px, calc(var(--battle-scale, 1) * 16px), 16px);
+    fill: currentColor;
 }
 
 .fight-skill-button:active:not(:disabled) {
@@ -537,15 +598,12 @@ body {
 }
 
 .action-choice-cancel {
-    min-height: calc(var(--battle-scale, 1) * 40px);
-    border: calc(var(--battle-scale, 1) * 6px) solid transparent;
-    border-image: url("../images/road/pixel-frame.svg") 8 fill / calc(var(--battle-scale, 1) * 6px) / 0 stretch;
-    border-radius: 0;
-    color: #eee4c5;
-    background: #28352f;
-    font: inherit;
-    image-rendering: pixelated;
-    cursor: pointer;
+    background: #3b4135;
+}
+
+#fight-skills-dialog:focus-within .fight-skill-button:focus-visible {
+    outline: calc(var(--battle-scale, 1) * 3px) solid #fff36b;
+    outline-offset: calc(var(--battle-scale, 1) * 2px);
 }
 
 /* Battle history panel */
@@ -555,7 +613,7 @@ body {
     box-sizing: border-box;
     border: 0;
     color: #eee4c5;
-    background: url("../images/battle/history-panel-pixel.png") center / 100% 100% no-repeat;
+    background: url("../images/battle/history-panel.svg") center / 100% 100% no-repeat;
     image-rendering: pixelated;
 }
 
@@ -563,36 +621,79 @@ body {
     display: none;
 }
 
-.battle-history-header {
-    position: absolute;
-    top: 11%;
-    right: 19%;
-    left: 18%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 12%;
-    padding: 0;
-    border: 0;
-    background: transparent;
+.battle-history-panel:not([open]) {
+    height: max(calc(var(--battle-scale, 1) * 52px), 34px) !important;
+    background: url("../images/battle/history-tab.svg") center / 100% 100% no-repeat;
 }
 
-.battle-history-header h2 {
-    margin: 0;
+.battle-history-header {
+    position: absolute;
+    top: 12%;
+    right: 12%;
+    left: 12%;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: calc(var(--battle-scale, 1) * 6px);
+    height: 12%;
+    padding: 0;
     color: #283d34;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    list-style: none;
+}
+
+.battle-history-header::-webkit-details-marker {
+    display: none;
+}
+
+.battle-history-header::marker {
+    content: "";
+}
+
+.battle-history-header span {
+    min-width: 0;
     font-size: var(--battle-history-title-font-size);
     text-align: center;
+    white-space: nowrap;
+}
+
+.battle-history-icon,
+.battle-history-toggle {
+    display: block;
+    width: clamp(12px, calc(var(--battle-scale, 1) * 16px), 16px);
+    height: clamp(12px, calc(var(--battle-scale, 1) * 16px), 16px);
+    fill: currentColor;
+    image-rendering: pixelated;
+}
+
+.battle-history-panel[open] .battle-history-toggle {
+    transform: rotate(180deg);
+}
+
+.battle-history-panel:not([open]) .battle-history-header {
+    inset: 0;
+    height: 100%;
+    padding: 0 9%;
+    color: #f4e3b1;
+    text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 1px) #101713;
+}
+
+.battle-history-header:focus-visible {
+    outline: calc(var(--battle-scale, 1) * 2px) solid #fff0c7;
+    outline-offset: calc(var(--battle-scale, 1) * -4px);
 }
 
 .battle-history-navigator {
     position: absolute;
-    top: 22%;
+    top: 26%;
     right: 15%;
     left: 15%;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    height: 8%;
+    height: 5%;
     color: #283d34;
     font-size: calc(var(--battle-scale, 1) * 13px);
 }
@@ -600,13 +701,13 @@ body {
 .battle-history-navigator button {
     display: grid;
     justify-self: start;
-    width: calc(var(--battle-scale, 1) * 36px);
-    height: calc(var(--battle-scale, 1) * 36px);
+    width: calc(var(--battle-scale, 1) * 24px);
+    height: calc(var(--battle-scale, 1) * 24px);
     border: 0;
     color: #fff0c7;
     background: url("../images/battle/history-nav-button-pixel.png") center / 100% 100% no-repeat;
     font: inherit;
-    font-size: calc(var(--battle-scale, 1) * 22px);
+    font-size: calc(var(--battle-scale, 1) * 18px);
     line-height: 1;
     text-shadow: calc(var(--battle-scale, 1) * 1px) calc(var(--battle-scale, 1) * 2px) #14231a;
     cursor: pointer;
@@ -639,20 +740,20 @@ body {
 
 .battle-history-cards {
     position: absolute;
-    top: 32%;
+    top: 33.55%;
     right: 10%;
-    bottom: 13%;
+    bottom: 10%;
     left: 10%;
     display: grid;
     grid-template-rows: repeat(3, minmax(0, 1fr));
-    gap: 12%;
+    gap: calc(var(--battle-scale, 1) * 10px);
 }
 
 .battle-history-card {
     display: grid;
-    grid-template-columns: 25% minmax(0, 1fr);
+    grid-template-columns: 22% minmax(0, 1fr);
     align-items: center;
-    gap: 2.5%;
+    gap: 2%;
     box-sizing: border-box;
     min-width: 0;
     min-height: 0;
@@ -677,7 +778,6 @@ body {
     overflow: hidden;
     min-width: 0;
     min-height: 0;
-    transform: translateX(calc(var(--battle-scale, 1) * -8px));
 }
 
 .battle-history-card h3 {
@@ -754,6 +854,11 @@ body {
     cursor: pointer;
 }
 
+.battle-victory-dialog .battle-loss-actions button {
+    min-width: calc(var(--battle-scale, 1) * 80px);
+    padding: calc(var(--battle-scale, 1) * 8px) calc(var(--battle-scale, 1) * 14px);
+}
+
 .battle-tutorial-card {
     position: fixed;
     z-index: 8;
@@ -776,7 +881,7 @@ body {
     transform: translateX(-50%);
 }
 
-.battle-tutorial-card > img {
+.battle-tutorial-card>img {
     box-sizing: border-box;
     flex: 0 0 calc(var(--battle-scale, 1) * 48px);
     width: calc(var(--battle-scale, 1) * 48px);
@@ -787,7 +892,7 @@ body {
     image-rendering: pixelated;
 }
 
-.battle-tutorial-card > div {
+.battle-tutorial-card>div {
     min-width: 0;
 }
 

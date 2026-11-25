@@ -9,15 +9,15 @@ import {
     roarAtPlayer,
     skillEffects,
     spendEnemyStamina,
-} from "./rules.js?v=39";
+} from "./rules.js?v=40";
 import { getTurnRecommendation } from "./recommendations.js?v=36";
 import {
     ENEMY_INITIAL_HEALTH,
     MOLE_INITIAL_HEALTH,
     resetBattleState,
-} from "./state.js?v=37";
-import { consumeBattleToken, renderBattleTokens } from "./token.js?v=37";
-import { getBattleEncounterKind } from "./encounter.js?v=2";
+} from "./state.js?v=38";
+import { consumeBattleToken, renderBattleTokens, showBattleTokenLoss } from "./token.js?v=38";
+import { getBattleEncounterKind } from "./encounter.js?v=3";
 
 export function createBattleFlow({ state, tokenState, ui, navigation, renderer, tutorial, scheduler, music={play(){},stop(){}} }) {
     const battleSounds = {
@@ -39,8 +39,8 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
     function startRoarImpactFeedback() {
         playBattleSound("roar");
         const startedAt = performance.now();
-        state.enemyRoarAnimation = { startedAt, duration: 520 };
-        state.playerRoarHitUntil = startedAt + 520;
+        state.enemyRoarAnimation = { startedAt, duration: 900 };
+        state.playerRoarHitUntil = startedAt + 900;
         ui.flashRoarStaminaFeedback();
     }
 
@@ -85,10 +85,15 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
     }
 
     function spendToken(command) {
+        const tokensBefore = tokenState.tokens;
         const spent = consumeBattleToken(tokenState, command, {
             probabilityAlreadyViewed: command === "recommendation" && state.probabilityRevealed,
         });
-        if (spent) {navigation.saveTokens?.();renderBattleTokens(tokenState.tokens);}
+        if (spent) {
+            navigation.saveTokens?.();
+            renderBattleTokens(tokenState.tokens);
+            showBattleTokenLoss(tokensBefore - tokenState.tokens);
+        }
         return spent;
     }
 
@@ -155,7 +160,20 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         if (state.autoBattleEnabled && !tutorialAutoPaused) scheduler.schedule(runAutoBattleTurn, 120);
     }
 
-    function resolvePlannedRoarBeforePlayer(continuePlayerAction) {
+    function resolvePlannedEnemyActionBeforePlayer(continuePlayerAction) {
+        if (state.plannedEnemyAction === "defend") {
+            state.plannedEnemyAction = null;
+            enemyActedBeforePlayer = true;
+            defendEnemy(state);
+            state.enemyDefenseAnimation = { startedAt: performance.now(), duration: 800 };
+            recordTurnField("enemyAction", "방어");
+            recordTurnField("outcome", `${getEnemyName()}가 자세를 낮춰 다음 공격의 피해를 줄일 준비를 했다.`);
+            ui.showMenuMessage(`${getEnemyName()}가 방어 자세를 취했다. 다음 공격의 피해가 줄어든다.`);
+            ui.updateStatusBars(state);
+            scheduler.schedule(continuePlayerAction, 760);
+            return;
+        }
+
         if (state.plannedEnemyAction !== "roar") {
             continuePlayerAction();
             return;
@@ -177,7 +195,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
                 return;
             }
             continuePlayerAction();
-        }, 520);
+        }, 900);
     }
 
     function finishPlayerAction() {
@@ -185,6 +203,8 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
             finishBattle(`${getEnemyName()}를 물리쳤다!`);
             return;
         }
+        state.enemy.defending = false;
+        state.enemyDefenseAnimation = null;
         if (!enemyActedBeforePlayer) {
             startEnemyTurn();
             return;
@@ -213,6 +233,8 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         if(state.enemyKind==='wolf'){state.currentTurn.result=result;navigation.saveBattleChoice(state.currentTurn);}
         state.player.defending = false;
         state.enemy.defending = false;
+        state.playerDefenseAnimation = null;
+        state.enemyDefenseAnimation = null;
         state.ended = true;
         updateBattleMusic();
         tutorialAutoTurnPending = false;
@@ -224,12 +246,25 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         ui.setControlsLocked(state, true);
         ui.fightSkillsDialog.hidden = true;
         ui.showMenuMessage(message);
-        scheduler.schedule(() => {
-            exitBattle();
-            if(state.enemyKind==='wolf')navigation.onWolfFinished(result);
-            else if(navigation.onTutorialFinished)navigation.onTutorialFinished(result);
-            else navigation.enterRoad();
-        }, 1200);
+        if (result === "victory") {
+            scheduler.cancel();
+            ui.openBattleVictoryDialog(message);
+            return;
+        }
+        scheduler.schedule(() => completeBattle(result), 1200);
+    }
+
+    function completeBattle(result) {
+        exitBattle();
+        if(state.enemyKind==='wolf')navigation.onWolfFinished(result);
+        else if(navigation.onTutorialFinished)navigation.onTutorialFinished(result);
+        else navigation.enterRoad();
+    }
+
+    function confirmBattleVictory() {
+        if (!state.ended) return;
+        ui.closeBattleVictoryDialog();
+        completeBattle("victory");
     }
 
     function showBattleLoss() {
@@ -241,6 +276,8 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         if(state.enemyKind==='wolf'){state.currentTurn.result='defeat';navigation.saveBattleChoice(state.currentTurn);}
         state.player.defending = false;
         state.enemy.defending = false;
+        state.playerDefenseAnimation = null;
+        state.enemyDefenseAnimation = null;
         state.ended = true;
         updateBattleMusic();
         state.autoBattleEnabled = false;
@@ -258,6 +295,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         state.playerAttackAnimation = null;
         state.enemyAttackAnimation = null;
         state.player.defending = false;
+        state.playerDefenseAnimation = null;
         if (state.player.health <= 0) {
             showBattleLoss();
             return;
@@ -302,22 +340,29 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         );
         state.plannedEnemyAction = null;
         if (action === "recover") {
+            const staminaBeforeRecovery = state.enemy.stamina;
             recoverEnemyStamina(state);
+            state.enemyRecoveryAnimation = {
+                startedAt: performance.now(),
+                duration: 800,
+                stamina: state.enemy.stamina - staminaBeforeRecovery,
+            };
             recordTurnField("enemyAction", "숨을 고름");
             recordTurnField("outcome", `${getEnemyName()}가 숨을 고르며 스태미나를 회복했다.`);
             ui.showMenuMessage(`${getEnemyName()}가 숨을 고르며 스태미나를 회복했다.`);
             ui.updateStatusBars(state);
-            scheduler.schedule(endEnemyTurn, 520);
+            scheduler.schedule(endEnemyTurn, 760);
             return;
         }
 
         if (action === "defend") {
             defendEnemy(state);
+            state.enemyDefenseAnimation = { startedAt: performance.now(), duration: 800 };
             recordTurnField("enemyAction", "방어");
             recordTurnField("outcome", `${getEnemyName()}가 자세를 낮춰 다음 공격의 피해를 줄일 준비를 했다.`);
             ui.showMenuMessage(`${getEnemyName()}가 방어 자세를 취했다. 다음 공격의 피해가 줄어든다.`);
             ui.updateStatusBars(state);
-            scheduler.schedule(endEnemyTurn, 520);
+            scheduler.schedule(endEnemyTurn, 760);
             return;
         }
 
@@ -328,7 +373,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
             recordTurnField("outcome", `${getEnemyName()}의 포효! 플레이어 스태미나 ${drainedStamina} 감소.`);
             ui.showMenuMessage(`${getEnemyName()}의 포효! 스태미나 ${drainedStamina} 감소.`);
             ui.updateStatusBars(state);
-            scheduler.schedule(endEnemyTurn, 520);
+            scheduler.schedule(endEnemyTurn, 900);
             return;
         }
 
@@ -391,16 +436,16 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
             if (result.kind === "attack") {
                 scheduler.schedule(
                     finishPlayerAction,
-                    (result.skill.name === "일반 공격" ? 170 : 430) + 500,
+                    (result.skill.name === "일반 공격" ? 240 : 520) + 500,
                 );
             } else if (result.kind === "recovery") {
                 scheduler.schedule(finishPlayerAction, 1020);
             } else if (result.kind === "defense") {
-                scheduler.schedule(finishPlayerAction, 520);
+                scheduler.schedule(finishPlayerAction, 760);
             }
         };
 
-        resolvePlannedRoarBeforePlayer(() => {
+        resolvePlannedEnemyActionBeforePlayer(() => {
             if (skill.damage > 0 && state.player.stamina >= skill.staminaCost) {
                 scheduler.schedule(resolve, 300);
             } else {
@@ -415,7 +460,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         recordTurnField("playerChoice", "도망 시도");
         ui.fightSkillsDialog.hidden = true;
         ui.setControlsLocked(state, true);
-        resolvePlannedRoarBeforePlayer(() => {
+        resolvePlannedEnemyActionBeforePlayer(() => {
             ui.showMenuMessage("도망을 시도한다.");
             scheduler.schedule(() => {
                 if (Math.random() < 0.8) {
@@ -539,6 +584,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         exitBattle,
         onManualSkillSelected,
         onRecommendationSelected,
+        confirmBattleVictory,
         recordTurnField,
         resetBattle,
         resolvePlayerSkill,

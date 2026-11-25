@@ -23,9 +23,14 @@ export function createBattleState() {
         enemyKind: "wolf",
         playerAttackAnimation: null,
         playerRestFlashUntil: 0,
+        playerRecoveryAnimation: null,
+        playerDefenseAnimation: null,
         enemyAttackAnimation: null,
+        enemyRecoveryAnimation: null,
+        enemyDefenseAnimation: null,
         enemyRoarAnimation: null,
         playerHitFlashUntil: 0,
+        playerHitAnimation: null,
         playerRoarHitUntil: 0,
         controlsLocked: false,
         ended: false,
@@ -53,9 +58,14 @@ export function resetBattleState(state) {
     state.enemy.defending = false;
     state.playerAttackAnimation = null;
     state.playerRestFlashUntil = 0;
+    state.playerRecoveryAnimation = null;
+    state.playerDefenseAnimation = null;
     state.enemyAttackAnimation = null;
+    state.enemyRecoveryAnimation = null;
+    state.enemyDefenseAnimation = null;
     state.enemyRoarAnimation = null;
     state.playerHitFlashUntil = 0;
+    state.playerHitAnimation = null;
     state.playerRoarHitUntil = 0;
     state.controlsLocked = false;
     state.ended = false;

@@ -98,6 +98,7 @@ export function applyPlayerSkill(state, skillIndex, now) {
     state.player.stamina -= skill.staminaCost;
     if (skill.defense) {
         state.player.defending = true;
+        state.playerDefenseAnimation = { startedAt: now, duration: 900 };
         return {
             kind: "defense",
             message: "방어 자세를 취했다. 이번 턴 적 공격의 피해가 줄어든다.",
@@ -109,7 +110,7 @@ export function applyPlayerSkill(state, skillIndex, now) {
     const previousStamina = state.player.stamina;
     const previousEnemyHealth = state.enemy.health;
     if (skill.staminaRecovery || skill.healthRecovery) {
-        state.playerRestFlashUntil = now + 520;
+        state.playerRestFlashUntil = now + 900;
     }
 
     // Defense reduces damage without cancelling attacks.
@@ -139,10 +140,18 @@ export function applyPlayerSkill(state, skillIndex, now) {
 
     const recoveredHealth = state.player.health - previousHealth;
     const recoveredStamina = state.player.stamina - previousStamina;
+    if (skill.staminaRecovery || skill.healthRecovery) {
+        state.playerRecoveryAnimation = {
+            startedAt: now,
+            duration: 1000,
+            health: recoveredHealth,
+            stamina: recoveredStamina,
+        };
+    }
     if (skill.damage > 0) {
         state.playerAttackAnimation = {
             startedAt: now,
-            duration: skill.name === "일반 공격" ? 170 : 430,
+            duration: skill.name === "일반 공격" ? 240 : 520,
             heavy: skill.name !== "일반 공격",
         };
     }
@@ -195,6 +204,7 @@ export function createEnemyAttack(state, now) {
     );
     state.enemyAttackAnimation = {
         startedAt: now,
+        duration: 320,
         impactApplied: false,
         critical: Math.random() * 100 < criticalChance,
     };
@@ -214,7 +224,15 @@ export function applyEnemyAttackImpact(state) {
         : incomingDamage;
     state.player.defending = false;
     state.player.health = Math.max(0, state.player.health - damage);
-    state.playerHitFlashUntil = performance.now() + 350;
+    const hitStartedAt = performance.now();
+    state.playerHitFlashUntil = hitStartedAt + 650;
+    state.playerHitAnimation = {
+        startedAt: hitStartedAt,
+        duration: 800,
+        damage,
+        critical: attack.critical,
+        defended,
+    };
     if (defended) {
         return attack.critical
             ? `적의 치명타를 방어해 ${damage} 피해를 받았다.`

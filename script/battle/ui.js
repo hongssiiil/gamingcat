@@ -14,6 +14,9 @@ export const actionChoiceCancelButton = document.getElementById("action-choice-c
 export const battleLossDialog = document.getElementById("battle-loss-dialog");
 export const battleLossRetryButton = document.getElementById("battle-loss-retry");
 export const battleLossAbandonButton = document.getElementById("battle-loss-abandon");
+export const battleVictoryDialog = document.getElementById("battle-victory-dialog");
+export const battleVictoryText = document.getElementById("battle-victory-text");
+export const battleVictoryConfirmButton = document.getElementById("battle-victory-confirm");
 export const enemyStatus = document.getElementById("enemy-status");
 export const playerStatus = document.getElementById("player-status");
 export const enemyName = enemyStatus.querySelector(".status-name");
@@ -193,4 +196,14 @@ export function openBattleLossDialog(enemyKind) {
 
 export function closeBattleLossDialog() {
     if (battleLossDialog.open) battleLossDialog.close();
+}
+
+export function openBattleVictoryDialog(message) {
+    battleVictoryText.textContent = message;
+    battleVictoryDialog.showModal();
+    battleVictoryConfirmButton.focus();
+}
+
+export function closeBattleVictoryDialog() {
+    if (battleVictoryDialog.open) battleVictoryDialog.close();
 }

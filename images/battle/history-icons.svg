@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <symbol id="record" viewBox="0 0 16 16">
+    <path fill="#f4e3b1" d="M2 1h10l2 2v12H2z"/>
+    <path fill="#6d4728" d="M4 1h2v4H4zM7 1h2v4H7zM10 1h2v4h-2z"/>
+    <path fill="#283d2b" d="M4 7h8v1H4zM4 10h8v1H4zM4 13h6v1H4z"/>
+  </symbol>
+  <symbol id="chevron" viewBox="0 0 16 16">
+    <path fill="#f4e3b1" d="M1 4h3v3h3v3h2V7h3V4h3v5h-3v3h-3v3H7v-3H4V9H1z"/>
+    <path fill="#d6ad54" d="M4 5h2v3h3v3H7V8H4zM10 8h2V5h2v4h-3v3h-2z"/>
+  </symbol>
+</svg>

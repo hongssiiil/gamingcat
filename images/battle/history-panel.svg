@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 310" shape-rendering="crispEdges">
+  <!-- Dark shadow and a restrained, layered timber frame. -->
+  <path fill="#111712" d="M8 4h294v5h5v292h-5v5H8v-5H3V9h5z"/>
+  <path fill="#55371f" d="M10 9h290v5h5v282h-5v5H10v-5H5V14h5z"/>
+  <path fill="#9a6838" d="M15 14h280v4h5v272h-5v4H15v-4h-5V18h5z"/>
+  <path fill="#52351f" d="M20 19h270v4h5v262h-5v4H20v-4h-5V23h5z"/>
+  <path fill="#14291d" d="M24 25h262v260H24z"/>
+
+  <!-- Parchment header keeps the title readable when the panel is open. -->
+  <path fill="#75502c" d="M33 28h244v4h4v42h-4v4H33v-4h-4V32h4z"/>
+  <path fill="#e0bd78" d="M34 31h242v3h3v36h-3v3H34v-3h-3V34h3z"/>
+  <path fill="#f0dca7" d="M38 35h234v31H38z"/>
+  <path fill="#d4b778" d="M38 35h234v3H38zM38 63h234v3H38z"/>
+
+  <!-- Three inset log cards match the history rows. -->
+  <path fill="#08150f" d="M31 104h248v54H31zM31 168h248v54H31zM31 232h248v54H31z"/>
+  <path fill="#80552f" d="M34 104h242v3H34zM34 155h242v3H34zM34 168h242v3H34zM34 219h242v3H34zM34 232h242v3H34zM34 283h242v3H34z"/>
+  <path fill="#1c3825" d="M36 108h238v44H36zM36 172h238v44H36zM36 236h238v44H36z"/>
+  <path fill="#345438" d="M36 108h238v2H36zM36 152h238v2H36zM36 172h238v2H36zM36 216h238v2H36zM36 236h238v2H36zM36 280h238v2H36z"/>
+
+  <!-- Small brass corner studs. -->
+  <path fill="#d2a44c" d="M28 111h6v4h-6zM276 111h6v4h-6zM28 147h6v4h-6zM276 147h6v4h-6zM28 175h6v4h-6zM276 175h6v4h-6zM28 211h6v4h-6zM276 211h6v4h-6zM28 239h6v4h-6zM276 239h6v4h-6zM28 275h6v4h-6zM276 275h6v4h-6z"/>
+</svg>

@@ -43,9 +43,29 @@ export function renderBattleTokens(tokens, root = document.querySelector("#Battl
 
     const count = resources.querySelector(".battle-token-count");
     const debt = resources.querySelector(".battle-token-debt");
+    let loss = resources.querySelector(".battle-token-loss");
+    if (!loss) {
+        loss = document.createElement("span");
+        loss.className = "battle-token-loss";
+        loss.setAttribute("aria-hidden", "true");
+        resources.append(loss);
+    }
+    loss.classList.remove("is-visible");
+    loss.textContent = "";
     count.textContent = `토큰 ${tokens}`;
     debt.hidden = tokens >= 0;
     debt.textContent = `AI DEBT ${Math.max(0, -tokens)}`;
 
     return resources;
+}
+
+export function showBattleTokenLoss(amount, root = document.querySelector("#Battle")) {
+    if (!root || amount <= 0) return;
+    const loss = root.querySelector(".battle-token-loss");
+    if (!loss) return;
+
+    loss.classList.remove("is-visible");
+    loss.textContent = `-${amount}`;
+    void loss.offsetWidth;
+    loss.classList.add("is-visible");
 }
