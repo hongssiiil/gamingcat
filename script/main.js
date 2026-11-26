@@ -18,3 +18,10 @@ document.querySelector("#show-battle").addEventListener("click", () => {
     exitRoad();
     enterBattle(getRoadBattleKind());
 });
+
+document.querySelector("#show-ending").addEventListener("click", () => {
+    exitRoad();
+    exitBattle();
+    ending.show(getEndingJourney());
+    music.play('ending');
+});

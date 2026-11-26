@@ -605,7 +605,7 @@ export function getRoadBattleKind(){return roadBattleKind(state);}
 export const journeyTokens={get tokens(){return state.tokens;},set tokens(value){state.tokens=value;},get events(){return state.events;}};
 export function saveJourneyTokens(){save();updateResources();}
 export function returnFromTutorial(result){finishMapTutorial(state,result);save();enterRoad();}
-export function getEndingJourney(){return {choices:state.choices,events:state.events,battles:state.battleHistory||[],notes:state.notes,completed:state.completed,pondTrail:state.pondTrail,climbTrail:state.climbTrail};}
+export function getEndingJourney(){return {choices:state.choices,events:state.events,battles:state.battleHistory||[],notes:state.notes,tokens:state.tokens,completed:state.completed,pondTrail:state.pondTrail,climbTrail:state.climbTrail};}
 export function saveBattleChoice(turn){state.battleHistory??=[];if(!state.battleHistory.includes(turn))state.battleHistory.push(turn);save();}
 export function restartJourney(){resetJourneyState();save();enterRoad();}
 save();render();requestAnimationFrame(frame);
