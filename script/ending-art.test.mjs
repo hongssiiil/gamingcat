@@ -32,14 +32,17 @@ test('every constellation name selects its matching distinct watermark',()=>{
     ]){assert.equal(constellationTheme(records),key);assert.equal(constellationName(records),title);}
     assert.equal(new Set(Object.values(WATERMARKS).map(JSON.stringify)).size,3);
 });
-test('meteors vary at two to four second intervals across the schedule boundary',()=>{
+test('meteors vary at two to four second intervals and last roughly two to three seconds',()=>{
     assert(new Set(METEOR_GAPS).size>20);assert(METEOR_GAPS.every(gap=>gap>=2000&&gap<=4000));
     let time=2000;const variants=[];
-    for(let i=0;i<=METEOR_GAPS.length;i++){
-        const meteor=meteorAt(time+400);assert.equal(meteor.index,i%METEOR_GAPS.length);
-        assert(meteor.progress>0&&meteor.progress<1);assert.equal(meteorAt(time+1800),null);
-        variants.push(meteor);time+=METEOR_GAPS[i%METEOR_GAPS.length];
+    for(let i=0;i<METEOR_GAPS.length;i++){
+        const meteor=meteorAt(time+100);assert.equal(meteor.index,i);
+        assert(meteor.progress>0&&meteor.progress<1);assert(meteor.duration>=2200&&meteor.duration<3200);
+        const midpoint=meteorAt(time+meteor.duration/2);assert.equal(midpoint.index,i);assert(Math.abs(midpoint.progress-.5)<.03);
+        assert.equal(meteorAt(time+meteor.duration+100),null);
+        variants.push(meteor);time+=meteor.duration+METEOR_GAPS[i];
     }
+    assert.equal(meteorAt(time+100).index,0);
     for(const key of ['duration','x','y','length','alpha'])assert(new Set(variants.map(m=>m[key])).size>8);
 });
 test('background uses sparse dots and only a minority slowly twinkle without nebula blocks',()=>{
