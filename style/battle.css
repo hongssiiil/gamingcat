@@ -347,6 +347,10 @@ body {
     image-rendering: pixelated;
 }
 
+.menu-section.is-battle-tutorial:not(.is-tutorial-message-visible) .recommendation-copy {
+    visibility: hidden;
+}
+
 #menu-background {
     display: block;
     width: 100%;

@@ -41,7 +41,7 @@ export function createBattleController({ state, tokenState, flow, ui, tutorial }
         }
         state.activeHelpView = "probability";
         const enemyName = state.enemyKind === "mole" ? "두더지" : "늑대";
-        ui.showMenuMessage(`${enemyName}의 다음 행동 확률`);
+        ui.showMenuMessage(`${enemyName}의 다음 행동 확률`, "probability");
         ui.showEnemyProbability(state.displayedEnemyActionProbabilities);
         ui.updateBattleActionButtons(state);
         ui.probabilityButton.focus();

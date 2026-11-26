@@ -109,6 +109,8 @@ export function showEnemyProbability(probabilities = null) {
 
 export function showMenuMessage(message, type = "narration") {
     menuText.textContent = message;
+    const isTutorialHelp = type === "recommendation" || type === "probability";
+    menuSection.classList.toggle("is-tutorial-message-visible", isTutorialHelp);
     enemyProbabilityText.hidden = true;
     enemyProbabilityText.textContent = "";
     const isRecommendation = type === "recommendation";

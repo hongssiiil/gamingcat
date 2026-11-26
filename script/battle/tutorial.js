@@ -154,6 +154,10 @@ function complete() {
     window.clearTimeout(waitTimer);
     queuedStep = null;
     active = false;
+    document.querySelector(".menu-section")?.classList.remove(
+        "is-battle-tutorial",
+        "is-tutorial-message-visible",
+    );
     onRoarLessonContinue = () => { };
     card.hidden = true;
     document.querySelectorAll(".battle-tutorial-target").forEach((element) => {
@@ -314,6 +318,8 @@ export function startBattleTutorial(onFinish = () => { }) {
     onComplete = onFinish;
     onRoarLessonContinue = () => { };
     active = true;
+    document.querySelector(".menu-section")?.classList.add("is-battle-tutorial");
+    document.querySelector(".menu-section")?.classList.remove("is-tutorial-message-visible");
     resizeListener = render;
     document.addEventListener("click", handleTutorialClick, true);
     document.addEventListener("keydown", handleTutorialKeydown, true);
