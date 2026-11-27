@@ -70,9 +70,9 @@ export function updateBattleActionButtons(state) {
             ? "추천대로 행동"
             : "추천 행동 다시 보기";
     probabilityButton.textContent = !state.probabilityRevealed
-        ? `${state.enemyKind === "mole" ? "두더지" : "늑대"} 행동 확률 · 1토큰`
+        ? `${state.enemyKind === "mole" ? "코코넛 해적" : "해적"} 행동 확률 · 1토큰`
         : state.activeHelpView === "probability"
-            ? `${state.enemyKind === "mole" ? "두더지" : "늑대"} 확률 표시 중`
+            ? `${state.enemyKind === "mole" ? "코코넛 해적" : "해적"} 확률 표시 중`
             : "적 행동 확률 다시 보기";
     setControlsLocked(state, state.controlsLocked);
 }

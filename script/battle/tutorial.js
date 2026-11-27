@@ -2,7 +2,7 @@ const tutorialSteps = {
     intro: {
         selector: null,
         title: "낯선 적이 나타났어",
-        text: "두더지를 만났네. 전투 방법을 알려줄게.",
+        text: "코코넛 해적을 만났네. 전투 방법을 알려줄게.",
     },
     health: {
         selector: "#player-status .health-bar",
@@ -37,7 +37,7 @@ const tutorialSteps = {
     roarLesson: {
         selector: null,
         title: "포효",
-        text: "두더지가 먼저 포효해 스태미나를 20 줄였어.",
+        text: "코코넛 해적이 먼저 포효해 스태미나를 20 줄였어.",
     },
     choose: {
         selector: "#choose-action-button",

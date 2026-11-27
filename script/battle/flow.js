@@ -56,7 +56,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
     let enemyActedBeforePlayer = false;
 
     function getEnemyName() {
-        return state.enemyKind === "mole" ? "두더지" : "늑대";
+        return state.enemyKind === "mole" ? "코코넛 해적" : "해적";
     }
 
     function setEnemyEncounter(kind) {
@@ -66,7 +66,7 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
         ui.enemyName.textContent = getEnemyName();
         ui.enemyPortrait.src = kind === "mole"
             ? "./images/battle/mole.png"
-            : "./images/character/wolf_icon.png";
+            : "./images/battle/wolf.png";
         ui.enemyPortrait.alt = `${getEnemyName()} 아이콘`;
         renderer.setBattleEnemy(kind);
     }
@@ -555,14 +555,15 @@ export function createBattleFlow({ state, tokenState, ui, navigation, renderer, 
 
     async function enterBattle(encounterKind) {
         refreshTokens();
-        await renderer.setBattleBackground(navigation.getCurrentRoadBattleBackground());
+        const battleKind = encounterKind ?? (state.started && !state.ended ? state.enemyKind : getBattleEncounterKind());
+        await renderer.setBattleBackground(navigation.getCurrentRoadBattleBackground(battleKind));
         ui.playerStatusName.textContent = "나";
         ui.enterBattleScreen();
         ui.followRecommendationButton.focus();
         if (encounterKind || !state.started || state.ended) {
             scheduler.cancel();
             refreshTokens();
-            setEnemyEncounter(encounterKind ?? getBattleEncounterKind());
+            setEnemyEncounter(battleKind);
             resetBattleState(state);
             ui.updateStatusBars(state);
             beginTutorialIfNeeded();
