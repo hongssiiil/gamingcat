@@ -1,6 +1,6 @@
 import { enterRoad, getCurrentRoadBattleBackground, saveBattleChoice, returnFromTutorial, journeyTokens, saveJourneyTokens } from "./road.js";
 import { music } from './music.js';
-import { createBattleState, resetBattleState } from "./battle/state.js?v=37";
+import { createBattleState, resetBattleState } from "./battle/state.js?v=38";
 
 import {
     hasCompletedBattleTutorial,
@@ -13,10 +13,10 @@ import {
     startBattleTutorial,
     stopBattleTutorial,
 } from "./battle/tutorial.js?v=11";
-import { setBattleBackground, setBattleEnemy, startBattleRenderer } from "./battle/renderer.js?v=47";
-import * as ui from "./battle/ui.js?v=44";
-import { createBattleFlow } from "./battle/flow.js?v=22";
-import { createBattleController } from "./battle/controller.js?v=2";
+import { setBattleBackground, setBattleEnemy, startBattleRenderer } from "./battle/renderer.js?v=51";
+import * as ui from "./battle/ui.js?v=45";
+import { createBattleFlow } from "./battle/flow.js?v=28";
+import { createBattleController } from "./battle/controller.js?v=4";
 
 const state = createBattleState();
 const tokenState = journeyTokens;

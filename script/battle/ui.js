@@ -14,6 +14,9 @@ export const actionChoiceCancelButton = document.getElementById("action-choice-c
 export const battleLossDialog = document.getElementById("battle-loss-dialog");
 export const battleLossRetryButton = document.getElementById("battle-loss-retry");
 export const battleLossAbandonButton = document.getElementById("battle-loss-abandon");
+export const battleVictoryDialog = document.getElementById("battle-victory-dialog");
+export const battleVictoryText = document.getElementById("battle-victory-text");
+export const battleVictoryConfirmButton = document.getElementById("battle-victory-confirm");
 export const enemyStatus = document.getElementById("enemy-status");
 export const playerStatus = document.getElementById("player-status");
 export const enemyName = enemyStatus.querySelector(".status-name");
@@ -67,9 +70,9 @@ export function updateBattleActionButtons(state) {
             ? "추천대로 행동"
             : "추천 행동 다시 보기";
     probabilityButton.textContent = !state.probabilityRevealed
-        ? `${state.enemyKind === "mole" ? "두더지" : "늑대"} 행동 확률 · 1토큰`
+        ? `${state.enemyKind === "mole" ? "코코넛 해적" : "해적"} 행동 확률 · 1토큰`
         : state.activeHelpView === "probability"
-            ? `${state.enemyKind === "mole" ? "두더지" : "늑대"} 확률 표시 중`
+            ? `${state.enemyKind === "mole" ? "코코넛 해적" : "해적"} 확률 표시 중`
             : "적 행동 확률 다시 보기";
     setControlsLocked(state, state.controlsLocked);
 }
@@ -106,6 +109,8 @@ export function showEnemyProbability(probabilities = null) {
 
 export function showMenuMessage(message, type = "narration") {
     menuText.textContent = message;
+    const isTutorialHelp = type === "recommendation" || type === "probability";
+    menuSection.classList.toggle("is-tutorial-message-visible", isTutorialHelp);
     enemyProbabilityText.hidden = true;
     enemyProbabilityText.textContent = "";
     const isRecommendation = type === "recommendation";
@@ -193,4 +198,14 @@ export function openBattleLossDialog(enemyKind) {
 
 export function closeBattleLossDialog() {
     if (battleLossDialog.open) battleLossDialog.close();
+}
+
+export function openBattleVictoryDialog(message) {
+    battleVictoryText.textContent = message;
+    battleVictoryDialog.showModal();
+    battleVictoryConfirmButton.focus();
+}
+
+export function closeBattleVictoryDialog() {
+    if (battleVictoryDialog.open) battleVictoryDialog.close();
 }

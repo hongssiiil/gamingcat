@@ -40,8 +40,8 @@ export function createBattleController({ state, tokenState, flow, ui, tutorial }
             );
         }
         state.activeHelpView = "probability";
-        const enemyName = state.enemyKind === "mole" ? "두더지" : "늑대";
-        ui.showMenuMessage(`${enemyName}의 다음 행동 확률`);
+        const enemyName = state.enemyKind === "mole" ? "코코넛 해적" : "해적";
+        ui.showMenuMessage(`${enemyName}의 다음 행동 확률`, "probability");
         ui.showEnemyProbability(state.displayedEnemyActionProbabilities);
         ui.updateBattleActionButtons(state);
         ui.probabilityButton.focus();
@@ -117,7 +117,7 @@ export function createBattleController({ state, tokenState, flow, ui, tutorial }
                         : key === "arrowdown" || key === "s" ? 1 : 0;
                     const horizontal = key === "arrowleft" || key === "a" ? -1
                         : key === "arrowright" || key === "d" ? 1 : 0;
-                    const delta = isActionMenuOpen || vertical ? vertical : horizontal;
+                    const delta = isActionMenuOpen ? horizontal : vertical || horizontal;
                     const activeIndex = focusedIndex === -1 ? 0 : focusedIndex;
                     if (delta) choices[(activeIndex + delta + choices.length) % choices.length].focus();
                 }
@@ -133,6 +133,10 @@ export function createBattleController({ state, tokenState, flow, ui, tutorial }
         ui.battleLossDialog.addEventListener("cancel", (event) => {
             event.preventDefault();
         });
+        ui.battleVictoryDialog.addEventListener("cancel", (event) => {
+            event.preventDefault();
+        });
+        ui.battleVictoryConfirmButton.addEventListener("click", flow.confirmBattleVictory);
         ui.battleLossRetryButton.addEventListener("click", flow.resetBattle);
         ui.battleLossAbandonButton.addEventListener("click", flow.abandonBattle);
     }

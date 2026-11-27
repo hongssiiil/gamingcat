@@ -2,27 +2,32 @@ const tutorialSteps = {
     intro: {
         selector: null,
         title: "낯선 적이 나타났어",
-        text: "이런 적을 만났네. 괜찮아, 내가 전투 방법을 알려줄게. 화면 아무 곳이나 클릭해서 시작하자!",
+        text: "코코넛 해적을 만났네. 전투 방법을 알려줄게.",
     },
-    status: {
-        selector: "#player-status",
-        title: "상태창을 살펴보자",
-        text: "체력은 0이 되면 전투에서 쓰러져. 스태미나는 공격과 방어에 쓰이고, 숨을 고르면 다시 차올라. 상태창을 눌러 적의 체력과 스태미나도 함께 살펴봐!",
+    health: {
+        selector: "#player-status .health-bar",
+        title: "체력",
+        text: "체력이 0이 되면 쓰러져.",
+    },
+    stamina: {
+        selector: "#player-status .stamina-bar",
+        title: "스태미나",
+        text: "공격과 방어에 쓰고, 숨을 고르면 회복해.",
     },
     probability: {
         selector: "#battle-probability-button",
         title: "적의 행동 확률 보기",
-        text: "여기서 적이 다음에 어떤 행동을 할지 확률을 볼 수 있어. 한 번 확인할 때 토큰 1개를 써. 눌러서 확인해 보자!",
+        text: "적의 다음 행동을 확인해. 토큰 1개가 필요해.",
     },
     recommendation: {
         selector: "#follow-recommendation-button",
         title: "내 추천 보기",
-        text: "내가 적의 행동 확률을 보고 대응 행동을 추천할게. 확률을 먼저 확인하지 않았다면 토큰 2개, 확인했다면 1개가 필요해. 버튼을 눌러 내 생각을 들어봐!",
+        text: "적의 행동에 맞춰 추천할게. 2토큰, 확률 확인 후엔 1토큰이야.",
     },
     recommendationFollow: {
         selector: "#follow-recommendation-button",
         title: "추천대로 행동해 보기",
-        text: "추천 내용을 확인했어. 버튼을 다시 눌러 추천대로 행동해 봐. 선택한 행동 뒤에는 적도 이어서 행동해.",
+        text: "버튼을 다시 눌러 추천대로 행동해 봐.",
     },
     recommendationWait: {
         selector: null,
@@ -32,42 +37,52 @@ const tutorialSteps = {
     roarLesson: {
         selector: null,
         title: "포효",
-        text: "방금 상대가 한 행동은 포효야. 포효는 우리 행동보다 먼저 발동되고 포효에 맞으면 스태미나가 20 감소해.",
+        text: "코코넛 해적이 먼저 포효해 스태미나를 20 줄였어.",
     },
     choose: {
         selector: "#choose-action-button",
         title: "직접 행동 고르기",
-        text: "내 추천을 따르지 않고 네가 직접 행동을 고를 수도 있어. 버튼을 누른 뒤 원하는 행동을 하나 선택해 봐!",
+        text: "직접 행동을 고를 수도 있어. 눌러서 골라 봐.",
     },
     skill: {
         selector: "#fight-skills-dialog",
         title: "행동을 직접 선택해 봐",
-        text: "공격이나 숨 고르기처럼 원하는 행동을 골라 봐. 선택한 행동은 실제 전투에 반영되고 적도 이어서 행동해.",
+        text: "원하는 행동을 하나 골라 봐.",
     },
     directWait: {
         selector: null,
         title: "좋아, 직접 골랐어!",
-        text: "네 선택으로 한 턴이 진행됐어. 이제 자동전투가 어떻게 움직이는지 살펴보자.",
+        text: "네 선택으로 한 턴이 진행됐어.",
+    },
+    automaticIntro: {
+        selector: null,
+        title: "티니가 대신 행동해",
+        text: "적의 행동을 보고 대응 행동을 골라.",
     },
     automatic: {
         selector: "#battle-auto-button",
         title: "자동전투 체험하기",
-        text: "자동전투에서는 내가 적의 행동 확률을 보고 대응 행동을 자동으로 실행해. 버튼을 눌러 한 턴을 진행해 보자. 턴마다 토큰 2개를 써.",
+        text: "눌러서 한 턴 진행해 봐.",
     },
     automaticWait: {
         selector: null,
         title: "",
         text: "",
     },
+    automaticCost: {
+        selector: null,
+        title: "자동전투 비용",
+        text: "한 턴마다 토큰 2개를 써.",
+    },
     automaticStop: {
         selector: "#battle-auto-button",
-        title: "자동전투를 직접 멈춰 보자",
-        text: "자동전투를 종료하고 싶으면 버튼을 다시 누르면 돼.",
+        title: "자동전투 멈추기",
+        text: "버튼을 다시 눌러 멈춰 봐.",
     },
     tokens: {
         selector: ".battle-token-resources",
-        title: "토큰을 확인해 보자",
-        text: "토큰은 내 도움을 받을 때 사용해. 적 행동 확률은 1개, 추천 확인은 기본 2개지만 확률을 먼저 보면 1개, 자동전투는 턴마다 2개야. 토큰이 모자라도 전투는 계속할 수 있어. 이제 두더지를 물리쳐보자!",
+        title: "토큰",
+        text: "티니의 도움을 받을 때 사용해.",
     },
 };
 
@@ -102,11 +117,11 @@ function render() {
     });
     if (target && !isSkillSelection) {
         target.classList.add("battle-tutorial-target");
-        if (currentStep === "status") target.tabIndex = 0;
+        if (currentStep === "health" || currentStep === "stamina") target.tabIndex = 0;
         if (currentStep === "tokens") {
             target.tabIndex = 0;
             target.setAttribute("role", "button");
-            target.setAttribute("aria-label", "토큰 사용 안내 완료");
+            target.setAttribute("aria-label", "토큰 안내 완료");
         }
     }
     if (isSkillSelection) {
@@ -139,14 +154,18 @@ function complete() {
     window.clearTimeout(waitTimer);
     queuedStep = null;
     active = false;
+    document.querySelector(".menu-section")?.classList.remove(
+        "is-battle-tutorial",
+        "is-tutorial-message-visible",
+    );
     onRoarLessonContinue = () => { };
     card.hidden = true;
     document.querySelectorAll(".battle-tutorial-target").forEach((element) => {
         element.classList.remove("battle-tutorial-target");
     });
     document.querySelector("#fight-skills-dialog")?.classList.remove("battle-tutorial-skill-step");
-    const status = document.querySelector("#player-status");
-    status?.removeAttribute("tabindex");
+    document.querySelector("#player-status .health-bar")?.removeAttribute("tabindex");
+    document.querySelector("#player-status .stamina-bar")?.removeAttribute("tabindex");
     const tokens = document.querySelector(".battle-token-resources");
     tokens?.removeAttribute("tabindex");
     tokens?.removeAttribute("role");
@@ -189,7 +208,17 @@ function activateCurrentStep() {
         return;
     }
     if (currentStep === "intro") {
-        setStep("status");
+        setStep("health");
+        return;
+    }
+    const informationalNextSteps = {
+        health: "stamina",
+        stamina: "probability",
+        automaticIntro: "automatic",
+        automaticCost: "automaticStop",
+    };
+    if (informationalNextSteps[currentStep]) {
+        setStep(informationalNextSteps[currentStep]);
         return;
     }
     if (currentStep === "roarLesson") {
@@ -212,7 +241,7 @@ function handleTutorialClick(event) {
     if (currentStep === "intro") {
         event.preventDefault();
         event.stopImmediatePropagation();
-        setStep("status");
+        setStep("health");
         return;
     }
     if (waitSteps.has(currentStep)) {
@@ -231,7 +260,8 @@ function handleTutorialClick(event) {
         return;
     }
 
-    if (currentStep === "status") setStep("probability");
+    if (currentStep === "health") setStep("stamina");
+    else if (currentStep === "stamina") setStep("probability");
     else if (currentStep === "probability") setStep("recommendation");
     else if (currentStep === "recommendation") setStep("recommendationFollow");
     else if (currentStep === "recommendationFollow") setStep("recommendationWait");
@@ -288,6 +318,8 @@ export function startBattleTutorial(onFinish = () => { }) {
     onComplete = onFinish;
     onRoarLessonContinue = () => { };
     active = true;
+    document.querySelector(".menu-section")?.classList.add("is-battle-tutorial");
+    document.querySelector(".menu-section")?.classList.remove("is-tutorial-message-visible");
     resizeListener = render;
     document.addEventListener("click", handleTutorialClick, true);
     document.addEventListener("keydown", handleTutorialKeydown, true);
@@ -301,6 +333,14 @@ export function advanceBattleTutorial(step, onContinue = () => { }) {
         return;
     }
     if (step === "roarLesson") onRoarLessonContinue = onContinue;
+    if (step === "automatic" && currentStep === "directWait") {
+        setStep("automaticIntro");
+        return;
+    }
+    if (step === "automaticStop" && currentStep === "automaticWait") {
+        setStep("automaticCost");
+        return;
+    }
     setStep(step);
 }
 

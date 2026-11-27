@@ -1,6 +1,7 @@
 import {endingRecords,endingScenes,constellationName,constellationTheme,starPositions,endingAnimation,ENDING_DURATION} from './ending-model.js';
 import {starAppearance,drawChoiceStar,drawNightDetails,drawStarlight} from './ending-art.js';
 import {drawDiorama} from './ending-diorama.js';
+import {endingEffectForJourney,drawEndingEffect} from './ending-effects.js';
 import { BODY_FONT, EMPHASIS_FONT, gameFontsReady } from './game-fonts.js';
 
 const background=new Image();
@@ -10,7 +11,7 @@ export function createEnding({onRestart}){
     root.innerHTML=`<div class="ending-art"><canvas aria-hidden="true"></canvas><header class="ending-heading"><h1></h1><p>별을 눌러 그 순간의 기억을 펼쳐보세요</p><div class="ending-legend" aria-label="별의 색과 모양 안내"><span data-kind="followed"><i aria-hidden="true"></i>티니의 추천을 따른 선택</span><span data-kind="direct"><i aria-hidden="true"></i>직접 고른 선택</span><span data-kind="memory"><i aria-hidden="true"></i>여정의 기록</span></div><small data-token hidden>결정적인 순간에 토큰을 사용한 여정</small></header><div class="ending-stars" role="group" aria-label="선택 기록 별자리"></div><div class="ending-tooltip" id="ending-star-tip" role="tooltip" hidden></div><p class="ending-empty" hidden>아직 기록된 선택이 없습니다.</p></div><button type="button" class="ending-skip" data-skip>별자리 펼치기</button><article class="ending-record" aria-label="선택한 별의 기록" tabindex="-1" aria-live="polite" hidden></article><div class="ending-actions"><button type="button" class="ending-small-button" data-save>별자리 기록 저장</button><button type="button" class="ending-small-button" data-restart>처음으로</button></div><p role="status" data-status></p><dialog aria-labelledby="ending-reset-title"><h2 id="ending-reset-title">처음으로 돌아갈까요?</h2><p>게임 상태와 선택 기록을 초기화하고 새 여정을 시작합니다.</p><button type="button" data-cancel>취소</button><button type="button" data-confirm>처음부터 시작</button></dialog>`;
     document.querySelector('main').append(root);
     const $=s=>root.querySelector(s),canvas=$('canvas'),ctx=canvas.getContext('2d'),stars=$('.ending-stars'),panel=$('.ending-record'),dialog=$('dialog');
-    let records=[],positions=[],points=[],title='',theme='traveler',selected=-1,focused=0,hovered=-1,hoverStart=0,tokenUsed=false,active=false;
+    let records=[],positions=[],points=[],title='',theme='traveler',effect=null,selected=-1,focused=0,hovered=-1,hoverStart=0,tokenUsed=false,active=false;
     let animationFrame,startTime=0,elapsed=0,lastPaint=0,ambientTime=0,ambientStart=0;
     const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
     function backgroundRect(width,height){
@@ -31,7 +32,8 @@ export function createEnding({onRestart}){
         if(background.complete&&background.naturalWidth)drawDiorama(context,background,backgroundRect(width,height),time,still);
         const coords=layout(width,height);
         const animation=endingAnimation(exportTitle?ENDING_DURATION:elapsed,reducedMotion.matches),done=['complete','settle','fade'].includes(animation.phase);
-        drawNightDetails(context,width,height,coords,time,still,theme);
+        drawNightDetails(context,width,height,coords,time,still,theme,effect?.density??1);
+        drawEndingEffect(context,width,height,time,effect,still);
         for(let i=1;i<records.length;i++){
             const progress=done||i<animation.step?1:i===animation.step?Math.min(1,animation.local/.8):0;
             context.save();context.globalAlpha=animation.phase==='fade'?animation.progress:1;
@@ -104,6 +106,7 @@ export function createEnding({onRestart}){
     return {hide,show(journey,result){
         active=true;records=endingScenes(journey,result);positions=starPositions();title=constellationName(endingRecords(journey,result));tokenUsed=records.some(r=>r.tokenUsed)||journey.events?.some(e=>e.type==='help'&&e.cost>0);
         theme=constellationTheme(endingRecords(journey,result));root.dataset.watermarkTheme=theme;
+        effect=endingEffectForJourney(journey);
         root.className='screen-active ending-screen';root.dataset.result=result;root.setAttribute('aria-label',`별자리 엔딩 · ${title}`);$('h1').textContent=title;$('[data-token]').hidden=!tokenUsed;document.querySelector('.screen-navigation').hidden=true;
         selected=-1;focused=0;hovered=-1;stars.replaceChildren();$('[data-status]').textContent='';
         records.forEach((r,i)=>{const button=document.createElement('button');button.type='button';button.className='ending-star';const label=`${i+1}. ${r.scene}: ${r.hasRecord?r.summary||'선택 기록 있음':'기록 없음'}${r.black?' · 검은 별':''}`;button.setAttribute('aria-label',label);button.dataset.kind=starAppearance(r).kind;button.setAttribute('aria-describedby','ending-star-tip');button.dataset.index=i;button.addEventListener('pointerenter',()=>preview(i));button.addEventListener('pointerleave',()=>preview(-1));button.addEventListener('focus',()=>{if(button.matches(':focus-visible'))preview(i);});button.addEventListener('blur',()=>preview(-1));button.addEventListener('click',()=>select(i,true));stars.append(button);});

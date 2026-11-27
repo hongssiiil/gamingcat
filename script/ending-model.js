@@ -8,7 +8,7 @@ export function endingRecords({choices=[],battles=[]}={},result){
         return {scene:'갈림길',action:choice.label,recommendation:known?choice.options[choice.recommended]:null,
             accepted:known?choice.selected===choice.recommended:null,tokenUsed,detail:choice.prompt||'',recordedAt:choice.recordedAt??index};
     });
-    const combat=battles.filter(turn=>turn.playerChoice).map(turn=>({scene:'늑대 전투',action:turn.playerChoice,
+    const combat=battles.filter(turn=>turn.playerChoice).map(turn=>({scene:'해적 전투',action:turn.playerChoice,
         recommendation:turn.recommendation||null,accepted:typeof turn.accepted==='boolean'?turn.accepted:null,
         tokenUsed:turn.tokenUsed??null,detail:turn.outcome||'',result:turn.result,recordedAt:turn.recordedAt??Number.MAX_SAFE_INTEGER}));
     const records=[...road,...combat].sort((a,b)=>a.recordedAt-b.recordedAt);
@@ -27,7 +27,7 @@ export function constellationTheme(records){
     return accepted>rejected?'cat':rejected>accepted?'compass':'traveler';
 }
 // Fixed scene order and an open, non-crossing constellation; no action adds nodes.
-export const SCENE_NAMES=Object.freeze(['암호 찾기','갈림길 1','갈림길 2','갈림길 3','갈림길 4','갈림길 5','퍼즐 1','퍼즐 2','늑대 전투']);
+export const SCENE_NAMES=Object.freeze(['암호 찾기','갈림길 1','갈림길 2','갈림길 3','갈림길 4','갈림길 5','퍼즐 1','퍼즐 2','해적 전투']);
 const SCENE_POSITIONS=[[.18,.39],[.27,.28],[.43,.31],[.53,.25],[.72,.30],[.81,.41],[.63,.49],[.49,.41],[.32,.50]];
 export function starPositions(){return SCENE_POSITIONS.map(([x,y])=>({x,y}));}
 export function endingScenes(journey={},result){
@@ -60,7 +60,7 @@ export function endingScenes(journey={},result){
     const actionCounts=new Map();turns.forEach(t=>actionCounts.set(t.playerChoice,(actionCounts.get(t.playerChoice)||0)+1));
     const knownTurns=turns.filter(t=>typeof t.accepted==='boolean'),followedTurns=knownTurns.filter(t=>t.accepted).length;
     if(turns.length||['victory','escape','defeat'].includes(outcome))Object.assign(nodes[8],{hasRecord:true,
-        summary:({victory:'늑대 전투에서 승리했어요.',escape:'늑대 전투에서 도주했어요.',defeat:'늑대 전투에서 패배했어요.'})[outcome]||turns.at(-1)?.outcome||'선택한 전투 행동이 기록되어 있어요.',
+        summary:({victory:'해적 전투에서 승리했어요.',escape:'해적 전투에서 도주했어요.',defeat:'해적 전투에서 패배했어요.'})[outcome]||turns.at(-1)?.outcome||'선택한 전투 행동이 기록되어 있어요.',
         detail:turns.at(-1)?.outcome||null,action:[...actionCounts].map(([action,count])=>`${action} ${count}회`).join(' · '),black:outcome==='escape',tokenUsed:turns.some(t=>t.tokenUsed===true)||null,
         accepted:knownTurns.length===turns.length&&knownTurns.length?(followedTurns===knownTurns.length?true:followedTurns===0?false:null):null});
     return nodes;

@@ -330,10 +330,10 @@ function drawMap(dt=0){
         sheet.dataset.status=status;action.hidden=!at||puzzleOpen||celebrating;action.disabled=action.hidden;action.dataset.encounter=at?.id??'';
         sheet.querySelectorAll('.road-explore-move').forEach(b=>{b.disabled=puzzleOpen||celebrating;});
         if(at&&!puzzleOpen){
-            const label=at.id==='battle'?'늑대와 마주하기 [E]':at.id==='tutorial'?'두더지와 전투 연습 [E]':'장애물 돌파 [E]';
+            const label=at.id==='battle'?'해적과 마주하기 [E]':at.id==='tutorial'?'코코넛 해적과 전투 연습 [E]':'장애물 돌파 [E]';
             action.textContent=label;
         }
-        sheet.querySelector('.road-explore-description').textContent=puzzleOpen?'오른쪽 퍼즐 패널에서 장애물을 돌파하는 중입니다. 지도 이동은 잠시 멈춥니다.':celebrating?'돌이 사라지고 잉크 길이 이어졌습니다.':at?'! 여기 장애물이 있다 ! '+at.label+'. A/D 또는 좌우 방향키로 이동 (막힘). E로 '+(at.id==='battle'?'늑대와 마주하기.':at.id==='tutorial'?'두더지와 전투 연습.':'장애물 돌파.'):'A/D 또는 좌우 방향키로 직접 그린 잉크 길을 탐험하세요.';
+        sheet.querySelector('.road-explore-description').textContent=puzzleOpen?'오른쪽 퍼즐 패널에서 장애물을 돌파하는 중입니다. 지도 이동은 잠시 멈춥니다.':celebrating?'돌이 사라지고 잉크 길이 이어졌습니다.':at?'! 여기 장애물이 있다 ! '+at.label+'. A/D 또는 좌우 방향키로 이동 (막힘). E로 '+(at.id==='battle'?'해적과 마주하기.':at.id==='tutorial'?'코코넛 해적과 전투 연습.':'장애물 돌파.'):'A/D 또는 좌우 방향키로 직접 그린 잉크 길을 탐험하세요.';
     }
 }
 function openPuzzle(nodeId){
@@ -519,7 +519,7 @@ function render(){
     else if(state.stage==='contract')intro('contract');
     else if(state.stage==='stopped'){setHeader('여정이 종료되었습니다','');renderCard('','당신은 동의하지 않았습니다.','이곳에서 여정이 멈췄습니다.',[['처음부터 다시 시작',()=>{resetJourneyState();save();render();}]]);}
     else if(state.stage==='topic')renderTopic();else if(state.stage==='fork')renderFork();else if(state.stage==='summary')renderMap(true);else if(state.stage==='map')renderMap();else if(isPuzzleOpen(state))renderPuzzle({nodeId:puzzleNodeId(state.stage)});
-    else if(state.stage==='battleReady'){setHeader('길 위의 낯선 그림자','');renderCard('늑대와 마주침','탈출하는 길에서 늑대와 마주쳤다.','티니가 당신 곁에 멈춰 섭니다.',[['늑대와 마주하기',()=>$('#show-battle').click()],['지도로 돌아가기',()=>changeStage('map')]]);}
+    else if(state.stage==='battleReady'){setHeader('길 위의 낯선 그림자','');renderCard('해적과 마주침','탈출하는 길에서 해적과 마주쳤다.','티니가 당신 곁에 멈춰 섭니다.',[['해적과 마주하기',()=>$('#show-battle').click()],['지도로 돌아가기',()=>changeStage('map')]]);}
     if(forestPopup&&root.classList.contains('screen-active')){
         closeHelp(false);
         if(!flowDialog.open)flowDialog.showModal();
@@ -599,13 +599,15 @@ function frame(time){
 }
 export function enterRoad(){root.classList.replace('screen','screen-active');keys.clear();render();if(!flowDialog.open)view.focus({preventScroll:true});}
 export function exitRoad(){closeHelp(false);root.classList.replace('screen-active','screen');keys.clear();if(modal.open)closeModal();if(flowDialog.open)flowDialog.close();save();}
-export function getCurrentRoadBattleBackground(){return state.stage==='forest'?'./images/battle/battle_bg_green.png':'./images/battle/battle_bg_white.png';}
+export function getCurrentRoadBattleBackground(kind=roadBattleKind(state)){
+    return kind==='mole'?'./images/battle/battle_bg_sand_night.png':'./images/battle/battle_bg_deck_night.png';
+}
 export function getRoadBattleKind(){return roadBattleKind(state);}
 // Live access keeps battle on the same wallet even after a journey is restarted.
 export const journeyTokens={get tokens(){return state.tokens;},set tokens(value){state.tokens=value;},get events(){return state.events;}};
 export function saveJourneyTokens(){save();updateResources();}
 export function returnFromTutorial(result){finishMapTutorial(state,result);save();enterRoad();}
-export function getEndingJourney(){return {choices:state.choices,events:state.events,battles:state.battleHistory||[],notes:state.notes,completed:state.completed,pondTrail:state.pondTrail,climbTrail:state.climbTrail};}
+export function getEndingJourney(){return {choices:state.choices,events:state.events,battles:state.battleHistory||[],notes:state.notes,tokens:state.tokens,completed:state.completed,pondTrail:state.pondTrail,climbTrail:state.climbTrail};}
 export function saveBattleChoice(turn){state.battleHistory??=[];if(!state.battleHistory.includes(turn))state.battleHistory.push(turn);save();}
 export function restartJourney(){resetJourneyState();save();enterRoad();}
 save();render();requestAnimationFrame(frame);

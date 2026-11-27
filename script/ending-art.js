@@ -61,18 +61,33 @@ const TRAVELER=['00000001110000000','00000011111000000','00000111111100000','000
 export const WATERMARKS=Object.freeze({cat:CAT,compass:COMPASS,traveler:TRAVELER});
 const meteorRandom=random(7301);
 export const METEOR_GAPS=Object.freeze(Array.from({length:64},()=>2000+Math.floor(meteorRandom()*2001)));
-const meteors=METEOR_GAPS.map(()=>({duration:800+meteorRandom()*850,x:.05+meteorRandom()*.62,y:.02+meteorRandom()*.22,dx:.18+meteorRandom()*.18,dy:.12+meteorRandom()*.16,length:10+Math.floor(meteorRandom()*15),alpha:.3+meteorRandom()*.35}));
-const meteorCycle=METEOR_GAPS.reduce((a,b)=>a+b,0);
+const meteors=METEOR_GAPS.map(()=>({duration:2200+meteorRandom()*1000,x:.05+meteorRandom()*.62,y:.02+meteorRandom()*.22,dx:.18+meteorRandom()*.18,dy:.12+meteorRandom()*.16,length:10+Math.floor(meteorRandom()*15),alpha:.3+meteorRandom()*.35}));
+export const METEOR_CYCLE=METEOR_GAPS.reduce((a,b)=>a+b,0)+meteors.reduce((sum,meteor)=>sum+meteor.duration,0);
 export function meteorAt(time){
     if(time<2000)return null;
-    let cursor=(time-2000)%meteorCycle;
+    let cursor=(time-2000)%METEOR_CYCLE;
     for(let i=0;i<METEOR_GAPS.length;i++){
-        if(cursor<meteors[i].duration)return {index:i,...meteors[i],progress:cursor/meteors[i].duration};
+        const meteor=meteors[i];
+        if(cursor<meteor.duration)return {index:i,...meteor,progress:cursor/meteor.duration};
+        cursor-=meteor.duration;
         if(cursor<METEOR_GAPS[i])return null;cursor-=METEOR_GAPS[i];
     }
     return null;
 }
-export function drawNightDetails(ctx,width,height,coords,time=0,still=false,theme='cat'){
+export function meteorLane(index,count){
+    const columns=count>=12?4:count>=6?2:1,rows=Math.ceil(count/columns);
+    return {x:.05+.70*((index%columns)+.5)/columns,y:.02+.48*(Math.floor(index/columns)+.5)/rows};
+}
+export function meteorMotion(meteor,count){
+    return {dx:.12+meteor.dx*.16,dy:.07+meteor.dy*.2,length:Math.min(count>=10?15:18,meteor.length)};
+}
+export function meteorTracksAt(time,count){
+    return Array.from({length:count},(_,index)=>{
+        const meteor=meteorAt(time+METEOR_CYCLE*index/count);
+        return meteor?{meteor,lane:meteorLane(index,count)}:null;
+    }).filter(Boolean);
+}
+export function drawNightDetails(ctx,width,height,coords,time=0,still=false,theme='cat',meteorDensity=1){
     ctx.save();
     for(const p of particles){
         const fade=Math.max(.4,1-p.y/.85),pulse=still?1:(p.twinkle?.65:.9)+(p.twinkle?.35:.1)*Math.sin(time/p.period*Math.PI*2+p.phase);
@@ -84,15 +99,24 @@ export function drawNightDetails(ctx,width,height,coords,time=0,still=false,them
     const span=Math.max(...coords.map(p=>p.x))-Math.min(...coords.map(p=>p.x));
     const unit=Math.max(3,Math.min(8,Math.round(span/75)));
     ctx.globalAlpha=.055;glyph(ctx,WATERMARKS[theme]||WATERMARKS.traveler,cx,cy,unit,'#9aabdc');
-    if(!still){
-        const meteor=meteorAt(time);
-        if(meteor){
-            const t=meteor.progress,x=width*(meteor.x+t*meteor.dx),y=height*(meteor.y+t*meteor.dy);
-            const angle=Math.atan2(height*meteor.dy,width*meteor.dx),dx=Math.cos(angle)*4,dy=Math.sin(angle)*4;
-            for(let i=0;i<meteor.length;i++){
-                ctx.globalAlpha=Math.pow(1-i/meteor.length,1.6)*meteor.alpha*Math.sin(t*Math.PI);
-                pixelLine(ctx,x-i*dx,y-i*dy,x-(i+1)*dx,y-(i+1)*dy,'#c7def6',2);
+    if(!still&&meteorDensity>0){
+        const count=meteorDensity>1?meteorDensity:1;
+        for(const {meteor,lane} of meteorTracksAt(time,count)){
+            const t=meteor.progress,{dx:trackDx,dy:trackDy,length}=meteorMotion(meteor,count);
+            const x=width*(lane.x+t*trackDx),y=height*(lane.y+t*trackDy);
+            const angle=Math.atan2(height*trackDy,width*trackDx),dx=Math.cos(angle)*4,dy=Math.sin(angle)*4;
+            ctx.save();
+            for(let i=0;i<length;i++){
+                const shimmer=.55+.45*Math.sin(t*Math.PI*8+meteor.index*1.9);
+                ctx.globalAlpha=Math.pow(1-i/length,1.45)*Math.min(1,meteor.alpha*2.6)*shimmer;
+                ctx.fillStyle=i<2?'#fff9df':i<5?'#e5f3ff':'#b9d9ff';
+                ctx.fillRect(Math.round((x-i*dx)/2)*2,Math.round((y-i*dy)/2)*2,2,2);
             }
+            const sparkle=.55+.45*Math.sin(t*Math.PI*8+meteor.index*1.9);
+            ctx.globalAlpha=sparkle;ctx.fillStyle='#fffdf0';
+            ctx.fillRect(Math.round((x-2)/2)*2,Math.round(y/2)*2,6,2);
+            ctx.fillRect(Math.round(x/2)*2,Math.round((y-2)/2)*2,2,6);
+            ctx.restore();
         }
     }
     ctx.restore();

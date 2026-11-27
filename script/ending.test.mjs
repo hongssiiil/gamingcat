@@ -31,7 +31,7 @@ test('many battle actions still create one battle node; escape alone is black',(
     const battles=Array.from({length:30},()=>({playerChoice:'도망 시도',outcome:'도망에 실패했다.'}));battles.at(-1).result='escape';
     const escaped=endingScenes({battles},'escape');assert.equal(escaped.length,9);assert.equal(escaped[8].black,true);assert.equal(escaped.filter(n=>n.black).length,1);
     assert.equal(endingScenes({battles},'victory')[8].black,false);assert.equal(endingScenes()[8].black,false);
-    assert.equal(endingScenes({battles:[{playerChoice:'일반 공격',result:'defeat'}]})[8].summary,'늑대 전투에서 패배했어요.');
+    assert.equal(endingScenes({battles:[{playerChoice:'일반 공격',result:'defeat'}]})[8].summary,'해적 전투에서 패배했어요.');
 });
 test('nine fixed positions are stable, separated and have no crossing segments',()=>{
     const p=starPositions();assert.equal(p.length,9);assert.deepEqual(p,starPositions());
