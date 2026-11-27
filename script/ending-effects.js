@@ -1,7 +1,7 @@
 export function tokenUsageBand(spent){
     const amount=Number.isFinite(spent)?Math.max(0,spent):0;
     if(amount<=10)return 0;
-    if(amount<=20)return 1;
+    if(amount<20)return 1;
     if(amount<=30)return 2;
     return 3;
 }
@@ -9,7 +9,7 @@ export function tokenUsageBand(spent){
 export function endingEffectForJourney(journey){
     const spent=Math.max(0,30-(Number.isFinite(journey?.tokens)?journey.tokens:30));
     const band=tokenUsageBand(spent);
-    return {spent,band,kind:band<2?'meteor':'token',density:band===0?16:band===1?8:0,busy:band===3};
+    return {spent,band,kind:band<2?'meteor':band===2?'none':'token',density:band===0?16:band===1?8:0,busy:band===3};
 }
 
 const TOKEN_PHASES=Object.freeze(Array.from({length:14},(_,i)=>({
@@ -32,7 +32,7 @@ export function drawPixelToken(ctx,x,y,size,alpha){
 }
 
 export function drawEndingEffect(ctx,width,height,time,effect,still=false){
-    if(still||!effect)return;
+    if(still||!effect||effect.kind==='none')return;
     if(effect.kind==='meteor')return;
     const count=effect.busy?TOKEN_PHASES.length:5,ceiling=height*.72;
     for(let i=0;i<count;i++){

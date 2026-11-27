@@ -6,29 +6,30 @@ import {drawNightDetails,meteorLane,meteorMotion,meteorTracksAt,METEOR_CYCLE} fr
 function canvas(){const rects=[],stack=[];return {rects,globalAlpha:1,fillStyle:'',save(){stack.push([this.globalAlpha,this.fillStyle]);},restore(){[this.globalAlpha,this.fillStyle]=stack.pop();},fillRect(...rect){rects.push([...rect,this.globalAlpha,this.fillStyle]);}};}
 
 test('token use bands include each boundary and continue above the starting allowance',()=>{
-    assert.deepEqual([0,10,11,20,21,30,31,44].map(tokenUsageBand),[0,0,1,1,2,2,3,3]);
+    assert.deepEqual([0,10,11,19,20,30,31,44].map(tokenUsageBand),[0,0,1,1,2,2,3,3]);
     assert.equal(endingEffectForJourney({tokens:30}).kind,'meteor');
     assert.equal(endingEffectForJourney({tokens:30}).density,16);
     assert.equal(endingEffectForJourney({tokens:19}).density,8);
-    assert.equal(endingEffectForJourney({tokens:0}).kind,'token');
+    assert.equal(endingEffectForJourney({tokens:10}).kind,'none');
+    assert.equal(endingEffectForJourney({tokens:0}).kind,'none');
     assert.equal(endingEffectForJourney({tokens:-1}).busy,true);
     assert.equal(endingEffectForJourney({}).spent,0);
 });
 
-test('lower token use selects multiple meteors and later bands switch fully to tokens',()=>{
+test('lower token use selects meteors, while 0-10 remaining tokens has no falling effect',()=>{
     const low=endingEffectForJourney({tokens:30}),moderate=endingEffectForJourney({tokens:19});
     const lowCanvas=canvas(),moderateCanvas=canvas(),tokenCanvas=canvas();
     const coords=[{x:200,y:200},{x:500,y:400}];
     drawNightDetails(lowCanvas,800,600,coords,8000,false,'cat',low.density);
     drawNightDetails(moderateCanvas,800,600,coords,8000,false,'cat',moderate.density);
-    drawEndingEffect(tokenCanvas,800,600,0,endingEffectForJourney({tokens:0}));
+    drawEndingEffect(tokenCanvas,800,600,0,endingEffectForJourney({tokens:10}));
     let lowTotal=0,moderateTotal=0;
     for(let time=2000;time<2000+METEOR_CYCLE;time+=2500){
         lowTotal+=meteorTracksAt(time,low.density).length;
         moderateTotal+=meteorTracksAt(time,moderate.density).length;
     }
     assert(lowTotal>moderateTotal);
-    assert(tokenCanvas.rects.length>0);
+    assert.equal(tokenCanvas.rects.length,0);
 });
 
 test('token artwork is drawn as a centered pixel diamond',()=>{
@@ -41,18 +42,18 @@ test('token artwork is drawn as a centered pixel diamond',()=>{
     assert(ctx.rects.every(rect=>rect[5]==='#858585'));
 });
 
-test('token drops take longer to cross the sky',()=>{
-    const ctx=canvas();drawEndingEffect(ctx,800,600,0,endingEffectForJourney({tokens:0}));
+test('negative token balance keeps the slow token drop effect',()=>{
+    const ctx=canvas();drawEndingEffect(ctx,800,600,0,endingEffectForJourney({tokens:-1}));
     assert(ctx.rects.length>0);
-    assert.equal(endingEffectForJourney({tokens:0}).kind,'token');
+    assert.equal(endingEffectForJourney({tokens:-1}).kind,'token');
     // Even after five seconds, the first ordinary token has only just begun to descend.
-    const later=canvas();drawEndingEffect(later,800,600,5000,endingEffectForJourney({tokens:0}));
+    const later=canvas();drawEndingEffect(later,800,600,5000,endingEffectForJourney({tokens:-1}));
     assert(later.rects.length>0);
     assert(Math.max(...later.rects.map(r=>r[1]+r[3]))<130);
 });
 
-test('token drops enter from the top in staggered waves',()=>{
-    const effect=endingEffectForJourney({tokens:0}),early=canvas(),later=canvas();
+test('negative-balance token drops enter from the top in staggered waves',()=>{
+    const effect=endingEffectForJourney({tokens:-1}),early=canvas(),later=canvas();
     drawEndingEffect(early,800,600,0,effect);
     drawEndingEffect(later,800,600,4000,effect);
     const bounds=ctx=>({min:Math.min(...ctx.rects.map(r=>r[1])),max:Math.max(...ctx.rects.map(r=>r[1]+r[3]))});
